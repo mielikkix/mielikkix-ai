@@ -7,10 +7,11 @@ from .product import Product
 from .conversation import Conversation, Message
 from .lead import Lead
 from .password_reset_token import PasswordResetToken
+from .llm_usage import LLMUsageLog
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
     "Document", "DocumentChunk", "Product",
     "Conversation", "Message", "Lead",
-    "PasswordResetToken",
+    "PasswordResetToken", "LLMUsageLog",
 ]

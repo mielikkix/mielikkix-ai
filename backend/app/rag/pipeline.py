@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..models.document import DocumentChunk
 from ..models.faq import FAQ
 from ..models.product import Product
+from ..models.llm_usage import LLMUsageLog
 from .embeddings import embed_query
 from .providers import get_llm_provider
 
@@ -122,7 +123,25 @@ async def run_rag(
 
     provider = get_llm_provider(llm_provider, llm_model)
     reply = await provider.generate(message, context, tone, history, languages)
+    log_llm_usage(db, business_id, llm_provider, provider, kind="chat")
     return reply, intent, best_score
+
+
+def log_llm_usage(db: Session, business_id: str, provider_name: str, provider, kind: str) -> None:
+    """Stage an LLMUsageLog row for the platform-admin usage dashboard, if
+    the provider recorded token usage for its most recent call (only Groq
+    does today -- see rag/providers/groq_provider.py). Not committed here;
+    the caller's own db.commit() covers it in the same transaction."""
+    usage = getattr(provider, "last_usage", None)
+    if not usage:
+        return
+    db.add(LLMUsageLog(
+        business_id=business_id,
+        provider=provider_name,
+        model=getattr(provider, "model", None),
+        kind=kind,
+        **usage,
+    ))
 
 
 def _detect_intent(message: str) -> str:

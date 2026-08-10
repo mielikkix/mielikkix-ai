@@ -64,8 +64,8 @@ graph TB
 
 ### 2.3 Backend API (FastAPI)
 - Stateless REST API, horizontally scalable.
-- Routers: `auth`, `businesses`, `faqs`, `documents`, `products`, `chat`, `leads`, `analytics`.
-- All authenticated routes resolve `business_id` from the JWT — never trust a client-supplied tenant ID for writes.
+- Routers: `auth`, `businesses`, `faqs`, `documents`, `products`, `chat`, `leads`, `analytics`, `websites`, `admin`.
+- All authenticated routes resolve `business_id` from the JWT — never trust a client-supplied tenant ID for writes. The `admin` router is the one deliberate exception: it's platform-operator-only (see §2.7) and intentionally queries across every tenant.
 
 ### 2.4 RAG Pipeline (Python, `app/rag/pipeline.py`)
 1. Document uploaded → text extracted → chunked (`chunk_size`/`chunk_overlap` from settings).
@@ -84,7 +84,22 @@ graph TB
 - Triggered by explicit form fill or detected "lead" intent mid-conversation.
 - Stored in `leads` table; optionally emailed to the business via free-tier transactional email.
 
-### 2.7 Plan Service (`app/services/plan_service.py` + `app/core/plans.py`)
+### 2.7 Platform Admin Dashboard (`/admin`, React)
+- A private area of the same dashboard SPA, reserved for the AgentNexus operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `frontend/src/App.tsx`.
+- Identity: the `PLATFORM_ADMIN_EMAILS` env var (comma-separated) is checked against the logged-in user's email — see `require_platform_admin` in `app/core/dependencies.py`. Not a DB column, since this is a deployment-level operator concept, not a per-tenant role; logging in still goes through the normal `/login` flow and JWT cookie.
+- Shows: all registered businesses and their plan/status (`/admin/businesses`), a per-business drill-down (`/admin/businesses/{id}`), a platform KPI overview (`/admin`), and Groq LLM token usage (`/admin/usage`, backed by §2.8 below).
+- Every backend route lives under `/api/admin` and is protected once at the router level by `require_platform_admin`, so nothing added later can be left unprotected.
+- **No self-serve path to a paid plan.** `PATCH /api/businesses/me/plan` (the business's own dashboard) only ever accepts `"free"` — any paid value is rejected with `403`, deliberately, because no payment processor is connected anywhere in the app (checkout is a simulated UI, see `files/FEATURES.md`). Without that check, anyone who skipped the UI and called the endpoint directly (curl/Postman/Swagger) could put their own business on Growth for free; that's a monetization gap, not something the frontend's `PAYMENT_COMING_SOON` modal actually closes on its own, so the backend closes it instead.
+- **Only a platform admin can set a paid plan** — `PATCH /api/admin/businesses/{id}/plan` (operator-only, any of `free`/`basic`/`business`/`growth`), exposed as a "Set plan…" control on the business detail page. This is the sole mechanism for putting a business on a paid tier until real billing exists: testing, demos, or manually activating a customer who paid through some other channel (e.g. a bank transfer, invoice).
+- **Business status lifecycle** (`businesses.status`: `trial` / `active` / `suspended`) — mostly automatic, with one manual override:
+  - Both plan-set paths auto-sync status: `"trial"` on Free, `"active"` on any paid plan — this is the only real "purchase" signal that exists today. The admin plan endpoint skips this sync if the business is currently `suspended`, so changing a suspended business's plan doesn't silently reactivate it.
+  - The business detail page's **Suspend**/**Reactivate** buttons call `PATCH /api/admin/businesses/{id}/status` (operator-only). Suspending also force-downgrades the business to Free — standing in for what a real failed/cancelled-payment webhook would do once billing is actually wired up. Reactivating only flips status back; it does not restore whatever plan the business was on before.
+
+### 2.8 LLM Usage Tracking
+- Token usage is recorded per LLM call into `llm_usage_logs` (see `files/DATABASE_SCHEMA.md`) — today only the Groq provider captures it (`GroqProvider._record_usage` in `app/rag/providers/groq_provider.py`), since that's the platform's default/free-tier provider and the only one the admin usage page needs to show. `run_rag` (`app/rag/pipeline.py`) and the fallback-message translation flow (`app/api/businesses.py`) both call the shared `log_llm_usage`/`_fill_default_fallback_translations` logging path; rows are staged with `db.add` and committed in the same transaction as the chat message or settings update they belong to, not separately.
+- Other providers (Gemini, Ollama) aren't instrumented — a business on those shows no usage data on `/admin/usage` until/unless that provider is instrumented the same way.
+
+### 2.9 Plan Service (`app/services/plan_service.py` + `app/core/plans.py`)
 - `app/core/plans.py` is the single source of truth for the four plans (Free/Basic/Business/Growth) — limits and feature flags as plain dataclasses, nothing hardcoded elsewhere.
 - `plan_service` answers "is business X allowed to do Y right now": usage counting (websites, conversations this month, documents, products), limit checks (raise `402` when a cap is hit), and feature gating (raise `403` if a plan doesn't include a feature, `501` if the plan includes it but it isn't actually built yet — see `NOT_YET_IMPLEMENTED_FEATURES`).
 - Routers call these helpers rather than re-deriving limits themselves, so a plan change in `plans.py` takes effect everywhere at once.
@@ -109,7 +124,7 @@ graph TB
 - `GET /me/settings`, `PATCH /me/settings` — tone, welcome/fallback message, hours, contact info, languages (plan-gated count), LLM provider/model
 - `GET /plans` — public plan catalog (pricing page / upgrade UI)
 - `GET /me/plan` — current plan + live usage + resolved feature flags
-- `PATCH /me/plan` — switch plans (no payment processor behind this — see `files/FEATURES.md`)
+- `PATCH /me/plan` — self-serve, **Free-only**: `403` on any paid plan value, since no payment processor exists (see `files/FEATURES.md` and §2.7). Switching to Free auto-syncs `status` to `"trial"`.
 - `PATCH /me/plan/api-access-addon` — toggle the Business-tier "+$12/mo API access" add-on
 - `GET /me/api-key`, `POST /me/api-key`, `DELETE /me/api-key` — API key issuance/revocation (gated by `api_access` feature)
 - `POST /me/notification-channels` — enable WhatsApp/Instagram; currently always 501s (not built yet), by design
@@ -141,6 +156,14 @@ graph TB
 
 ### Analytics (`/api/analytics`)
 - `GET /summary` — conversation/lead/message counts + top questions; field set varies by plan's `analytics_tier` (basic/standard/advanced)
+
+### Platform Admin (`/api/admin`) — operator-only, see §2.7/§2.8
+- `GET /overview` — platform KPIs: total businesses, breakdown by plan/status, signups over the last 30 days, totals for conversations/leads/documents
+- `GET /businesses` — paginated, filterable (`q`, `plan`, `status`) list of every registered business + owner + plan + usage counts
+- `GET /businesses/{business_id}` — full detail for one business: profile, owners, plan/limits/usage, settings snapshot, resource counts, 30-day Groq usage summary
+- `PATCH /businesses/{business_id}/plan` — set any plan (`free`/`basic`/`business`/`growth`); the only way to reach a paid plan today (see §2.7). Auto-syncs `status`, skipped if the business is currently suspended.
+- `PATCH /businesses/{business_id}/status` — manual `active`/`suspended` override (see §2.7); suspending also forces `plan = "free"`
+- `GET /llm-usage` — Groq token usage totals, a daily series, and a top-businesses-by-tokens breakdown (`business_id`, `days` query params)
 
 ## 5. Deployment Topology
 

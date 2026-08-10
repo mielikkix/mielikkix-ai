@@ -22,6 +22,10 @@ cd C:\Pratibha2026\AgentNexus\backend
   `GET /api/businesses/{id}/public-settings`, `POST /api/auth/forgot-password`,
   `POST /api/auth/reset-password`. No auth required; the widget-facing ones need a real
   `business_id` passed explicitly since there's no JWT to infer it from.
+- **Platform-admin (operator-only) endpoints** — everything under `/api/admin`. These need a JWT
+  *and* that JWT's email must be in the `PLATFORM_ADMIN_EMAILS` env var — a normal business owner's
+  token gets a **403** here even though it works fine on every other authenticated endpoint above.
+  See section 10.
 
 ---
 
@@ -98,9 +102,12 @@ Both endpoints are rate-limited (5/hour and 10/hour respectively) — expect **4
 - **`GET /api/businesses/me/plan`** → your current plan, live usage counts (websites,
   conversations this month, documents, products), resolved feature flags, and
   `not_yet_implemented` (currently `["instagram_integration", "whatsapp_notifications"]`).
-- **`PATCH /api/businesses/me/plan`** → `{ "plan": "business" }`. Takes effect immediately — no
-  real payment step behind this endpoint (the dashboard's checkout modal is a simulated UI in
-  front of this same call; see `files/FEATURES.md`).
+- **`PATCH /api/businesses/me/plan`** → self-serve, **Free-only**. `{ "plan": "free" }` works and
+  sets `status` back to `"trial"` (check via `GET /api/businesses/me` — `status` isn't in the
+  plan-status response). Try `{ "plan": "business" }` here and expect a **403**, not a 200 — no
+  payment processor exists, so this endpoint deliberately can't put a business on a paid plan, even
+  via a direct API call. To actually get a paid-plan business to test the rest of this guide with,
+  use the admin endpoint in section 10 instead: `PATCH /api/admin/businesses/{id}/plan`.
 - **`PATCH /api/businesses/me/plan/api-access-addon`** → `{ "enabled": true }`. Only works on the
   `business` plan — expect **403** on other plans.
 - **`GET`/`POST`/`DELETE /api/businesses/me/api-key`** → issue/revoke a bearer API key. `POST`
@@ -210,6 +217,42 @@ Run this last, after you've generated a bit of chat/lead activity above. Expect 
 conversations, leads, messages, and a `top_questions` list built from repeated visitor messages.
 The exact field set returned depends on your plan's `analytics_tier` (basic/standard/advanced) —
 compare the response on a Free-plan business vs. one you've switched to Growth in step 3.
+
+---
+
+## 10. Platform Admin — `/api/admin` (operator-only)
+
+Everything here needs a JWT for a user whose email is in `PLATFORM_ADMIN_EMAILS` (see the repo-root
+`.env`) — Authorize with a token from an allowlisted account, not a regular business one, or every
+call below 403s. This router intentionally queries across *every* tenant, unlike the rest of the
+API — that's correct here, not a multi-tenancy leak (see `files/CLAUDE.md`'s multi-tenancy rule).
+
+- **`GET /overview`** → platform KPIs: `total_businesses`, `businesses_by_plan`,
+  `businesses_by_status`, `signups_last_30d`, and totals for conversations/leads/documents.
+- **`GET /businesses`** → paginated list of every business. Optional query params: `q` (matches
+  name/slug/owner email), `plan`, `status`, `page`, `page_size`.
+- **`GET /businesses/{business_id}`** → full detail for one business — profile, owners, plan
+  limits/usage, chatbot settings snapshot, resource counts, and a 30-day Groq usage summary.
+  Expect **404** for an unknown/garbage UUID.
+- **`PATCH /businesses/{business_id}/plan`** → the only way to reach a paid plan today:
+  ```json
+  { "plan": "growth" }
+  ```
+  Valid values: `"free"`, `"basic"`, `"business"`, `"growth"` — anything else correctly returns
+  **422**. Also auto-syncs `status` (`"active"` for a paid plan, `"trial"` for Free), unless the
+  business is currently suspended, in which case the plan changes but `status` doesn't.
+- **`PATCH /businesses/{business_id}/status`** → manual status override:
+  ```json
+  { "status": "suspended" }
+  ```
+  Valid values are only `"active"` and `"suspended"` (not `"trial"` — that one's automatic, see
+  section 3 above). Suspending also forces that business's `plan` back to `"free"` in the same
+  call — check the response body's `plan` field to confirm. Sending `"trial"` or anything else
+  correctly returns **422**.
+- **`GET /llm-usage`** → Groq token usage: totals, a daily series, and a top-10-businesses-by-tokens
+  breakdown. Optional `business_id` (filter to one business) and `days` (default 30) query params.
+  Will be all zeros until a chat message has actually gone through a business on the Groq provider —
+  run section 7 first if you want non-empty numbers here.
 
 ---
 

@@ -8,6 +8,7 @@ interface User {
   full_name: string
   role: string
   business_id: string
+  is_platform_admin: boolean
 }
 
 interface AuthState {

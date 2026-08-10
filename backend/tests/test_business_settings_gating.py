@@ -16,8 +16,8 @@ def test_custom_color_rejected_on_free_plan(client, business):
     assert resp.status_code == 403
 
 
-def test_custom_color_allowed_on_basic_plan(client, business):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "basic"})
+def test_custom_color_allowed_on_basic_plan(client, business, set_plan):
+    set_plan(business["business_id"], "basic")
     resp = client.patch("/api/businesses/me", headers=business["headers"], json={"primary_color": "#123456"})
     assert resp.status_code == 200
     assert resp.json()["primary_color"] == "#123456"
@@ -44,14 +44,14 @@ def test_second_language_rejected_on_free_plan(client, business):
     assert resp.status_code == 402
 
 
-def test_two_languages_allowed_on_basic_plan(client, business):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "basic"})
+def test_two_languages_allowed_on_basic_plan(client, business, set_plan):
+    set_plan(business["business_id"], "basic")
     resp = client.patch("/api/businesses/me/settings", headers=business["headers"], json={"languages": ["en", "es"]})
     assert resp.status_code == 200
 
 
-def test_many_languages_allowed_on_growth_plan(client, business):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "growth"})
+def test_many_languages_allowed_on_growth_plan(client, business, set_plan):
+    set_plan(business["business_id"], "growth")
     langs = ["en", "es", "fr", "de", "hi"]
     resp = client.patch("/api/businesses/me/settings", headers=business["headers"], json={"languages": langs})
     assert resp.status_code == 200

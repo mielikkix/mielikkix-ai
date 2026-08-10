@@ -35,8 +35,8 @@ erDiagram
 | industry | TEXT | retail, restaurant, clinic, real_estate, service, other |
 | logo_url | TEXT | nullable |
 | primary_color | TEXT | for widget theming; default `#ff6b00`, custom values gated by plan |
-| plan | TEXT | free / basic / business / growth (see `app/core/plans.py`) |
-| status | TEXT | active / trial / suspended |
+| plan | TEXT | free / basic / business / growth (see `app/core/plans.py`); self-serve can only ever set this to `free` — no payment processor exists, so only a platform admin can put a business on a paid plan |
+| status | TEXT | active / trial / suspended — auto-synced whenever `plan` changes (Free → trial, any paid plan → active), via either the self-serve `PATCH /api/businesses/me/plan` (Free-only, see below) or the admin-only `PATCH /api/admin/businesses/{id}/plan` (the only way to reach a paid plan). Also manually overridable by a platform admin via `PATCH /api/admin/businesses/{id}/status`; suspending forces `plan` back to `free`. See `files/ARCHITECTURE.md` §2.7. |
 | api_access_addon | BOOLEAN | Business-tier "+$12/mo API access" toggle; irrelevant on other plans |
 | api_key | TEXT | nullable; issued/revoked via `/api/businesses/me/api-key`, gated by the `api_access` feature |
 | created_at | TIMESTAMPTZ | |
@@ -176,6 +176,21 @@ Count against a business is capped by plan (`app/core/plans.py`'s `max_websites`
 | message | TEXT | nullable |
 | status | TEXT | new / contacted / won / lost |
 | created_at | TIMESTAMPTZ | |
+
+### `llm_usage_logs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| business_id | UUID FK | indexed |
+| provider | TEXT | `groq` today — the only provider that records usage (see `app/rag/providers/groq_provider.py`) |
+| model | TEXT | nullable |
+| kind | TEXT | `chat` (a visitor message answered via `run_rag`) or `translate` (fallback-message translation, see `app/api/businesses.py`) |
+| prompt_tokens | INTEGER | |
+| completion_tokens | INTEGER | |
+| total_tokens | INTEGER | |
+| created_at | TIMESTAMPTZ | indexed |
+
+One row per LLM API call, written in the same transaction as the chat message/settings update it belongs to. Powers the platform-admin Groq usage page (`GET /api/admin/llm-usage`) — see `files/ARCHITECTURE.md` §2.8.
 
 ## Notes on Vector Storage
 

@@ -23,6 +23,7 @@ from ..core.plans import PLANS
 from ..services import plan_service
 from ..rag.providers import get_llm_provider
 from ..rag.providers.base import LANGUAGE_NAMES
+from ..rag.pipeline import log_llm_usage
 import secrets
 from fastapi import HTTPException
 
@@ -49,7 +50,7 @@ def get_public_settings(business_id: str, db: Session = Depends(get_db)):
     )
 
 
-async def _fill_default_fallback_translations(s: BusinessSettings, new_languages: list) -> None:
+async def _fill_default_fallback_translations(db: Session, s: BusinessSettings, new_languages: list) -> None:
     """Best-effort: when a business enables a language it's never had before,
     pre-fill fallback_messages for it via the configured LLM provider, so the
     fallback reply isn't blank/English-only until the owner gets around to
@@ -69,6 +70,7 @@ async def _fill_default_fallback_translations(s: BusinessSettings, new_languages
         target_language = LANGUAGE_NAMES.get(code, code)
         try:
             fallback_messages[code] = await provider.translate(source_text, target_language)
+            log_llm_usage(db, s.business_id, s.llm_provider, provider, kind="translate")
         except Exception:
             # No API key configured, provider unreachable, etc. -- leave it
             # unset rather than fail the whole language-save; the owner can
@@ -128,7 +130,7 @@ async def update_settings(
     updates = update.model_dump(exclude_none=True)
     if "languages" in updates:
         plan_service.check_language_limit(business, updates["languages"])
-        await _fill_default_fallback_translations(s, updates["languages"])
+        await _fill_default_fallback_translations(db, s, updates["languages"])
     for field, val in updates.items():
         setattr(s, field, val)
     db.commit()
@@ -159,15 +161,32 @@ def choose_plan(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    """The business user picks a plan (Free/Basic/Business/Growth). No
-    payment processing is wired up here -- in production this would sit
-    behind a checkout/billing step; for now the plan takes effect
-    immediately, same as the other "not ready yet" seams in this module."""
+    """Self-serve plan switching. Only ever allowed to move to Free.
+
+    No payment processor is wired up anywhere in this app yet (frontend
+    checkout is a simulated UI behind PAYMENT_COMING_SOON -- see
+    PlanPage.tsx), so this endpoint must never be able to move a business
+    onto a paid plan: nothing downstream of it would have verified any
+    money actually changed hands. Free is safe to self-serve because it's
+    the one direction with no revenue implication either way.
+
+    Paid plans can only be set by a platform admin (`PATCH
+    /api/admin/businesses/{id}/plan`, see admin_service.set_business_plan)
+    until real billing exists -- that's the one place status auto-follows
+    the plan today (free -> trial, paid -> active)."""
     if body.plan not in PLANS:
         raise HTTPException(status_code=400, detail=f"Unknown plan '{body.plan}'.")
-    business.plan = body.plan
-    if body.plan != "business":
-        business.api_access_addon = False  # add-on is Business-tier only
+    if body.plan != "free":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Paid plans aren't available for self-serve upgrade yet -- "
+                "payment processing is coming soon. Contact us to activate a paid plan."
+            ),
+        )
+    business.plan = "free"
+    business.status = "trial"
+    business.api_access_addon = False  # add-on is Business-tier only
     db.commit()
     db.refresh(business)
     return plan_service.get_plan_status(db, business)

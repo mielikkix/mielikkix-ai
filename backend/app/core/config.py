@@ -78,6 +78,16 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    # Comma-separated emails allowed into the platform-operator-only /admin
+    # dashboard (see app/core/dependencies.py:require_platform_admin). Not a
+    # DB flag on purpose -- this is the platform owner, not a per-tenant role,
+    # so it belongs in deployment config, not a table any tenant data touches.
+    platform_admin_emails: str = ""
+
+    @property
+    def platform_admin_emails_list(self) -> list[str]:
+        return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]
+
     class Config:
         env_file = str(_ROOT_ENV_FILE)
         extra = "ignore"

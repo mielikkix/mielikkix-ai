@@ -37,7 +37,7 @@ AgentNexus/
 ├── frontend/                  # React + TypeScript — dashboard app + embeddable widget
 │   ├── src/
 │   │   ├── widget/              # Embeddable chat widget (Widget.tsx, ChatWindow, LeadForm; built separately as widget-main.tsx)
-│   │   ├── dashboard/            # Admin dashboard app (pages/, components/)
+│   │   ├── dashboard/            # Admin dashboard app (pages/, components/) — pages/admin + components/admin hold the separate platform-operator-only /admin area
 │   │   ├── shared/               # Shared components, hooks, api client
 │   │   └── main.tsx
 │   ├── nginx.conf                # prod: serves the build, proxies /api/* to backend
@@ -45,7 +45,7 @@ AgentNexus/
 │   └── package.json
 ├── backend/                   # FastAPI
 │   ├── app/
-│   │   ├── api/                 # Routers: auth, businesses, faqs, documents, products, chat, leads, analytics, websites
+│   │   ├── api/                 # Routers: auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin
 │   │   ├── core/                 # Config, security, dependencies, plans.py (plan catalog), cors.py, limiter.py
 │   │   ├── models/                # SQLAlchemy models
 │   │   ├── schemas/               # Pydantic schemas
@@ -87,7 +87,7 @@ cd frontend && npm test
 
 ## Coding Conventions
 
-- **Multi-tenancy**: every table with business data carries `business_id`; every query MUST filter by the authenticated tenant. Never trust a `business_id` passed from the client without cross-checking the auth token.
+- **Multi-tenancy**: every table with business data carries `business_id`; every query MUST filter by the authenticated tenant. Never trust a `business_id` passed from the client without cross-checking the auth token. The one deliberate exception is `app/services/admin_service.py` / the `admin` router — platform-operator-only, gated by `require_platform_admin`, intentionally queries across every tenant for the `/admin` dashboard (see `files/ARCHITECTURE.md` §2.7).
 - **Backend**: FastAPI routers stay thin; business logic lives in `services/`. Pydantic schemas separate request/response shapes from SQLAlchemy models.
 - **Frontend**: the chat widget (`frontend/src/widget`) must build to a single small bundle with no external runtime dependency on the dashboard — it's embedded via `<script>` on third-party sites.
 - **Secrets**: never commit `.env`. All provider keys (LLM, storage) are read from environment variables via `app/core/config.py`.

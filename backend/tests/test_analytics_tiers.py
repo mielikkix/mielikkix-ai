@@ -27,8 +27,8 @@ def test_basic_tier_hides_top_questions_and_intent_breakdown(client, business, d
     assert body["message_count"] == 2
 
 
-def test_standard_tier_shows_top_questions_but_not_intent_breakdown(client, business, db_session):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "basic"})
+def test_standard_tier_shows_top_questions_but_not_intent_breakdown(client, business, db_session, set_plan):
+    set_plan(business["business_id"], "basic")
     seed_conversation(db_session, business["business_id"], "What are your hours?")
     seed_conversation(db_session, business["business_id"], "What are your hours?")
     seed_conversation(db_session, business["business_id"], "Do you deliver?")
@@ -41,8 +41,8 @@ def test_standard_tier_shows_top_questions_but_not_intent_breakdown(client, busi
     assert body["intent_breakdown"] == {}
 
 
-def test_advanced_tier_shows_intent_breakdown(client, business, db_session):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "business"})
+def test_advanced_tier_shows_intent_breakdown(client, business, db_session, set_plan):
+    set_plan(business["business_id"], "business")
     seed_conversation(db_session, business["business_id"], "What are your hours?", intent="faq")
     seed_conversation(db_session, business["business_id"], "Do you sell mugs?", intent="product_inquiry")
     seed_conversation(db_session, business["business_id"], "Can I get a callback?", intent="lead")

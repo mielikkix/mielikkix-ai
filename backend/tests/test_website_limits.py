@@ -22,8 +22,8 @@ def test_free_plan_blocked_after_one_website(client, business):
     assert resp.status_code == 402
 
 
-def test_business_plan_allows_up_to_three_websites(client, business):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "business"})
+def test_business_plan_allows_up_to_three_websites(client, business, set_plan):
+    set_plan(business["business_id"], "business")
     for domain in ["a.com", "b.com", "c.com"]:
         resp = client.post("/api/websites", headers=business["headers"], json={"domain": domain})
         assert resp.status_code == 200

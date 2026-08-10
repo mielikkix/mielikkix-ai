@@ -38,6 +38,15 @@ A snapshot of what's actually implemented and verified working, as of this point
 - **Website management** — register the domain(s) a business runs its widget on, capped by plan (1 on Free/Basic, 3 on Business, 10 on Growth); adding past the cap is blocked server-side, not just hidden in the UI.
 - **Self-serve password reset** — "forgot password" emails a time-limited reset link (1 hour); the raw token is never stored, only its hash, so a database read alone can't produce a usable link.
 
+## Platform Admin Dashboard
+
+- **Operator-only `/admin` area** — reachable at `app.agentnexus.tech/admin` (or `/admin` on the local dev server), visually distinct from the tenant dashboard, gated by a `PLATFORM_ADMIN_EMAILS` allowlist checked server-side — a business owner who isn't on the list is bounced straight back to their own `/dashboard`, no error page, no data leak.
+- **Every registered business, one place** — searchable/filterable/paginated list of every business on the platform with plan, status, owner, and live usage counts; a drill-down page per business shows its owners, plan limits/usage, chatbot settings, and resource counts.
+- **Platform KPIs** — total businesses, breakdown by plan and status, and a 30-day signups chart.
+- **Groq API token usage** — per-call token counts are now logged for every Groq-backed chat reply, rolled up into totals, a daily chart, and a top-businesses-by-usage ranking, filterable to a single business.
+- **Business lifecycle status** — `active` / `trial` / `suspended` now means something: a paid plan sets a business to `active`, dropping back to Free reverts it to `trial`. An operator can also manually **Suspend**/**Reactivate** a business from its detail page — suspending also drops it to the Free plan, mirroring what a failed/cancelled payment would do once real billing exists (it doesn't yet, so this stays a manual admin action for now).
+- **Paid plans are admin-only, on purpose** — a business's own dashboard can only ever self-serve down to Free (`PATCH /api/businesses/me/plan` rejects anything else with a `403`). Since no payment processor is connected anywhere in the app, letting that endpoint accept paid values would mean anyone who called the API directly (not just through the website) could hand themselves a free Growth plan. Only a platform admin can put a business on a paid plan — a **"Set plan…"** control on the business detail page — for testing, demos, or manually activating a customer who paid another way until real billing is wired up.
+
 ## Runs the Business Side Too
 
 - **Automatic lead email notifications** — the business owner gets emailed the moment a new lead comes in, instead of needing to check the dashboard manually.

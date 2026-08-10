@@ -25,8 +25,8 @@ def test_non_usd_currency_rejected_on_free_plan(client, business):
     assert resp.status_code == 403
 
 
-def test_non_usd_currency_allowed_on_basic_plan(client, business):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "basic"})
+def test_non_usd_currency_allowed_on_basic_plan(client, business, set_plan):
+    set_plan(business["business_id"], "basic")
     resp = client.post("/api/products", headers=business["headers"], json=_product(currency="EUR"))
     assert resp.status_code == 200
     assert resp.json()["currency"] == "EUR"
@@ -40,8 +40,8 @@ def test_updating_product_to_non_usd_currency_rejected_on_free_plan(client, busi
     assert resp.status_code == 403
 
 
-def test_product_limit_unlimited_on_growth_plan(client, business):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "growth"})
+def test_product_limit_unlimited_on_growth_plan(client, business, set_plan):
+    set_plan(business["business_id"], "growth")
     for i in range(15):  # comfortably above the Free/Basic caps
         r = client.post("/api/products", headers=business["headers"], json=_product(name=f"Item {i}"))
         assert r.status_code == 200

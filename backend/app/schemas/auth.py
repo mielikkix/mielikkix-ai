@@ -49,6 +49,7 @@ class UserOut(BaseModel):
     full_name: str
     role: str
     business_id: UUID
+    is_platform_admin: bool = False
 
     class Config:
         from_attributes = True

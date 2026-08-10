@@ -29,12 +29,12 @@ def test_upload_blocked_once_free_plan_cap_reached(client, business, mock_embedd
     assert len(listing.json()) == 2  # the 3rd upload was never created
 
 
-def test_upload_unblocked_after_upgrading_plan(client, business, mock_embeddings):
+def test_upload_unblocked_after_upgrading_plan(client, business, mock_embeddings, set_plan):
     _upload(client, business["headers"], name="doc1.txt")
     _upload(client, business["headers"], name="doc2.txt")
     assert _upload(client, business["headers"], name="doc3.txt").status_code == 402
 
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "basic"})
+    set_plan(business["business_id"], "basic")
 
     resp = _upload(client, business["headers"], name="doc3.txt")
     assert resp.status_code == 200

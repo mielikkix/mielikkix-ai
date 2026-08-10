@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, MessageSquare, BookOpen, FileText, ShoppingBag, Users, Settings, CreditCard, LogOut, X } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, BookOpen, FileText, ShoppingBag, Users, Settings, CreditCard, LogOut, X, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../../shared/store/authStore'
 import { clsx } from 'clsx'
 
@@ -21,6 +21,7 @@ interface Props {
 
 export function Sidebar({ open, onClose }: Props) {
   const logout = useAuthStore((s) => s.logout)
+  const isPlatformAdmin = useAuthStore((s) => s.user?.is_platform_admin)
 
   return (
     <>
@@ -76,7 +77,16 @@ export function Sidebar({ open, onClose }: Props) {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-100 space-y-1">
+          {isPlatformAdmin && (
+            <NavLink
+              to="/admin"
+              className="flex items-center gap-3 px-3 py-2 rounded-xl text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+            >
+              <ShieldCheck size={18} className="text-slate-500" />
+              Platform Admin
+            </NavLink>
+          )}
           <button
             onClick={logout}
             className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors"

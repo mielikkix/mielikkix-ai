@@ -20,7 +20,7 @@ A multi-tenant SaaS chatbot where each business:
 ## 4. Target Users
 
 - **Small business owners** (non-technical) — configure and use the dashboard.
-- **You (operator/freelancer)** — onboard clients, customize branding, maintain the platform.
+- **You (operator/freelancer)** — onboard clients, customize branding, maintain the platform. Now has a dedicated tool for this: a platform-admin dashboard at `/admin` (see `files/FEATURES.md`), separate from each business's own `/dashboard`.
 - **End customers** on the business's website — chat with the widget.
 
 ## 5. Core Features

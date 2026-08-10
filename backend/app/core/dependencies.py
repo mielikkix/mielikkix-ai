@@ -2,6 +2,7 @@ import uuid
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from jose import JWTError
+from .config import settings
 from .database import get_db
 from .security import decode_token
 from ..models.user import User
@@ -52,3 +53,16 @@ def get_current_business(
     if not business:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found")
     return business
+
+
+def is_platform_admin(user: User) -> bool:
+    """Whether this user is the platform operator (AgentNexus itself), not a
+    tenant. Deliberately config-driven (PLATFORM_ADMIN_EMAILS), not a DB
+    column -- see the comment on that setting in core/config.py."""
+    return user.email.lower() in settings.platform_admin_emails_list
+
+
+def require_platform_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not is_platform_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+    return current_user

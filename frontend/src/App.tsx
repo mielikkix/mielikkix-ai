@@ -14,6 +14,11 @@ import { ConversationsPage } from './dashboard/pages/ConversationsPage'
 import { SettingsPage } from './dashboard/pages/SettingsPage'
 import { PlanPage } from './dashboard/pages/PlanPage'
 import { Sidebar } from './dashboard/components/Sidebar'
+import { AdminLayout } from './dashboard/components/AdminLayout'
+import { AdminOverviewPage } from './dashboard/pages/admin/AdminOverviewPage'
+import { AdminBusinessesPage } from './dashboard/pages/admin/AdminBusinessesPage'
+import { AdminBusinessDetailPage } from './dashboard/pages/admin/AdminBusinessDetailPage'
+import { AdminUsagePage } from './dashboard/pages/admin/AdminUsagePage'
 import { useAuthStore } from './shared/store/authStore'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +51,20 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const initialized = useAuthStore((s) => s.initialized)
   if (!initialized) return null
   return user ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+// Platform-operator-only area (see files/ARCHITECTURE.md §2.7) -- gated by
+// is_platform_admin on the logged-in user, resolved server-side from
+// PLATFORM_ADMIN_EMAILS (app/core/dependencies.py:require_platform_admin).
+// A non-admin business user who lands here is bounced to their own
+// dashboard, not the login page, since they're still authenticated.
+function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  const initialized = useAuthStore((s) => s.initialized)
+  if (!initialized) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (!user.is_platform_admin) return <Navigate to="/dashboard" replace />
+  return <>{children}</>
 }
 
 export function App() {
@@ -123,6 +142,38 @@ export function App() {
           <RequireAuth>
             <DashboardLayout><PlanPage /></DashboardLayout>
           </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminOverviewPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/businesses"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminBusinessesPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/businesses/:businessId"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminBusinessDetailPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/usage"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminUsagePage /></AdminLayout>
+          </RequireAdmin>
         }
       />
       <Route path="*" element={<Navigate to="/login" replace />} />

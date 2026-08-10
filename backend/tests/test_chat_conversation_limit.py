@@ -81,8 +81,8 @@ def test_history_hides_conversations_older_than_free_plan_window(client, busines
     assert session_ids == {"recent"}
 
 
-def test_history_unlimited_on_business_plan(client, business, db_session):
-    client.patch("/api/businesses/me/plan", headers=business["headers"], json={"plan": "business"})
+def test_history_unlimited_on_business_plan(client, business, db_session, set_plan):
+    set_plan(business["business_id"], "business")
     old = Conversation(business_id=business["business_id"], session_id="ancient")
     old.started_at = datetime.now(timezone.utc) - timedelta(days=400)
     db_session.add(old)

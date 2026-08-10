@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..core.database import get_db
-from ..core.dependencies import AUTH_COOKIE_NAME, get_current_user
+from ..core.dependencies import AUTH_COOKIE_NAME, get_current_user, is_platform_admin
 from ..core.limiter import limiter
 from ..models.user import User
 from ..notifications import notify_password_reset
@@ -17,6 +17,12 @@ from ..schemas.auth import (
 from ..services import auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _user_out(user: User) -> UserOut:
+    out = UserOut.model_validate(user)
+    out.is_platform_admin = is_platform_admin(user)
+    return out
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:
@@ -40,7 +46,7 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 def register(request: Request, req: RegisterRequest, response: Response, db: Session = Depends(get_db)):
     user, token = auth_service.register(db, req)
     _set_auth_cookie(response, token)
-    return user
+    return _user_out(user)
 
 
 @router.post("/login", response_model=UserOut)
@@ -48,12 +54,12 @@ def register(request: Request, req: RegisterRequest, response: Response, db: Ses
 def login(request: Request, req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user, token = auth_service.login(db, req)
     _set_auth_cookie(response, token)
-    return user
+    return _user_out(user)
 
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
-    return current_user
+    return _user_out(current_user)
 
 
 @router.post("/logout", response_model=MessageResponse)

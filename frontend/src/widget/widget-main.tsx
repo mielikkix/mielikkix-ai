@@ -3,6 +3,9 @@ import { Widget } from './Widget'
 import tailwindStyles from './widget-tailwind.css?inline'
 import resetStyles from './widget.css?inline'
 
+// Last-resort only -- real embeds derive the API base from the script's own
+// src origin below. This only applies if that derivation fails outright
+// (e.g. document.currentScript unavailable).
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 
 // Must capture this synchronously, right now, while the script tag is still
@@ -15,7 +18,21 @@ function mount() {
   const businessId = script?.dataset.business || script?.getAttribute('data-business')
   const primaryColor = script?.dataset.color
   const botName = script?.dataset.botName
-  const apiBaseUrl = script?.dataset.apiUrl || DEFAULT_API_BASE_URL
+  // The widget script and the API are always served from the same origin
+  // (nginx proxies /api/* alongside the static build in production; Vite's
+  // dev server proxies /api the same way locally) -- deriving the API base
+  // from the script's own src means every embed snippet just works,
+  // without needing a manually-added data-api-url on every business's site.
+  // data-api-url still works as an explicit override (e.g. pointing a local
+  // widget build at a different backend).
+  const scriptOrigin = (() => {
+    try {
+      return script?.src ? new URL(script.src).origin : null
+    } catch {
+      return null
+    }
+  })()
+  const apiBaseUrl = script?.dataset.apiUrl || scriptOrigin || DEFAULT_API_BASE_URL
 
   if (!businessId) {
     console.warn('[AgentNexus] Missing data-business attribute on widget script tag.')

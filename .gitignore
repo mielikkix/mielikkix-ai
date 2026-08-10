@@ -35,3 +35,6 @@ Thumbs.db
 
 # Office lock files
 ~$*
+
+# Marketing collateral (pitch decks etc.) -- not app code, kept local only
+marketing/

@@ -76,6 +76,12 @@ graph TB
 
 **Migrating to a real pgvector similarity query** (`ORDER BY embedding <=> query_embedding` with an ivfflat/HNSW index, on a native `VECTOR` column instead of `embedding_json` TEXT) is tracked as follow-up work, not yet done.
 
+**Full-site import** (`POST /api/documents/from-website`, `app/services/document_service.py`): given just a domain, discovers every page on that site and ingests each one through the same fetch→strip→chunk→embed pipeline as the single-page `/from-url` import (`ingest_url`), rather than requiring the owner to paste in one URL at a time.
+- Discovery: tries `{domain}/sitemap.xml` first (following one level of `<sitemapindex>` nesting, up to 5 nested sitemaps), falls back to a same-domain link crawl (BFS, depth 2) if no sitemap exists — see `discover_website_pages`.
+- Filtered by `robots.txt` (`_get_robot_parser`) and non-page file extensions (images, PDFs, etc.), then capped at `MAX_CRAWL_PAGES` (40) regardless of plan, and further trimmed to the business's remaining `max_document_uploads` allowance before anything is queued.
+- Runs as a FastAPI `BackgroundTasks` job (`crawl_and_ingest_website`) so the request returns immediately with a discovered/queued count — pages appear on the Documents page one by one as they move `processing` → `embedded`. The background job opens its own DB session (`SessionLocal()`) since the request's injected session is already closed by the time it runs; one page failing to fetch doesn't abort the rest of the batch.
+- Same SSRF guard (`_assert_public_url`) as the single-page import, applied to the entered domain and to every discovered link during a link-crawl fallback.
+
 ### 2.5 LLM Provider Abstraction
 - Common interface (`generate(prompt, context) -> text`) with adapters for Groq, Google Gemini, local Ollama, OpenAI, Claude.
 - Default to a free-tier provider; business/tenant config can override which provider/model to use.
@@ -137,7 +143,8 @@ graph TB
 
 ### Documents / knowledge base (`/api/documents`)
 - `GET ""`, `POST ""` — file upload, triggers chunk+embed
-- `POST /from-url` — fetch and ingest a web page directly (SSRF-guarded — rejects internal/private addresses)
+- `POST /from-url` — fetch and ingest a single web page directly (SSRF-guarded — rejects internal/private addresses)
+- `POST /from-website` — discover and ingest every page on a domain (sitemap → link-crawl fallback → robots.txt filter → plan-cap trim), queued as a background job — see §2.4
 - `DELETE /{id}`
 
 ### Products/Services (`/api/products`)

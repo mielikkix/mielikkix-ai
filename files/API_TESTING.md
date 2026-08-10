@@ -160,6 +160,13 @@ Expect a `DocumentOut` back with `status: "pending"` or `"embedded"`.
   directly instead of uploading a file. Try it with an internal address like
   `http://localhost:8000` or `http://169.254.169.254` too — expect a rejection, not a fetch; that's
   the SSRF guard working.
+- **`POST /from-website`** → `{ "url": "https://example.com" }` — discovers every page on that
+  domain (sitemap first, link crawl if there's no sitemap) and imports them all as documents.
+  Expect an immediate `{ discovered, queued, message }` response, not a `DocumentOut` — the actual
+  fetch+embed work happens in a background task, so `GET ""` right after will show new rows with
+  `status: "processing"` that flip to `"embedded"` (or `"failed"`) a few seconds later as the crawl
+  works through them. `queued` will be lower than `discovered` if your business is close to its
+  plan's document-upload cap — the crawl only imports as many pages as you have room for.
 - **`DELETE /{doc_id}`** → remove it.
 
 > Known gap: the current pipeline embeds chunks into a plain `embedding_json` TEXT column and

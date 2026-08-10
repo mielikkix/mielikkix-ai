@@ -17,6 +17,7 @@ A snapshot of what's actually implemented and verified working, as of this point
 - **Retrieval-grounded answers (RAG)** — the bot answers from a business's own FAQs, uploaded documents, and product/service catalog — not generic web knowledge.
 - **Upload almost anything** — PDF, Word, Excel, CSV, and plain text documents are all supported out of the box.
 - **Import directly from a web page** — paste a URL (e.g. an existing About or FAQ page) and the bot learns from it immediately, no copy-pasting content into forms.
+- **Import your whole website** — enter just a domain and every page gets discovered (sitemap, or a link crawl if there's no sitemap) and imported automatically, capped by plan and filtered by `robots.txt`, running in the background so pages appear on the Documents page as they finish.
 - **Remembers the conversation** — follow-up questions like "and the cappuccino?" after "what's the price of a latte?" are understood in context, not answered as an isolated, disconnected question.
 - **Won't make things up** — explicitly instructed to say "I don't know" rather than invent plausible-sounding but false details (hours, prices, policies) when it lacks real grounding.
 - **Swappable AI engine** — works with Groq, Google Gemini, or a self-hosted Ollama model; free-tier friendly by default.
@@ -99,4 +100,4 @@ Choosing a paid plan opens a checkout modal (card name/number/expiry/CVC with cl
 
 ---
 
-*Not yet built (known gaps, tracked separately): live human-agent handoff mid-conversation, business-hours-aware responses, full multi-page website crawling (only single-page import exists), multi-language support beyond the plan gate itself, a real payment processor (checkout is simulated — see above), conversation overage billing, usage-threshold nudge emails, annual billing, and a signup abuse guard (one free business per verified email+phone) for the free tier. WhatsApp/Instagram notification channels are plan-gated in the UI but have no real integration behind them yet.*
+*Not yet built (known gaps, tracked separately): live human-agent handoff mid-conversation, business-hours-aware responses, multi-language support beyond the plan gate itself, a real payment processor (checkout is simulated — see above), conversation overage billing, usage-threshold nudge emails, annual billing, and a signup abuse guard (one free business per verified email+phone) for the free tier. WhatsApp/Instagram notification channels are plan-gated in the UI but have no real integration behind them yet.*

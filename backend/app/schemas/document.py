@@ -8,6 +8,16 @@ class DocumentFromUrlRequest(BaseModel):
     url: str
 
 
+class WebsiteCrawlRequest(BaseModel):
+    url: str
+
+
+class WebsiteCrawlOut(BaseModel):
+    discovered: int
+    queued: int
+    message: str
+
+
 class DocumentOut(BaseModel):
     id: UUID
     business_id: UUID

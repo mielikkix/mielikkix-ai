@@ -9,6 +9,7 @@ import { Input } from '../../shared/components/Input'
 import { UsageMeter } from '../../shared/components/UsageMeter'
 import { PlanGate } from '../../shared/components/PlanGate'
 import { CheckoutModal } from '../components/CheckoutModal'
+import { PaymentComingSoonModal } from '../components/PaymentComingSoonModal'
 import { CurrencySwitcher } from '../components/CurrencySwitcher'
 import { usePlan, usePlanCatalog, PlanCatalogEntry } from '../../shared/hooks/usePlan'
 import { useCurrency } from '../../shared/hooks/useCurrency'
@@ -228,11 +229,19 @@ function planFeatureLines(entry: PlanCatalogEntry, format: (usd: number) => stri
   return lines
 }
 
+// No payment processor is connected yet (see CheckoutModal.tsx), so paid
+// plans aren't actually purchasable. Flip to false to bring back the fake
+// checkout flow for local testing/dev; leave true everywhere else
+// (including production) so business owners see "coming soon" instead of
+// "paying" for real.
+const PAYMENT_COMING_SOON = true
+
 export function PlanPage() {
   const qc = useQueryClient()
   const { data: status } = usePlan()
   const { data: catalog } = usePlanCatalog()
   const [checkoutPlan, setCheckoutPlan] = useState<PlanCatalogEntry | null>(null)
+  const [comingSoonPlan, setComingSoonPlan] = useState<PlanCatalogEntry | null>(null)
   const { currency, setCurrency, format } = useCurrency()
 
   // Free needs no payment step; paid plans go through checkout first.
@@ -244,6 +253,8 @@ export function PlanPage() {
   const handleChoosePlan = (entry: PlanCatalogEntry) => {
     if (entry.price_usd === 0) {
       chooseMutation.mutate(entry.key)
+    } else if (PAYMENT_COMING_SOON) {
+      setComingSoonPlan(entry)
     } else {
       setCheckoutPlan(entry)
     }
@@ -338,6 +349,7 @@ export function PlanPage() {
       )}
 
       {checkoutPlan && <CheckoutModal plan={checkoutPlan} format={format} onClose={() => setCheckoutPlan(null)} />}
+      {comingSoonPlan && <PaymentComingSoonModal plan={comingSoonPlan} onClose={() => setComingSoonPlan(null)} />}
     </div>
   )
 }

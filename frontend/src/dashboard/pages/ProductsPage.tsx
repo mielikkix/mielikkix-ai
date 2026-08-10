@@ -20,6 +20,34 @@ interface Product {
 
 const emptyForm = { name: '', description: '', price: '', currency: 'USD', category: '' }
 
+interface ProductFormFieldsProps {
+  form: typeof emptyForm
+  onChange: (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => void
+  multiCurrencyAllowed: boolean
+}
+
+// Defined at module scope, not inside ProductsPage's render body -- a
+// component redefined on every render gets a new identity each time, so
+// React unmounts/remounts it (and every input inside, losing focus) on
+// every keystroke instead of just updating it in place.
+function ProductFormFields({ form, onChange, multiCurrencyAllowed }: ProductFormFieldsProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Input label="Name" value={form.name} onChange={onChange('name')} className="col-span-2" />
+      <Input label="Description" value={form.description} onChange={onChange('description')} className="col-span-2" />
+      <Input label="Price" type="number" value={form.price} onChange={onChange('price')} />
+      <Input
+        label="Currency"
+        value={form.currency}
+        onChange={onChange('currency')}
+        disabled={!multiCurrencyAllowed}
+        title={!multiCurrencyAllowed ? 'Upgrade your plan to price products in other currencies.' : undefined}
+      />
+      <Input label="Category" value={form.category} onChange={onChange('category')} className="col-span-2" />
+    </div>
+  )
+}
+
 export function ProductsPage() {
   const qc = useQueryClient()
   const { data: products = [] } = useQuery<Product[]>({
@@ -59,22 +87,6 @@ export function ProductsPage() {
     setForm({ name: p.name, description: p.description || '', price: p.price?.toString() || '', currency: p.currency, category: p.category || '' })
   }
 
-  const FormFields = () => (
-    <div className="grid grid-cols-2 gap-3">
-      <Input label="Name" value={form.name} onChange={set('name')} className="col-span-2" />
-      <Input label="Description" value={form.description} onChange={set('description')} className="col-span-2" />
-      <Input label="Price" type="number" value={form.price} onChange={set('price')} />
-      <Input
-        label="Currency"
-        value={form.currency}
-        onChange={set('currency')}
-        disabled={!multiCurrencyAllowed}
-        title={!multiCurrencyAllowed ? 'Upgrade your plan to price products in other currencies.' : undefined}
-      />
-      <Input label="Category" value={form.category} onChange={set('category')} className="col-span-2" />
-    </div>
-  )
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -90,7 +102,7 @@ export function ProductsPage() {
       {adding && (
         <Card title="New product / service">
           <div className="space-y-3">
-            <FormFields />
+            <ProductFormFields form={form} onChange={set} multiCurrencyAllowed={multiCurrencyAllowed} />
             <div className="flex gap-2">
               <Button size="sm" loading={createMut.isPending} onClick={() => createMut.mutate(form)}>Save</Button>
               <Button size="sm" variant="secondary" onClick={() => { setAdding(false); setForm(emptyForm) }}>Cancel</Button>
@@ -109,7 +121,7 @@ export function ProductsPage() {
           <Card key={p.id}>
             {editId === p.id ? (
               <div className="space-y-3">
-                <FormFields />
+                <ProductFormFields form={form} onChange={set} multiCurrencyAllowed={multiCurrencyAllowed} />
                 <div className="flex gap-2">
                   <Button size="sm" loading={updateMut.isPending} onClick={() => updateMut.mutate({ id: p.id, ...form })}>Save</Button>
                   <Button size="sm" variant="secondary" onClick={() => setEditId(null)}>Cancel</Button>

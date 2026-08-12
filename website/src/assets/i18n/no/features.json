@@ -7,7 +7,7 @@
     "LINE1": "Kraftige AI-funksjoner for",
     "LINE2": "moderne bedrifter",
     "SUBHEADING": "Alt du trenger for å automatisere kundeservice, fange opp leads og vokse bedriften din — samlet på én plattform.",
-    "EXTRA_INTRO": "Enten du driver en butikk, klinikk, restaurant, kurssenter, eiendomsmegling eller servicebedrift, hjelper AgentNexus deg med å engasjere besøkende døgnet rundt og gjøre dem til kunder."
+    "EXTRA_INTRO": "Enten du driver en butikk, klinikk, restaurant, kurssenter, eiendomsmegling eller servicebedrift, hjelper MielikkiX deg med å engasjere besøkende døgnet rundt og gjøre dem til kunder."
   },
   "VALUE_PROPS": [
     "2-minutters oppsett",
@@ -39,12 +39,12 @@
         { "VALUE": "24/7", "LABEL": "Alltid tilgjengelig" },
         { "VALUE": "0", "LABEL": "Uteblitte henvendelser" }
       ],
-      "CALLOUT": "Svaret til høyre genereres i sanntid av AgentNexuss AI, basert på denne bedriftens reelle FAQ-er og katalog — ikke en scriptet demo.",
-      "VIDEO_ALT": "Live demo av AgentNexus AI-chattevindu som svarer på et kundespørsmål"
+      "CALLOUT": "Svaret til høyre genereres i sanntid av MielikkiXs AI, basert på denne bedriftens reelle FAQ-er og katalog — ikke en scriptet demo.",
+      "VIDEO_ALT": "Live demo av MielikkiX AI-chattevindu som svarer på et kundespørsmål"
     },
     "KNOWLEDGE_BASE": {
       "TITLE": "AI-kunnskapsbase",
-      "DESCRIPTION": "Ingen koding nødvendig — last opp dokumenter eller importer nettsiden din, så bygger AgentNexus kunnskapsbasen automatisk.",
+      "DESCRIPTION": "Ingen koding nødvendig — last opp dokumenter eller importer nettsiden din, så bygger MielikkiX kunnskapsbasen automatisk.",
       "BULLETS": ["Nettside-URL-er", "PDF-dokumenter", "Microsoft Word", "Excel-filer", "CSV-filer", "Tekstfiler", "FAQ-database", "Produktkatalog"],
       "TAG_FAQS": "FAQ-er",
       "TAG_DOCUMENTS": "Dokumenter",
@@ -139,7 +139,7 @@
     }
   },
   "WHY_CHOOSE": {
-    "HEADING": "Derfor velger bedrifter AgentNexus",
+    "HEADING": "Derfor velger bedrifter MielikkiX",
     "ITEMS": [
       "2-minutters oppsett",
       "AI trent på din bedrift",

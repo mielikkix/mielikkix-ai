@@ -16,7 +16,7 @@ interface Props {
 }
 
 const { title, description, path = "/", page, titleKey, descriptionKey } = Astro.props;
-const siteUrl = Astro.site ?? new URL("https://www.agentnexus.tech");
+const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
 const canonicalUrl = new URL(path, siteUrl).toString();
 const ogImage = new URL("/og-image.png", siteUrl).toString();
 ---
@@ -38,17 +38,17 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
     -->
     <script is:inline src="/i18n-guard.js"></script>
 
-    <title data-i18n-doc-title={titleKey}>{title} · AgentNexus</title>
+    <title data-i18n-doc-title={titleKey}>{title} · MielikkiX</title>
     <meta name="description" content={description} data-i18n-meta-desc={descriptionKey} />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
-    <meta property="og:title" content={`${title} · AgentNexus`} data-i18n-meta-title={titleKey} />
+    <meta property="og:title" content={`${title} · MielikkiX`} data-i18n-meta-title={titleKey} />
     <meta property="og:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta property="og:image" content={ogImage} />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={`${title} · AgentNexus`} data-i18n-meta-title={titleKey} />
+    <meta name="twitter:title" content={`${title} · MielikkiX`} data-i18n-meta-title={titleKey} />
     <meta name="twitter:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta name="twitter:image" content={ogImage} />
   </head>
@@ -63,14 +63,14 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
       import { init as initCurrency } from "../stores/currencyStore";
       import { DEFAULT_CURRENCY } from "../config/currency";
 
-      const agentnexusPage = document.body.dataset.page;
-      void initI18n(agentnexusPage);
+      const mielikkixPage = document.body.dataset.page;
+      void initI18n(mielikkixPage);
 
       // Currency follows the selected language as one combined switch (see SUPPORTED_LANGUAGES).
       const storedLang = getStoredLanguage();
       const currencyForLang = SUPPORTED_LANGUAGES.find((l) => l.code === storedLang)?.currency ?? DEFAULT_CURRENCY;
       void initCurrency(currencyForLang);
     </script>
-    <script src="https://app.agentnexus.tech/widget.js" data-business="85f6ced2-0bbf-427c-aa95-dd3bd49d6147"></script>
+    <script src="https://app.mielikkix.ai/widget.js" data-business="85f6ced2-0bbf-427c-aa95-dd3bd49d6147"></script>
   </body>
 </html>

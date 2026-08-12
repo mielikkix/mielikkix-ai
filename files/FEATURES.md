@@ -1,4 +1,4 @@
-# AgentNexus — Features Built So Far
+# MielikkiX — Features Built So Far
 
 A snapshot of what's actually implemented and verified working, as of this point in development. Useful as source material for promotional/marketing copy — everything listed here is real and tested, not aspirational.
 
@@ -41,7 +41,7 @@ A snapshot of what's actually implemented and verified working, as of this point
 
 ## Platform Admin Dashboard
 
-- **Operator-only `/admin` area** — reachable at `app.agentnexus.tech/admin` (or `/admin` on the local dev server), visually distinct from the tenant dashboard, gated by a `PLATFORM_ADMIN_EMAILS` allowlist checked server-side — a business owner who isn't on the list is bounced straight back to their own `/dashboard`, no error page, no data leak.
+- **Operator-only `/admin` area** — reachable at `app.mielikkix.ai/admin` (or `/admin` on the local dev server), visually distinct from the tenant dashboard, gated by a `PLATFORM_ADMIN_EMAILS` allowlist checked server-side — a business owner who isn't on the list is bounced straight back to their own `/dashboard`, no error page, no data leak.
 - **Every registered business, one place** — searchable/filterable/paginated list of every business on the platform with plan, status, owner, and live usage counts; a drill-down page per business shows its owners, plan limits/usage, chatbot settings, and resource counts.
 - **Platform KPIs** — total businesses, breakdown by plan and status, and a 30-day signups chart.
 - **Groq API token usage** — per-call token counts are now logged for every Groq-backed chat reply, rolled up into totals, a daily chart, and a top-businesses-by-usage ranking, filterable to a single business.

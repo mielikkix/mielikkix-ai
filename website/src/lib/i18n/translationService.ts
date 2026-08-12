@@ -29,9 +29,9 @@ export const SUPPORTED_LANGUAGES: LanguageDefinition[] = [
 
 export const DEFAULT_LANGUAGE: LanguageCode = "en";
 
-const STORAGE_KEY = "agentnexus:lang";
-export const LANG_CHANGE_EVENT = "agentnexus:langchange";
-const TITLE_SUFFIX = " · AgentNexus";
+const STORAGE_KEY = "mielikkix:lang";
+export const LANG_CHANGE_EVENT = "mielikkix:langchange";
+const TITLE_SUFFIX = " · MielikkiX";
 
 type TranslationDict = Record<string, unknown>;
 

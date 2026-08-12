@@ -1,9 +1,9 @@
-// Dashboard-side currency conversion for AgentNexus's own subscription pricing (Plan &
+// Dashboard-side currency conversion for MielikkiX's own subscription pricing (Plan &
 // Billing / Checkout). Mirrors website/src/services/CurrencyService.ts's approach (same free
 // Frankfurter API, USD as the base currency all plan prices are authored in, localStorage rate
 // caching) but adapted to this app's React Query + localStorage conventions instead of a
 // custom pub/sub store. Unrelated to PlanFeatures.multi_currency, which is about the currencies
-// a business's own chat widget quotes ITS customers in, not what a business pays AgentNexus in.
+// a business's own chat widget quotes ITS customers in, not what a business pays MielikkiX in.
 
 export type CurrencyCode = 'EUR' | 'USD' | 'NOK'
 
@@ -28,7 +28,7 @@ export const BASE_CURRENCY: CurrencyCode = 'USD'
 
 export const DEFAULT_CURRENCY: CurrencyCode = 'EUR'
 
-const STORAGE_KEY = 'agentnexus_dashboard_currency'
+const STORAGE_KEY = 'mielikkix_dashboard_currency'
 
 function isSupportedCurrency(value: string | null): value is CurrencyCode {
   return !!value && value in CURRENCIES

@@ -56,7 +56,7 @@ def get_current_business(
 
 
 def is_platform_admin(user: User) -> bool:
-    """Whether this user is the platform operator (AgentNexus itself), not a
+    """Whether this user is the platform operator (MielikkiX itself), not a
     tenant. Deliberately config-driven (PLATFORM_ADMIN_EMAILS), not a DB
     column -- see the comment on that setting in core/config.py."""
     return user.email.lower() in settings.platform_admin_emails_list

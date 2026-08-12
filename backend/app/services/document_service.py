@@ -26,7 +26,7 @@ MAX_URL_FETCH_BYTES = 5 * 1024 * 1024
 # but could be unlimited on higher tiers -- this still bounds how much work
 # one crawl request can trigger).
 MAX_CRAWL_PAGES = 40
-CRAWL_USER_AGENT = "AgentNexusBot/1.0"
+CRAWL_USER_AGENT = "MielikkiXBot/1.0"
 _NON_PAGE_EXTENSIONS = (
     ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".ico",
     ".zip", ".mp4", ".mp3", ".css", ".js", ".xml", ".json", ".woff", ".woff2",
@@ -251,7 +251,7 @@ async def _fetch_url_text(url: str) -> str:
         for _ in range(max_redirects + 1):
             _assert_public_url(current_url)
             try:
-                resp = await client.get(current_url, headers={"User-Agent": "AgentNexusBot/1.0"})
+                resp = await client.get(current_url, headers={"User-Agent": "MielikkiXBot/1.0"})
             except httpx.HTTPError:
                 raise HTTPException(status_code=400, detail="Could not fetch that URL")
             if resp.is_redirect:

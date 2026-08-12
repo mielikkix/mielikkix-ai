@@ -22,7 +22,7 @@ interface Props {
 }
 
 const genSession = () => `sess_${Math.random().toString(36).slice(2, 10)}`
-const SESSION_KEY = 'agentnexus_session'
+const SESSION_KEY = 'mielikkix_session'
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 
 export function ChatWindow({

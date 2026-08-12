@@ -1,4 +1,4 @@
-# AgentNexus — Swagger API Testing Guide
+# MielikkiX — Swagger API Testing Guide
 
 A walkthrough for manually testing every backend endpoint via the interactive Swagger UI at
 **http://127.0.0.1:8000/docs**. Follow it top to bottom the first time — later sections depend on

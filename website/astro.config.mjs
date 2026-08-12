@@ -7,7 +7,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://www.agentnexus.tech',
+  site: 'https://mielikkix.ai',
 
   vite: {
     plugins: [tailwindcss()]

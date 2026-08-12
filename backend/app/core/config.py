@@ -22,10 +22,10 @@ _ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
-    app_name: str = "AgentNexus API"
+    app_name: str = "MielikkiX API"
     debug: bool = False
 
-    database_url: str = "postgresql://agentnexus:agentnexus@localhost:5432/agentnexus"
+    database_url: str = "postgresql://mielikkix:mielikkix@localhost:5432/mielikkix"
 
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"

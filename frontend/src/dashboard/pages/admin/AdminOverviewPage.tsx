@@ -40,7 +40,7 @@ export function AdminOverviewPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-bold text-slate-900">Platform Overview</h1>
-        <p className="text-base text-slate-500 mt-1">A snapshot of every business on AgentNexus.</p>
+        <p className="text-base text-slate-500 mt-1">A snapshot of every business on MielikkiX.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

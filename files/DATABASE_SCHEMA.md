@@ -1,4 +1,4 @@
-# AgentNexus — Database Schema (PostgreSQL + pgvector)
+# MielikkiX — Database Schema (PostgreSQL + pgvector)
 
 ## Conventions
 - Every tenant-scoped table has a `business_id UUID` foreign key, indexed.

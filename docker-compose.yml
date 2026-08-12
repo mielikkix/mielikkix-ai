@@ -4,15 +4,15 @@ services:
   db:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-agentnexus}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentnexus}
-      POSTGRES_DB: ${POSTGRES_DB:-agentnexus}
+      POSTGRES_USER: ${POSTGRES_USER:-mielikkix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mielikkix}
+      POSTGRES_DB: ${POSTGRES_DB:-mielikkix}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentnexus"]
+      test: ["CMD-SHELL", "pg_isready -U mielikkix"]
       interval: 5s
       retries: 10
 
@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-agentnexus}:${POSTGRES_PASSWORD:-agentnexus}@db:5432/${POSTGRES_DB:-agentnexus}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mielikkix}:${POSTGRES_PASSWORD:-mielikkix}@db:5432/${POSTGRES_DB:-mielikkix}
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:

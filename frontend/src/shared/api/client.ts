@@ -1,7 +1,15 @@
 import axios from 'axios'
 
+// Dev: Vite's dev server proxies /api to localhost:8000 (see vite.config.ts),
+// so same-origin '/api' works without CORS. Prod: frontend (app.mielikkix.ai)
+// and backend (api.mielikkix.ai) are separate hosts, so this must be an
+// absolute URL; withCredentials still works cross-subdomain since the auth
+// cookie's SameSite=Lax only cares about the registrable domain (mielikkix.ai),
+// not the full origin.
+const baseURL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? 'https://api.mielikkix.ai/api' : '/api')
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })

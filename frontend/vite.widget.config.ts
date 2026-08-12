@@ -10,7 +10,7 @@ export default defineConfig({
     outDir: 'dist/widget',
     lib: {
       entry: 'src/widget/widget-main.tsx',
-      name: 'AgentNexusWidget',
+      name: 'MielikkiXWidget',
       formats: ['iife'],
     },
     rollupOptions: {

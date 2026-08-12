@@ -68,7 +68,7 @@ export function AdminBusinessesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-4xl font-bold text-slate-900">Businesses</h1>
-        <p className="text-base text-slate-500 mt-1">Every business registered on AgentNexus.</p>
+        <p className="text-base text-slate-500 mt-1">Every business registered on MielikkiX.</p>
       </div>
 
       <Card>

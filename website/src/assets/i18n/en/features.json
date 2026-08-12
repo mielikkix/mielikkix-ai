@@ -7,7 +7,7 @@
     "LINE1": "Powerful AI Features for",
     "LINE2": "Modern Businesses",
     "SUBHEADING": "Everything you need to automate customer support, capture leads, and grow your business — all in one platform.",
-    "EXTRA_INTRO": "Whether you're a retail store, clinic, restaurant, coaching center, real estate agency, or service business, AgentNexus helps you engage visitors 24/7 and convert them into customers."
+    "EXTRA_INTRO": "Whether you're a retail store, clinic, restaurant, coaching center, real estate agency, or service business, MielikkiX helps you engage visitors 24/7 and convert them into customers."
   },
   "VALUE_PROPS": [
     "2-Minute Setup",
@@ -39,12 +39,12 @@
         { "VALUE": "24/7", "LABEL": "Always available" },
         { "VALUE": "0", "LABEL": "Missed enquiries" }
       ],
-      "CALLOUT": "The reply on the right is generated live by AgentNexus's AI, answering from this business's real FAQs and catalog — not a scripted demo.",
-      "VIDEO_ALT": "Live demo of the AgentNexus AI chat widget answering a customer question"
+      "CALLOUT": "The reply on the right is generated live by MielikkiX's AI, answering from this business's real FAQs and catalog — not a scripted demo.",
+      "VIDEO_ALT": "Live demo of the MielikkiX AI chat widget answering a customer question"
     },
     "KNOWLEDGE_BASE": {
       "TITLE": "AI Knowledge Base",
-      "DESCRIPTION": "No coding required — upload documents or import your website and AgentNexus builds the knowledge base automatically.",
+      "DESCRIPTION": "No coding required — upload documents or import your website and MielikkiX builds the knowledge base automatically.",
       "BULLETS": ["Website URLs", "PDF documents", "Microsoft Word", "Excel files", "CSV files", "Text files", "FAQ database", "Product catalog"],
       "TAG_FAQS": "FAQs",
       "TAG_DOCUMENTS": "Documents",
@@ -139,7 +139,7 @@
     }
   },
   "WHY_CHOOSE": {
-    "HEADING": "Why Businesses Choose AgentNexus",
+    "HEADING": "Why Businesses Choose MielikkiX",
     "ITEMS": [
       "2-minute setup",
       "AI trained on your business",

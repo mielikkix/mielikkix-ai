@@ -21,7 +21,7 @@ _seq = itertools.count(1)
 # specific failures unrelated to the actual business logic under test.
 # Override via TEST_DATABASE_URL if your Postgres isn't on localhost:5432.
 TEST_DATABASE_URL = os.environ.get(
-    "TEST_DATABASE_URL", "postgresql://agentnexus:agentnexus@localhost:5432/agentnexus_test"
+    "TEST_DATABASE_URL", "postgresql://mielikkix:mielikkix@localhost:5432/mielikkix_test"
 )
 _engine = create_engine(TEST_DATABASE_URL)
 

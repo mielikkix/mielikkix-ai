@@ -4,7 +4,7 @@ Guidance for Claude (and any AI coding assistant) working in this repository.
 
 ## Project
 
-**AgentNexus** — a multi-tenant AI chatbot platform for small businesses (retail, service providers, restaurants, clinics, real estate, local shops). Each business gets a branded, embeddable chat widget backed by RAG over their own FAQs/documents, plus an admin dashboard for managing content and leads.
+**MielikkiX** — a multi-tenant AI chatbot platform for small businesses (retail, service providers, restaurants, clinics, real estate, local shops). Each business gets a branded, embeddable chat widget backed by RAG over their own FAQs/documents, plus an admin dashboard for managing content and leads.
 
 ## Tech Stack
 
@@ -24,7 +24,7 @@ Guidance for Claude (and any AI coding assistant) working in this repository.
 | File storage | Local disk (MVP) → Supabase Storage free tier or Cloudflare R2 free tier | Free at low volume |
 | Background jobs | FastAPI `BackgroundTasks` (MVP) → Celery + Redis (free, self-hosted) later | Keep MVP simple |
 | Containerization | Docker + Docker Compose | Free |
-| Hosting | Dashboard+API (`frontend`+`backend`+`db`) on a Hostinger VPS via `docker-compose.yml`; marketing site (`website/`) on Hostinger shared hosting, static build | Domain `agentnexus.tech` is already registered/hosted on Hostinger — one vendor for domain, marketing site, and VPS. See `files/ARCHITECTURE.md` §5. |
+| Hosting | Dashboard (`frontend`) + API (`backend`+`db`) on a Hostinger VPS via `docker-compose.yml`, served as two separate hosts (`app.mielikkix.ai` / `api.mielikkix.ai`); marketing site (`website/`) on Hostinger shared hosting, static build | Domain `mielikkix.ai` is already registered/hosted on Hostinger — one vendor for domain, marketing site, and VPS. See `files/ARCHITECTURE.md` §5. |
 | CI/CD | GitHub Actions (free for public/small private repos) | Free |
 | Monitoring/errors | Sentry free tier | Free |
 
@@ -33,7 +33,7 @@ No paid SaaS is required to build and demo the MVP.
 ## Repository Structure
 
 ```
-AgentNexus/
+mielikkix-ai/
 ├── frontend/                  # React + TypeScript — dashboard app + embeddable widget
 │   ├── src/
 │   │   ├── widget/              # Embeddable chat widget (Widget.tsx, ChatWindow, LeadForm; built separately as widget-main.tsx)

@@ -1,4 +1,4 @@
-# AgentNexus — Architecture Document
+# MielikkiX — Architecture Document
 
 ## 1. System Overview
 
@@ -54,7 +54,7 @@ graph TB
 ## 2. Components
 
 ### 2.1 Chat Widget (React, embeddable)
-- Ships as a small standalone JS bundle loaded via `<script src="https://agentnexus.tech/widget.js" data-business="biz_123"></script>` (exact CDN/hosting path TBD — not deployed yet).
+- Ships as a small standalone JS bundle loaded via `<script src="https://app.mielikkix.ai/widget.js" data-business="biz_123"></script>` — built by `frontend/` (`vite.widget.config.ts`) and served as a static file alongside the dashboard SPA, but its own runtime API calls target `api.mielikkix.ai` (see §5), not the host it was loaded from.
 - Talks only to the public chat API (`/api/chat/*`) and `/api/businesses/{id}/public-settings` — no admin credentials.
 - Renders in a Shadow DOM to avoid CSS collisions with the host site.
 
@@ -91,7 +91,7 @@ graph TB
 - Stored in `leads` table; optionally emailed to the business via free-tier transactional email.
 
 ### 2.7 Platform Admin Dashboard (`/admin`, React)
-- A private area of the same dashboard SPA, reserved for the AgentNexus operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `frontend/src/App.tsx`.
+- A private area of the same dashboard SPA, reserved for the MielikkiX operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `frontend/src/App.tsx`.
 - Identity: the `PLATFORM_ADMIN_EMAILS` env var (comma-separated) is checked against the logged-in user's email — see `require_platform_admin` in `app/core/dependencies.py`. Not a DB column, since this is a deployment-level operator concept, not a per-tenant role; logging in still goes through the normal `/login` flow and JWT cookie.
 - Shows: all registered businesses and their plan/status (`/admin/businesses`), a per-business drill-down (`/admin/businesses/{id}`), a platform KPI overview (`/admin`), and Groq LLM token usage (`/admin/usage`, backed by §2.8 below).
 - Every backend route lives under `/api/admin` and is protected once at the router level by `require_platform_admin`, so nothing added later can be left unprotected.
@@ -174,13 +174,13 @@ graph TB
 
 ## 5. Deployment Topology
 
-Domain: **agentnexus.tech**, registered on Hostinger. Marketing site and dashboard/API are split across two different hosting products under that one domain, since they have fundamentally different runtime needs (static files vs. a persistent Python process + database):
+Domain: **mielikkix.ai**, registered on Hostinger. Marketing site, dashboard, and API are three separate hosts under that one domain — the dashboard and API used to share a single `app.*` host (with `frontend`'s nginx proxying `/api/*` to `backend`), but they're now split so the API has its own subdomain instead of riding behind the frontend's reverse proxy:
 
-- **Marketing site** (`website/`, static Astro build) → `agentnexus.tech` + `www.agentnexus.tech`, served from Hostinger **shared hosting** (`public_html`) — the plan already in place for the domain. No server process, so shared hosting's file-serving-only model is sufficient.
-- **Dashboard + API** (`frontend/` + `backend/` + `db`, i.e. all of `docker-compose.yml`) → `app.agentnexus.tech`, served from a **Hostinger VPS** (KVM 1: 1 vCPU / 4GB RAM to start) running `docker compose up -d --build`. Shared hosting can't run a persistent uvicorn process or self-hosted Postgres, hence the separate VPS.
-  - DNS: an `A` record for `app` → the VPS's IP is the only routing needed between the two — not a path-based split (`/app`), since that would require both to sit behind one reverse proxy, which shared hosting doesn't allow.
-  - `frontend`'s nginx container proxies `/api/*` to the `backend` container over Docker's internal network — same as local dev, unchanged.
-  - `CORS_ORIGINS` in production `.env` must include `https://app.agentnexus.tech`.
+- **Marketing site** (`website/`, static Astro build) → `mielikkix.ai`, served from Hostinger **shared hosting** (`public_html`) — the plan already in place for the domain. No server process, so shared hosting's file-serving-only model is sufficient.
+- **Dashboard** (`frontend/`) → `app.mielikkix.ai`, a static SPA build served by its own `nginx` container (`frontend/nginx.conf`, no `/api/*` proxy block anymore). The dashboard's axios client (`frontend/src/shared/api/client.ts`) calls `https://api.mielikkix.ai` directly in production; in dev, Vite's own dev-server proxy (`vite.config.ts`) still forwards `/api` to `localhost:8000`, unchanged.
+- **API** (`backend/` + `db`) → `api.mielikkix.ai`, served from a **Hostinger VPS** (KVM 1: 1 vCPU / 4GB RAM to start) running `docker compose up -d --build`. Shared hosting can't run a persistent uvicorn process or self-hosted Postgres, hence the separate VPS.
+  - DNS: `A`/`CNAME` records for `app` and `api` pointing at wherever each is actually hosted — no path-based split (`/app`, `/api`) needed since they're fully separate hosts now.
+  - `CORS_ORIGINS` in production `.env` must include `https://app.mielikkix.ai` (with `allow_credentials=True` in `main.py`'s `CORSMiddleware`) so the browser accepts cross-origin requests from the dashboard. The httpOnly auth cookie (`SameSite=Lax`, set on `api.mielikkix.ai`) still reaches those requests despite the cross-*origin* call, because `app.mielikkix.ai` and `api.mielikkix.ai` share the same registrable domain (`mielikkix.ai`) and SameSite only cares about that, not the full origin.
   - HTTPS is not yet configured (nginx.conf only listens on :80) — adding Caddy or certbot in front is planned, not done.
 - **Database**: PostgreSQL + pgvector, self-hosted via the `db` service on the same VPS (not a managed free-tier instance) — see §2.4 above for the caveat that pgvector's actual vector-search capability isn't used by the current retrieval code yet.
 - **CI/CD**: not yet set up — deploys are manual (`git pull` + `docker compose up -d --build` on the VPS).

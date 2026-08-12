@@ -3,10 +3,13 @@ import { Widget } from './Widget'
 import tailwindStyles from './widget-tailwind.css?inline'
 import resetStyles from './widget.css?inline'
 
-// Last-resort only -- real embeds derive the API base from the script's own
-// src origin below. This only applies if that derivation fails outright
-// (e.g. document.currentScript unavailable).
-const DEFAULT_API_BASE_URL = 'http://localhost:8000'
+// Fallback when a business's embed snippet doesn't set data-api-url. In
+// production the widget bundle is served from app.mielikkix.ai (built
+// alongside the dashboard) but the API lives on the separate
+// api.mielikkix.ai host, so unlike the dashboard's own axios client, the
+// widget can't just derive its API origin from where its own script tag
+// was loaded from -- it has to point at api.mielikkix.ai explicitly.
+const DEFAULT_API_BASE_URL = import.meta.env.PROD ? 'https://api.mielikkix.ai' : 'http://localhost:8000'
 
 // Must capture this synchronously, right now, while the script tag is still
 // actively executing — document.currentScript reverts to null by the time
@@ -18,24 +21,13 @@ function mount() {
   const businessId = script?.dataset.business || script?.getAttribute('data-business')
   const primaryColor = script?.dataset.color
   const botName = script?.dataset.botName
-  // The widget script and the API are always served from the same origin
-  // (nginx proxies /api/* alongside the static build in production; Vite's
-  // dev server proxies /api the same way locally) -- deriving the API base
-  // from the script's own src means every embed snippet just works,
-  // without needing a manually-added data-api-url on every business's site.
-  // data-api-url still works as an explicit override (e.g. pointing a local
-  // widget build at a different backend).
-  const scriptOrigin = (() => {
-    try {
-      return script?.src ? new URL(script.src).origin : null
-    } catch {
-      return null
-    }
-  })()
-  const apiBaseUrl = script?.dataset.apiUrl || scriptOrigin || DEFAULT_API_BASE_URL
+  // data-api-url overrides the default for local/self-hosted setups; every
+  // hosted embed snippet just works against api.mielikkix.ai without needing
+  // a manually-added data-api-url on every business's site.
+  const apiBaseUrl = script?.dataset.apiUrl || DEFAULT_API_BASE_URL
 
   if (!businessId) {
-    console.warn('[AgentNexus] Missing data-business attribute on widget script tag.')
+    console.warn('[MielikkiX] Missing data-business attribute on widget script tag.')
     return
   }
 
@@ -50,7 +42,7 @@ function mount() {
   shadow.appendChild(style)
 
   const mountPoint = document.createElement('div')
-  mountPoint.id = 'agentnexus-root'
+  mountPoint.id = 'mielikkix-root'
   shadow.appendChild(mountPoint)
 
   createRoot(mountPoint).render(

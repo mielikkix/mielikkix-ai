@@ -36,8 +36,8 @@ export const DEFAULT_CURRENCY: CurrencyCode = "EUR";
 export const RATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const STORAGE_KEYS = {
-  CURRENCY: "agentnexus_currency",
-  RATE_CACHE: "agentnexus_exchange_rate",
+  CURRENCY: "mielikkix_currency",
+  RATE_CACHE: "mielikkix_exchange_rate",
 } as const;
 
-export const CURRENCY_CHANGE_EVENT = "agentnexus:currencychange";
+export const CURRENCY_CHANGE_EVENT = "mielikkix:currencychange";

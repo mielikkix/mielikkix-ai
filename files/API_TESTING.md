@@ -6,7 +6,7 @@ data created in earlier ones (a business, a JWT, an FAQ, etc.).
 
 Backend must be running first (Postgres via `docker compose up -d db` from the repo root, then):
 ```powershell
-cd C:\Pratibha2026\AgentNexus\backend
+cd C:\Pratibha2026\mielikkix-ai\backend
 .\.venv\Scripts\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -43,7 +43,10 @@ cd C:\Pratibha2026\AgentNexus\backend
 ```
 `industry` must be one of: `retail`, `restaurant`, `clinic`, `real_estate`, `service`, `other`.
 
-Expect **200** with `{ "access_token": "...", "token_type": "bearer" }`.
+Expect **200** with a `UserOut` body (`id`, `email`, `full_name`, `role`, `business_id`,
+`is_platform_admin`) — there's no `access_token` in the response. Auth is a JWT set server-side as
+an **httpOnly cookie** (`access_token`, see `_set_auth_cookie` in `app/api/auth.py`), not a bearer
+token returned to the client.
 Registering the same `email` or `business_slug` twice correctly returns **400** — that's the
 duplicate check working, not a bug.
 
@@ -51,15 +54,17 @@ Then **`POST /api/auth/login`**:
 ```json
 { "email": "priya@greenleafcafe.com", "password": "TestPass123!" }
 ```
-Same response shape. Copy the `access_token`.
+Same response shape.
 
-### Authorize once, use everywhere
-Click the green **Authorize** button (top of the Swagger page), paste the raw token (no `Bearer`
-prefix needed — Swagger adds it), click Authorize, then Close. Every endpoint below that needs
-auth will now use it automatically.
+### Auth is automatic — no Authorize step needed
+Because the token is an httpOnly cookie set on `/api/auth/register` or `/api/auth/login`, Swagger's
+browser tab already holds it after either call — every endpoint below that needs auth just works on
+the next request, no `Authorize` button, no token to copy/paste. (There's nothing to paste in
+anyway: the cookie is httpOnly, so it's not readable from JS or visible in the response body.) Use
+**`POST /api/auth/logout`** to clear the cookie if you need to test as a different user.
 
-> Tip: the JWT payload also contains your `business_id` (decode it at jwt.io if you ever need to
-> copy that UUID for testing a public endpoint below).
+> Tip: if you need the `business_id` for a public endpoint below and don't have it from `GET /me`
+> yet, decode the cookie's JWT at jwt.io — it's in the payload.
 
 ### Password reset — `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`
 ```json

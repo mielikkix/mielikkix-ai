@@ -87,7 +87,7 @@
       "TITLE": "Multi-Language Support",
       "DESCRIPTION": "Speak your customer's language and deliver localized experiences with AI.",
       "ITEMS": [
-        { "TEXT": "10 languages, detected automatically from each visitor's browser", "AVAILABLE": true },
+        { "TEXT": "10 languages, detected automatically from each visitor's message", "AVAILABLE": true },
         { "TEXT": "AI replies match the visitor's language automatically", "AVAILABLE": true },
         { "TEXT": "Lead form and every widget label are translated too", "AVAILABLE": true }
       ]

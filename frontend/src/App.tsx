@@ -37,7 +37,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Menu size={22} />
           </button>
           <span className="text-lg font-bold tracking-tight">
-            Agent<span className="brand-gradient-text">Nexus</span>
+            Mielikki<span className="brand-gradient-text">X</span>
           </span>
         </div>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>

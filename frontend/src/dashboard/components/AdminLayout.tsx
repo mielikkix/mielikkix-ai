@@ -30,7 +30,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
           <span className="text-xl font-bold tracking-tight text-white">
-            Agent<span className="brand-gradient-text">Nexus</span> <span className="text-slate-400 font-medium">Admin</span>
+            Mielikki<span className="brand-gradient-text">X</span> <span className="text-slate-400 font-medium">Admin</span>
           </span>
           <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-slate-400 hover:text-white md:hidden">
             <X size={22} />
@@ -78,7 +78,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Menu size={22} />
           </button>
           <span className="text-lg font-bold tracking-tight">
-            Agent<span className="brand-gradient-text">Nexus</span> Admin
+            Mielikki<span className="brand-gradient-text">X</span> Admin
           </span>
         </div>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>

@@ -37,4 +37,7 @@ async def notify_new_lead(business_name: str, contact_email: str, lead: Lead) ->
         </ul>
         <p>Log in to your MielikkiX dashboard to follow up.</p>
     """
-    await provider.send_email(to=contact_email, subject=subject, html=html)
+    # contact_email supports a comma-separated list (e.g. multiple stakeholders
+    # for a business) -- send_email's `to` stays single-recipient, so fan out here.
+    for recipient in [e.strip() for e in contact_email.split(",") if e.strip()]:
+        await provider.send_email(to=recipient, subject=subject, html=html)

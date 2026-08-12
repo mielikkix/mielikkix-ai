@@ -105,23 +105,61 @@ const reassurances = [
         Request My Free Demo
       </button>
 
-      <p id="demo-form-status" class="hidden text-center text-sm font-medium text-emerald-600" role="status"></p>
     </form>
+
+    <p id="demo-form-status" class="hidden mt-6 text-center text-sm font-medium text-emerald-600" role="status"></p>
+    <p id="demo-form-error" class="hidden mt-6 text-center text-sm font-medium text-red-600" role="alert"></p>
   </section>
 
-  <script>
-    const form = document.getElementById("demo-form") as HTMLFormElement | null;
+  <script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL, businessId: import.meta.env.PUBLIC_MIELIKKIX_BUSINESS_ID }}>
+    const form = document.getElementById("demo-form");
     const status = document.getElementById("demo-form-status");
+    const errorEl = document.getElementById("demo-form-error");
+    const submitButton = form?.querySelector('button[type="submit"]');
 
-    form?.addEventListener("submit", (event) => {
+    form?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      // TODO: wire this to a real endpoint (e.g. the MielikkiX backend's leads API,
-      // or a form service) before launch — this is a placeholder confirmation only.
-      form.reset();
-      form.classList.add("hidden");
-      if (status) {
-        status.textContent = "Thanks! We'll be in touch within one business day to schedule your demo.";
-        status.classList.remove("hidden");
+      errorEl?.classList.add("hidden");
+
+      const data = new FormData(form);
+      const business = (data.get("business") || "").toString().trim();
+      const website = (data.get("website") || "").toString().trim();
+      const note = (data.get("message") || "").toString().trim();
+      const messageParts = [`Business: ${business}`];
+      if (website) messageParts.push(`Website: ${website}`);
+      if (note) messageParts.push(note);
+
+      if (submitButton) submitButton.disabled = true;
+      try {
+        const res = await fetch(`${apiUrl}/api/leads`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            business_id: businessId,
+            name: data.get("name"),
+            email: data.get("email"),
+            phone: data.get("phone") || undefined,
+            message: messageParts.join("\n"),
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("request failed");
+        }
+
+        form.reset();
+        form.classList.add("hidden");
+        if (status) {
+          status.textContent = "Thanks! We'll be in touch within one business day to schedule your demo.";
+          status.classList.remove("hidden");
+        }
+      } catch {
+        if (errorEl) {
+          errorEl.textContent = "Something went wrong sending your request — please try again, or email us directly.";
+          errorEl.classList.remove("hidden");
+        }
+      } finally {
+        if (submitButton) submitButton.disabled = false;
       }
     });
   </script>

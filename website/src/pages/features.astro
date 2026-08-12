@@ -441,8 +441,9 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
       <ul class="mx-auto mt-8 grid max-w-4xl grid-cols-2 gap-x-8 gap-y-3 text-lg text-slate-600 sm:grid-cols-4">
         {
           whyChoose.map((item, i) => (
-            <li>
-              <span class="text-emerald-500">✓</span> <span data-i18n={`WHY_CHOOSE.ITEMS.${i}`}>{item}</span>
+            <li class="flex items-start gap-2">
+              <span class="text-emerald-500">✓</span>
+              <span data-i18n={`WHY_CHOOSE.ITEMS.${i}`}>{item}</span>
             </li>
           ))
         }

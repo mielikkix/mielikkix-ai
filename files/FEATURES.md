@@ -100,4 +100,4 @@ Choosing a paid plan opens a checkout modal (card name/number/expiry/CVC with cl
 
 ---
 
-*Not yet built (known gaps, tracked separately): live human-agent handoff mid-conversation, business-hours-aware responses, multi-language support beyond the plan gate itself, a real payment processor (checkout is simulated — see above), conversation overage billing, usage-threshold nudge emails, annual billing, and a signup abuse guard (one free business per verified email+phone) for the free tier. WhatsApp/Instagram notification channels are plan-gated in the UI but have no real integration behind them yet.*
+*Not yet built (known gaps, tracked separately): live human-agent handoff mid-conversation, business-hours-aware responses, a real payment processor (checkout is simulated — see above), conversation overage billing, usage-threshold nudge emails, annual billing, and a signup abuse guard (one free business per verified email+phone) for the free tier. WhatsApp/Instagram notification channels are plan-gated in the UI but have no real integration behind them yet.*

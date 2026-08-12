@@ -2,11 +2,11 @@
 
 ## 1. Vision
 
-A single, reusable AI chatbot platform that any small business — retail, services, restaurants, clinics, real estate, local shops — can configure in minutes and embed on their website, without building a chatbot from scratch.
+A single, reusable AI chatbot platform that any business — retail, services, restaurants, clinics, real estate, local shops — can configure in minutes and embed on their website, without building a chatbot from scratch.
 
 ## 2. Problem
 
-Small businesses lose leads and customer trust when they can't answer questions instantly (hours, FAQs, product/service details). Custom chatbot development is too expensive and slow for them; generic chatbots don't know their specific business.
+Businesses lose leads and customer trust when they can't answer questions instantly (hours, FAQs, product/service details). Custom chatbot development is too expensive and slow for them; generic chatbots don't know their specific business.
 
 ## 3. Solution
 

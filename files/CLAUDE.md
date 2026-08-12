@@ -4,7 +4,7 @@ Guidance for Claude (and any AI coding assistant) working in this repository.
 
 ## Project
 
-**MielikkiX** — a multi-tenant AI chatbot platform for small businesses (retail, service providers, restaurants, clinics, real estate, local shops). Each business gets a branded, embeddable chat widget backed by RAG over their own FAQs/documents, plus an admin dashboard for managing content and leads.
+**MielikkiX** — a multi-tenant AI chatbot platform for every businesses (retail, service providers, restaurants, clinics, real estate, local shops). Each business gets a branded, embeddable chat widget backed by RAG over their own FAQs/documents, plus an admin dashboard for managing content and leads.
 
 ## Tech Stack
 

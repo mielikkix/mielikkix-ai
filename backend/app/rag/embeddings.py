@@ -17,7 +17,17 @@ os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 @lru_cache()
 def _get_model():
     from sentence_transformers import SentenceTransformer
-    return SentenceTransformer(settings.embedding_model)
+    try:
+        return SentenceTransformer(settings.embedding_model)
+    except OSError:
+        # HF_HUB_OFFLINE above assumes the model is already cached -- true on
+        # a machine that's loaded it before, false on a genuinely fresh one
+        # (empty hf_cache volume). Retry once allowing a real download so the
+        # very first run on a new deployment doesn't fail outright; the cache
+        # written here makes every run after this one hit the fast path above.
+        os.environ["HF_HUB_OFFLINE"] = "0"
+        os.environ["TRANSFORMERS_OFFLINE"] = "0"
+        return SentenceTransformer(settings.embedding_model)
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:

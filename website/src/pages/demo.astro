@@ -111,7 +111,7 @@ const reassurances = [
     <p id="demo-form-error" class="hidden mt-6 text-center text-sm font-medium text-red-600" role="alert"></p>
   </section>
 
-  <script define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL, businessId: import.meta.env.PUBLIC_MIELIKKIX_BUSINESS_ID }}>
+  <script is:inline define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL, businessId: import.meta.env.PUBLIC_MIELIKKIX_BUSINESS_ID }}>
     const form = document.getElementById("demo-form");
     const status = document.getElementById("demo-form-status");
     const errorEl = document.getElementById("demo-form-error");
@@ -122,10 +122,10 @@ const reassurances = [
       errorEl?.classList.add("hidden");
 
       const data = new FormData(form);
-      const business = (data.get("business") || "").toString().trim();
+      const businessName = (data.get("business") || "").toString().trim();
       const website = (data.get("website") || "").toString().trim();
       const note = (data.get("message") || "").toString().trim();
-      const messageParts = [`Business: ${business}`];
+      const messageParts = [`Business: ${businessName}`];
       if (website) messageParts.push(`Website: ${website}`);
       if (note) messageParts.push(note);
 

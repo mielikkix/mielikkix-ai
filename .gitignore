@@ -16,14 +16,17 @@ test.db
 
 # Node
 node_modules/
-frontend/dist/
-frontend/public/widget.js
+apps/dashboard/dist/
+apps/dashboard/public/widget.js
 
 # Astro generated types (in case astro is ever run from the repo root)
 .astro/
 
 # Uploads
-backend/uploads/
+apps/api/uploads/
+
+# Local dev server logs
+*.log
 
 # IDE
 .vscode/

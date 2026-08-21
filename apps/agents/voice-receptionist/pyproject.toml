@@ -1,0 +1,10 @@
+[project]
+name = "mielikkix-agent-voice-receptionist"
+version = "0.0.0"
+description = "Voice Receptionist — answers inbound calls, holds a natural voice conversation grounded in the business's info via agent-core's RAG layer, books appointments or takes a message. Flagship agent (Day 4)."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

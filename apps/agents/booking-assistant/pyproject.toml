@@ -1,0 +1,10 @@
+[project]
+name = "mielikkix-agent-booking-assistant"
+version = "0.0.0"
+description = "Booking Assistant — self-serve scheduling: finds availability, confirms slots, sends reminders. Flagship agent (Day 5)."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

@@ -18,8 +18,26 @@ _INSECURE_SECRET_KEYS = {
 # Docker — pydantic-settings otherwise resolves env_file relative to the
 # process's working directory, which silently falls back to these classes'
 # defaults if that directory doesn't happen to contain a .env of its own.
-# parents[4]: config.py -> core -> app -> api -> apps -> <repo root>
-_ROOT_ENV_FILE = Path(__file__).resolve().parents[4] / ".env"
+#
+# Found by walking up rather than by a fixed parents[N], because how deep
+# this file sits depends on where it's running: on a checkout it's
+# <repo>/apps/api/app/core/config.py, but the image copies apps/api to /app,
+# making it /app/app/core/config.py. A hardcoded index that matches the
+# checkout raises IndexError in the container, killing the app at import.
+def _find_root_env_file() -> Path:
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / ".env"
+        if candidate.is_file():
+            return candidate
+    # None found -- normal in Docker, where compose's `env_file:` injects the
+    # values as real environment variables and no .env exists in the image.
+    # Return a path that simply doesn't exist; pydantic-settings ignores a
+    # missing env_file and reads the environment, which is what we want.
+    return here.parents[-1] / ".env"
+
+
+_ROOT_ENV_FILE = _find_root_env_file()
 
 
 class Settings(BaseSettings):

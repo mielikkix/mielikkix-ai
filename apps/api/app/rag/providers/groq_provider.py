@@ -4,8 +4,10 @@ from ...core.config import settings
 
 
 class GroqProvider(LLMProvider):
-    def __init__(self, model: str = "llama-3.1-8b-instant"):
-        self.model = model
+    def __init__(self, model: str | None = None):
+        # Resolved at call time, not as a default-arg literal, so the model
+        # stays env-configurable (see Settings.groq_model).
+        self.model = model or settings.groq_model
         self._client = None
         # Token usage from the most recent generate()/translate() call, read
         # by rag/pipeline.py and api/businesses.py to log an LLMUsageLog row

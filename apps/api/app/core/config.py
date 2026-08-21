@@ -50,6 +50,16 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     gemini_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+
+    # Default model per provider, used when a business hasn't set its own
+    # business_settings.llm_model. Configurable via env on purpose: providers
+    # retire models on their own schedule (Groq dropped llama-3.1-8b-instant,
+    # which 404'd every chat request until this was changed), and recovering
+    # from that should be an env change + restart, not a code deploy.
+    # Check what a key can actually serve: GET https://api.groq.com/openai/v1/models
+    groq_model: str = "openai/gpt-oss-120b"
+    gemini_model: str = "gemini-2.0-flash"
+    ollama_model: str = "llama3"
     openai_api_key: str = ""
     anthropic_api_key: str = ""
 

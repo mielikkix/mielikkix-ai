@@ -5,8 +5,9 @@ from ...core.config import settings
 
 
 class OllamaProvider(LLMProvider):
-    def __init__(self, model: str = "llama3"):
-        self.model = model
+    def __init__(self, model: str | None = None):
+        # See GroqProvider.__init__ -- resolved at call time, env-configurable.
+        self.model = model or settings.ollama_model
         self.base_url = settings.ollama_base_url
 
     async def generate(

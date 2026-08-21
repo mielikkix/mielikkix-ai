@@ -295,7 +295,7 @@ export function SettingsPage() {
               {['groq', 'gemini', 'ollama'].map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-          <Input label="Model name (optional)" value={form.llm_model || ''} onChange={set('llm_model')} placeholder="e.g. llama-3.1-8b-instant" />
+          <Input label="Model name (optional)" value={form.llm_model || ''} onChange={set('llm_model')} placeholder="e.g. openai/gpt-oss-120b — leave blank to use the default" />
         </div>
       </Card>
 

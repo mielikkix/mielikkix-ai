@@ -4,8 +4,10 @@ from ...core.config import settings
 
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, model: str = "gemini-1.5-flash"):
-        self.model = model
+    def __init__(self, model: str | None = None):
+        # See GroqProvider.__init__ -- resolved at call time so the default
+        # stays env-configurable when Google retires a model version.
+        self.model = model or settings.gemini_model
         self._initialized = False
 
     def _ensure_init(self):

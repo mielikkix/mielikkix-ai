@@ -52,6 +52,11 @@ export function ChatWindow({
     if (!msg || loading) return
     setInput('')
     setMessages((m) => [...m, { sender: 'visitor', content: msg }])
+    // The form renders below the whole message list, so leaving it up would
+    // park it under every later answer for the rest of the session. Clear it
+    // on each new question; the reply re-shows it if that reply still suggests
+    // capturing a lead.
+    setShowLeadForm(false)
     setLoading(true)
     try {
       const res = await fetch(`${apiBaseUrl}/api/chat/message`, {

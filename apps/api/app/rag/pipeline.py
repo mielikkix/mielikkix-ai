@@ -1,5 +1,6 @@
 import json
 import math
+import re
 from typing import Dict, List, Tuple, Optional
 from sqlalchemy.orm import Session
 from ..models.document import DocumentChunk
@@ -144,12 +145,21 @@ def log_llm_usage(db: Session, business_id: str, provider_name: str, provider, k
     ))
 
 
+def _matches_any(msg: str, keywords: List[str]) -> bool:
+    """Whole-word match. Plain substring matching fired on ordinary words that
+    merely contain a keyword -- "coffee" contains "fee", "locally" contains
+    "call", "headphones" contains "phone" -- so for a cafe it mislabelled most
+    questions as product_inquiry and popped the lead-capture form on questions
+    that had nothing to do with getting in touch."""
+    return any(re.search(rf"\b{re.escape(w)}\b", msg) for w in keywords)
+
+
 def _detect_intent(message: str) -> str:
     msg = message.lower()
-    if any(w in msg for w in ["price", "cost", "how much", "fee", "rate"]):
+    if _matches_any(msg, ["price", "cost", "how much", "fee", "rate"]):
         return "product_inquiry"
-    if any(w in msg for w in ["contact", "call", "email", "reach", "phone"]):
+    if _matches_any(msg, ["contact", "call", "email", "reach", "phone"]):
         return "lead"
-    if any(w in msg for w in ["problem", "issue", "broken", "not working", "help"]):
+    if _matches_any(msg, ["problem", "issue", "broken", "not working", "help"]):
         return "support"
     return "faq"

@@ -1,0 +1,111 @@
+name: CI
+
+# Runs on every PR into main, and on main itself so a merge that silently
+# broke something is visible immediately rather than at the next deploy.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same branch makes the in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API — tests + migrations
+    runs-on: ubuntu-latest
+
+    services:
+      # Same image as production (infra compose) rather than plain postgres:16,
+      # so CI can't pass against a Postgres that differs from the real one.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: mielikkix
+          POSTGRES_PASSWORD: mielikkix
+          POSTGRES_DB: mielikkix
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mielikkix"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Settings._reject_insecure_secret_key refuses placeholder/short keys at
+      # import time, so the suite can't even load without a plausible one. This
+      # value is CI-only and grants nothing -- the real key lives in the VPS .env.
+      SECRET_KEY: ci-only-secret-key-not-used-in-any-real-environment-0123456789
+      # app/main.py calls create_all() at import against DATABASE_URL, so it has
+      # to be reachable too -- not just the separate TEST_DATABASE_URL below.
+      DATABASE_URL: postgresql://mielikkix:mielikkix@localhost:5432/mielikkix
+      TEST_DATABASE_URL: postgresql://mielikkix:mielikkix@localhost:5432/mielikkix_test
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+
+      - name: Install dependencies
+        # sentence-transformers pulls torch, which is a large download -- the
+        # pip cache above is what keeps this from dominating every run.
+        run: pip install -r requirements.txt
+
+      - name: Create test database
+        run: psql "$DATABASE_URL" -c 'CREATE DATABASE mielikkix_test;'
+
+      - name: Check migrations apply from scratch
+        # main.py's create_all() builds tables from the models, so the suite
+        # passes even if a migration was never written for a model change.
+        # Running the real migration chain against an empty database is what
+        # actually catches that drift -- before it reaches the VPS, where
+        # alembic is the only thing that runs.
+        run: |
+          psql "$DATABASE_URL" -c 'CREATE DATABASE mielikkix_migrations;'
+          DATABASE_URL=postgresql://mielikkix:mielikkix@localhost:5432/mielikkix_migrations \
+            alembic upgrade head
+
+      - name: Run tests
+        run: pytest -q
+
+  dashboard:
+    name: Dashboard + Chat Widget — build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20' # matches apps/dashboard/Dockerfile
+          cache: npm
+          cache-dependency-path: apps/dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build dashboard
+        run: npm run build
+
+      - name: Build Chat Widget bundle
+        # Built separately from the dashboard and shipped to third-party sites,
+        # so a break here is a break in the live embedded product -- it needs
+        # its own explicit check, not just the dashboard build above.
+        run: npm run build:widget

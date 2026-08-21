@@ -19,6 +19,12 @@ node_modules/
 apps/dashboard/dist/
 apps/dashboard/public/widget.js
 
+# Vite's dep pre-bundling cache. Normally lives under node_modules/ (already
+# ignored above), but Vite falls back to a project-level .vite/ when it can't
+# resolve node_modules -- e.g. if package.json goes missing while the dev
+# server is running.
+.vite/
+
 # Astro generated types (in case astro is ever run from the repo root)
 .astro/
 

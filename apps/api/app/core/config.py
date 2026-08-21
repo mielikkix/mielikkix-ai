@@ -14,11 +14,12 @@ _INSECURE_SECRET_KEYS = {
 }
 
 # Anchored absolutely (not relative to cwd) so settings load correctly
-# whether the app is started from the repo root, from backend/, or via
+# whether the app is started from the repo root, from apps/api/, or via
 # Docker — pydantic-settings otherwise resolves env_file relative to the
 # process's working directory, which silently falls back to these classes'
 # defaults if that directory doesn't happen to contain a .env of its own.
-_ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+# parents[4]: config.py -> core -> app -> api -> apps -> <repo root>
+_ROOT_ENV_FILE = Path(__file__).resolve().parents[4] / ".env"
 
 
 class Settings(BaseSettings):

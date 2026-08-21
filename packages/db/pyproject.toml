@@ -1,0 +1,14 @@
+[project]
+name = "mielikkix-db"
+version = "0.0.0"
+description = "Shared schema/models and multi-tenant data layer, for use across apps/api and the Force agents."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mielikkix_db*"]

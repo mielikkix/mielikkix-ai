@@ -1,0 +1,14 @@
+[project]
+name = "mielikkix-billing"
+version = "0.0.0"
+description = "Subscription + entitlement logic (individual / 3-pack / Full Crew). Single source of truth for what a tenant is entitled to; gates both apps/api and apps/dashboard."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mielikkix_billing*"]

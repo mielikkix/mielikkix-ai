@@ -14,7 +14,7 @@ def tone_instruction(tone: str) -> str:
     return f"Respond in a {style} tone."
 
 
-# Mirrors AVAILABLE_LANGUAGES in frontend/src/dashboard/pages/SettingsPage.tsx --
+# Mirrors AVAILABLE_LANGUAGES in apps/dashboard/src/dashboard/pages/SettingsPage.tsx --
 # the curated set of codes a business can actually enable for their widget.
 LANGUAGE_NAMES = {
     "en": "English",

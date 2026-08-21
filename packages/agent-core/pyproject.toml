@@ -1,0 +1,14 @@
+[project]
+name = "mielikkix-agent-core"
+version = "0.0.0"
+description = "Shared LLM client, prompt/tool-calling framework, and memory/RAG utilities used by every Mielikkix Force agent and the Chat Widget."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mielikkix_agent_core*"]

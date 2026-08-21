@@ -60,7 +60,12 @@ export function Widget({
   return (
     <div className="fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-3">
       {open && (
-        <div className="w-[360px] h-[520px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-in slide-in-from-bottom-4">
+        // The max-* caps keep the panel on-screen in viewports narrower/shorter
+        // than 360x520 (phones, a docked devtools pane) -- without them the
+        // right-anchored parent pushes it off the left edge instead of shrinking.
+        // 2.5rem = the bottom-5/right-5 inset on both sides; 8rem also clears
+        // the toggle button and the gap beneath the panel.
+        <div className="w-[360px] max-w-[calc(100vw-2.5rem)] h-[520px] max-h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 animate-in slide-in-from-bottom-4">
           <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: resolvedPrimaryColor }}>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full" />

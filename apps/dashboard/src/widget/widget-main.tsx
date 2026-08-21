@@ -3,18 +3,43 @@ import { Widget } from './Widget'
 import tailwindStyles from './widget-tailwind.css?inline'
 import resetStyles from './widget.css?inline'
 
-// Fallback when a business's embed snippet doesn't set data-api-url. In
-// production the widget bundle is served from app.mielikkix.ai (built
-// alongside the dashboard) but the API lives on the separate
-// api.mielikkix.ai host, so unlike the dashboard's own axios client, the
-// widget can't just derive its API origin from where its own script tag
-// was loaded from -- it has to point at api.mielikkix.ai explicitly.
-const DEFAULT_API_BASE_URL = import.meta.env.PROD ? 'https://api.mielikkix.ai' : 'http://localhost:8000'
+const PROD_API_BASE_URL = 'https://api.mielikkix.ai'
+const LOCAL_API_BASE_URL = 'http://localhost:8000'
 
 // Must capture this synchronously, right now, while the script tag is still
 // actively executing — document.currentScript reverts to null by the time
 // DOMContentLoaded fires below, so reading it inside mount() would be too late.
 const currentScript = document.currentScript as HTMLScriptElement | null
+
+// Fallback when a business's embed snippet doesn't set data-api-url -- which
+// is the normal case, since the snippet the dashboard hands out (see
+// DashboardPage.tsx) deliberately stays minimal.
+//
+// In production the bundle is served from app.mielikkix.ai while the API is on
+// the separate api.mielikkix.ai host, so we can't simply reuse the script's
+// origin. But we can't hardcode the production host either: this bundle is
+// ALWAYS built by `vite build` (there is no dev build of the widget), so
+// import.meta.env.PROD is true even when it's served from localhost during
+// development -- which made the dashboard's own snippet call production from a
+// local page.
+//
+// So key off where the BUNDLE was loaded from, not the page's own origin: a
+// widget.js served from localhost is one of ours being developed against a
+// local backend. A customer developing their own site locally still loads the
+// bundle from app.mielikkix.ai, so they correctly keep the production API.
+function defaultApiBaseUrl(script: HTMLScriptElement | null): string {
+  try {
+    const { hostname } = new URL(script?.src ?? '', window.location.href)
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return LOCAL_API_BASE_URL
+    }
+  } catch {
+    // Malformed/missing src -- fall through to the production default.
+  }
+  return PROD_API_BASE_URL
+}
+
+const DEFAULT_API_BASE_URL = defaultApiBaseUrl(currentScript)
 
 function mount() {
   const script = currentScript

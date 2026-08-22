@@ -1,7 +1,7 @@
 # MielikkiX Marketing Site
 
 Static Astro site for [mielikkix.ai](https://mielikkix.ai) — home page, features, pricing, and
-free-demo booking. Separate from `frontend/` (the logged-in admin dashboard); see
+free-demo booking. Separate from `apps/dashboard/` (the logged-in admin dashboard); see
 `ARCHITECTURE.md` in this folder for why, the tech stack, folder structure, and the current list
 of known gaps to close before going live.
 

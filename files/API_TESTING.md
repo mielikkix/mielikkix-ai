@@ -6,7 +6,7 @@ data created in earlier ones (a business, a JWT, an FAQ, etc.).
 
 Backend must be running first (Postgres via `docker compose up -d db` from the repo root, then):
 ```powershell
-cd C:\Pratibha2026\mielikkix-ai\backend
+cd C:\Pratibha2026\mielikkix-ai\apps\api
 .\.venv\Scripts\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -45,7 +45,7 @@ cd C:\Pratibha2026\mielikkix-ai\backend
 
 Expect **200** with a `UserOut` body (`id`, `email`, `full_name`, `role`, `business_id`,
 `is_platform_admin`) — there's no `access_token` in the response. Auth is a JWT set server-side as
-an **httpOnly cookie** (`access_token`, see `_set_auth_cookie` in `app/api/auth.py`), not a bearer
+an **httpOnly cookie** (`access_token`, see `_set_auth_cookie` in `apps/api/app/api/auth.py`), not a bearer
 token returned to the client.
 Registering the same `email` or `business_slug` twice correctly returns **400** — that's the
 duplicate check working, not a bug.
@@ -175,7 +175,7 @@ Expect a `DocumentOut` back with `status: "pending"` or `"embedded"`.
 - **`DELETE /{doc_id}`** → remove it.
 
 > Known gap: the current pipeline embeds chunks into a plain `embedding_json` TEXT column and
-> scores them with a naive Python cosine-similarity scan (`app/rag/pipeline.py`), not a real
+> scores them with a naive Python cosine-similarity scan (`apps/api/app/rag/pipeline.py`), not a real
 > pgvector index query — fine for testing, worth revisiting before this scales past toy data. See
 > `files/DATABASE_SCHEMA.md`'s note on `document_chunks`.
 
@@ -273,7 +273,7 @@ API — that's correct here, not a multi-tenancy leak (see `files/CLAUDE.md`'s m
 - **500 with no JSON body, just plain "Internal Server Error"** → check the terminal running
   uvicorn for the traceback; that's Starlette's generic fallback for any unhandled exception.
 - **`ResponseValidationError` mentioning a `UUID` input where a `string` was expected** → a
-  schema in `app/schemas/*.py` typed an `id`/`business_id` field as `str` instead of `UUID`
+  schema in `apps/api/app/schemas/*.py` typed an `id`/`business_id` field as `str` instead of `UUID`
   (already fixed across all `*Out` schemas as of this writing).
 - **Two `uvicorn --reload` processes running at once** (e.g. one from an earlier terminal you
   forgot about) will fight over port 8000 and give inconsistent results request-to-request. If

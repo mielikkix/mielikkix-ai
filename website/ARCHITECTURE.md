@@ -1,12 +1,12 @@
 # MielikkiX Marketing Site — Architecture
 
 Promotion/marketing site for MielikkiX: home page, features, pricing, and free-demo booking.
-Separate from `frontend/` (the admin/analytics dashboard, a React SPA) — this is a
+Separate from `apps/dashboard/` (the admin/analytics dashboard, a React SPA) — this is a
 purely static, SEO-first site with a different tech stack for a different job.
 
-## Why a separate stack from `frontend/`
+## Why a separate stack from `apps/dashboard/`
 
-`frontend/` is a logged-in, data-heavy React SPA — SEO doesn't matter there, it's behind auth.
+`apps/dashboard/` is a logged-in, data-heavy React SPA — SEO doesn't matter there, it's behind auth.
 This site is the opposite: it's the thing small-business owners find via Google before they've
 ever heard of MielikkiX, so page-load speed and crawlability are the whole game. A client-rendered
 SPA is the wrong tool for that job — hence a separate static-generation project instead of adding
@@ -17,7 +17,7 @@ public routes to the dashboard app.
 | Layer | Choice | Why |
 |---|---|---|
 | Framework | [Astro](https://astro.build) (static output) | Ships zero JS by default — every page here is static HTML/CSS, only the demo form has a few lines of vanilla JS. Best-in-class Lighthouse/Core Web Vitals scores, which directly affects Google ranking for local/small-business search. |
-| Styling | Tailwind CSS v4 (via `@tailwindcss/vite`) | Same utility approach as `frontend/`, so styling knowledge transfers. Tailwind v4 needs no `tailwind.config.js` — theme tokens (colors, etc.) come from Tailwind's default palette plus a couple of custom CSS variables in `src/styles/global.css`. |
+| Styling | Tailwind CSS v4 (via `@tailwindcss/vite`) | Same utility approach as `apps/dashboard/`, so styling knowledge transfers. Tailwind v4 needs no `tailwind.config.js` — theme tokens (colors, etc.) come from Tailwind's default palette plus a couple of custom CSS variables in `src/styles/global.css`. |
 | Fonts | Google Fonts (Sora for headings, Inter for body), loaded via `@import` in `global.css` | Free, fast, no build step needed. |
 | SEO | `@astrojs/sitemap` + per-page meta/OG/Twitter tags in `Layout.astro` + `public/robots.txt` | Sitemap and robots.txt are the baseline for organic discovery; per-page `<title>`/`<meta description>` drive click-through from search results. |
 | Hosting (actual) | Hostinger shared hosting | The domain `mielikkix.ai` is registered and hosted on Hostinger; since this site builds to plain static files with no server process, the shared hosting plan already in place for the domain is sufficient — deploy by uploading `dist/` to `public_html` (no VPS needed for this piece). Vercel/Netlify/Cloudflare Pages would also work (see note below) but aren't the current plan. |
@@ -27,7 +27,7 @@ public routes to the dashboard app.
 Earlier we ruled out Vercel for the FastAPI backend (heavy ML deps, stateful startup, no
 persistent filesystem — see project discussion). None of that applies here: this site builds to
 static files with no server process, so Vercel/Netlify/Cloudflare Pages would all work with no
-changes if hosting ever moves off Hostinger. The dashboard (`frontend/` + `backend/`) is the piece
+changes if hosting ever moves off Hostinger. The dashboard (`apps/dashboard/` + `apps/api/`) is the piece
 that needs a real VPS — see `files/ARCHITECTURE.md` §5 for that split (`app.mielikkix.ai` +
 `api.mielikkix.ai` on a Hostinger VPS via `docker-compose.yml`, this site on shared hosting at the root domain).
 
@@ -70,10 +70,8 @@ let the two drift.
   `https://mielikkix.ai`.
 - **No `og-image.png`** yet — `Layout.astro` references `/og-image.png` for social share previews;
   add a real 1200×630 image to `public/` before launch or social shares will show a broken image.
-- **Demo form has no backend.** `src/pages/demo.astro` currently just shows a client-side "thanks"
-  message on submit — it doesn't send the lead anywhere. Before launch, wire it to either:
-  - the MielikkiX backend's leads/notifications pipeline (a new public `POST` endpoint), or
-  - a form service (Netlify Forms, Formspree, etc.) if hosting on a platform that supports it.
+- ~~Demo form has no backend~~ — fixed: `src/pages/demo.astro` now `POST`s directly to the
+  MielikkiX API's public `/api/leads` endpoint.
 - **No analytics** wired up yet (e.g. Plausible, GA4, or Vercel Analytics) — needed to actually
   measure organic traffic and demo-request conversion once live.
 - **No testimonials/social proof yet** — the home page has a placeholder social-proof strip

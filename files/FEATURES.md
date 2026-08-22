@@ -63,7 +63,7 @@ A snapshot of what's actually implemented and verified working, as of this point
 
 ## Pricing Plans
 
-Four plans: a genuinely usable free tier to let customers experience the product, plus three paid tiers to convert and grow them. `app/core/plans.py` is the single source of truth these numbers are pulled from — if the two ever disagree, the code wins.
+Four plans: a genuinely usable free tier to let customers experience the product, plus three paid tiers to convert and grow them. `apps/api/app/core/plans.py` is the single source of truth these numbers are pulled from — if the two ever disagree, the code wins.
 
 | | Free | Basic | Business ⭐ | Growth |
 |---|---|---|---|---|
@@ -85,7 +85,7 @@ Four plans: a genuinely usable free tier to let customers experience the product
 | API access | ✗ | ✗ | +$12/mo add-on | ✓ |
 | Priority support | ✗ | ✗ | ✓ | ✓ |
 
-\* *Plan-gated and toggleable from Settings, but the underlying WhatsApp Business API / Meta Instagram integration isn't built yet — attempting to actually enable one currently returns a "coming soon" (501) response rather than pretending it works. See `NOT_YET_IMPLEMENTED_FEATURES` in `app/core/plans.py`.*
+\* *Plan-gated and toggleable from Settings, but the underlying WhatsApp Business API / Meta Instagram integration isn't built yet — attempting to actually enable one currently returns a "coming soon" (501) response rather than pretending it works. See `NOT_YET_IMPLEMENTED_FEATURES` in `apps/api/app/core/plans.py`.*
 
 ### How plan enforcement actually works
 

@@ -31,7 +31,7 @@ A multi-tenant SaaS chatbot where each business:
 - Product/service recommendations
 - Lead capture form (name, email, phone, message)
 - Human handoff
-- Multi-language: English at launch, Thai and Hindi planned
+- Multi-language: configurable per business (auto-detects the visitor's language), capped by plan — none on Free, 2 languages on Basic, up to 10 on Business/Growth (see `files/FEATURES.md`); no specific language list is hardcoded
 
 ### Admin dashboard
 - Business profile & branding
@@ -66,7 +66,7 @@ A multi-tenant SaaS chatbot where each business:
 6. Basic analytics (conversation count, lead count, top questions)
 7. One-click embed script
 
-Out of scope for MVP: multi-language beyond English, human-agent live handoff (email/notification handoff is enough), advanced analytics, billing automation.
+Out of scope for MVP: human-agent live handoff (email/notification handoff is enough), billing automation (checkout is simulated — no real payment processor). Multi-language and tiered analytics, both listed here as out of scope originally, have since shipped as plan-gated features — see §8.
 
 ## 8. Roadmap
 
@@ -82,15 +82,16 @@ Out of scope for MVP: multi-language beyond English, human-agent live handoff (e
 
 **Actual progress vs. this roadmap**: backend, RAG chat, widget, and dashboard (Phases 0–4) are
 built. Scope has grown past the original Phase 5 polish step — plan-based feature gating, a
-(simulated) checkout flow, multi-website management, and self-serve password reset all now exist,
-none of which were in the original MVP scope below. See `files/FEATURES.md` for what's actually
+(simulated) checkout flow, multi-website management, self-serve password reset, per-business
+multi-language chat (auto-detected, plan-capped), and tiered analytics all now exist, none of
+which were in the original MVP scope below. See `files/FEATURES.md` for what's actually
 built and working, and its "not yet built" footer for real remaining gaps (payment processing,
 human handoff, multi-language, etc.) — treat that file as more current than this roadmap table.
 
 ## 9. Pricing Strategy
 
 Superseded by the actual implemented plans — `files/FEATURES.md`'s pricing table (sourced from
-`backend/app/core/plans.py`) is the current source of truth: **Free / Basic ($24/mo) / Business
+`apps/api/app/core/plans.py`) is the current source of truth: **Free / Basic ($24/mo) / Business
 ($48/mo) / Growth ($96/mo)**, no free trial period (Free is a permanent tier, not a 14-day trial),
 and no separate "Custom/Freelance" tier has been built. Checkout exists in the dashboard but is a
 simulated flow — no real payment processor is connected yet (see `files/FEATURES.md`).

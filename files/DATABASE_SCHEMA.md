@@ -35,7 +35,7 @@ erDiagram
 | industry | TEXT | retail, restaurant, clinic, real_estate, service, other |
 | logo_url | TEXT | nullable |
 | primary_color | TEXT | for widget theming; default `#ff6b00`, custom values gated by plan |
-| plan | TEXT | free / basic / business / growth (see `app/core/plans.py`); self-serve can only ever set this to `free` — no payment processor exists, so only a platform admin can put a business on a paid plan |
+| plan | TEXT | free / basic / business / growth (see `apps/api/app/core/plans.py`); self-serve can only ever set this to `free` — no payment processor exists, so only a platform admin can put a business on a paid plan |
 | status | TEXT | active / trial / suspended — auto-synced whenever `plan` changes (Free → trial, any paid plan → active), via either the self-serve `PATCH /api/businesses/me/plan` (Free-only, see below) or the admin-only `PATCH /api/admin/businesses/{id}/plan` (the only way to reach a paid plan). Also manually overridable by a platform admin via `PATCH /api/admin/businesses/{id}/status`; suspending forces `plan` back to `free`. See `files/ARCHITECTURE.md` §2.7. |
 | api_access_addon | BOOLEAN | Business-tier "+$12/mo API access" toggle; irrelevant on other plans |
 | api_key | TEXT | nullable; issued/revoked via `/api/businesses/me/api-key`, gated by the `api_access` feature |
@@ -104,7 +104,7 @@ erDiagram
 | embedding_json | TEXT | nullable — a JSON-encoded float list (e.g. 384-dim for MiniLM), **not** a native pgvector `VECTOR` column as originally planned |
 | created_at | TIMESTAMPTZ | |
 
-> **Drift from the original design**: this table was meant to use a native pgvector `VECTOR` column with an ivfflat index for similarity search. As actually implemented, `embedding_json` is plain `TEXT`, and retrieval (`app/rag/pipeline.py`) pulls every chunk for a `business_id` and scores them with a Python cosine-similarity loop — no pgvector index query happens anywhere yet, even though the `pgvector` extension is enabled on the `db` container. Migrating to a real `VECTOR` column + ivfflat/HNSW index is tracked as follow-up work, not done. See `files/ARCHITECTURE.md` §2.4.
+> **Drift from the original design**: this table was meant to use a native pgvector `VECTOR` column with an ivfflat index for similarity search. As actually implemented, `embedding_json` is plain `TEXT`, and retrieval (`apps/api/app/rag/pipeline.py`) pulls every chunk for a `business_id` and scores them with a Python cosine-similarity loop — no pgvector index query happens anywhere yet, even though the `pgvector` extension is enabled on the `db` container. Migrating to a real `VECTOR` column + ivfflat/HNSW index is tracked as follow-up work, not done. See `files/ARCHITECTURE.md` §2.4.
 
 ### `business_websites`
 | Column | Type | Notes |
@@ -115,7 +115,7 @@ erDiagram
 | label | TEXT | nullable, human-readable name |
 | created_at | TIMESTAMPTZ | |
 
-Count against a business is capped by plan (`app/core/plans.py`'s `max_websites`: 1 on Free/Basic, 3 on Business, 10 on Growth), enforced in `plan_service.check_website_limit`. No `updated_at` — rows are only ever created or deleted, never edited.
+Count against a business is capped by plan (`apps/api/app/core/plans.py`'s `max_websites`: 1 on Free/Basic, 3 on Business, 10 on Growth), enforced in `plan_service.check_website_limit`. No `updated_at` — rows are only ever created or deleted, never edited.
 
 ### `password_reset_tokens`
 | Column | Type | Notes |
@@ -182,9 +182,9 @@ Count against a business is capped by plan (`app/core/plans.py`'s `max_websites`
 |---|---|---|
 | id | UUID PK | |
 | business_id | UUID FK | indexed |
-| provider | TEXT | `groq` today — the only provider that records usage (see `app/rag/providers/groq_provider.py`) |
+| provider | TEXT | `groq` today — the only provider that records usage (see `apps/api/app/rag/providers/groq_provider.py`) |
 | model | TEXT | nullable |
-| kind | TEXT | `chat` (a visitor message answered via `run_rag`) or `translate` (fallback-message translation, see `app/api/businesses.py`) |
+| kind | TEXT | `chat` (a visitor message answered via `run_rag`) or `translate` (fallback-message translation, see `apps/api/app/api/businesses.py`) |
 | prompt_tokens | INTEGER | |
 | completion_tokens | INTEGER | |
 | total_tokens | INTEGER | |
@@ -199,4 +199,4 @@ One row per LLM API call, written in the same transaction as the chat message/se
 
 ## Migrations
 
-Managed with Alembic (`backend/alembic/`). Every schema change ships as a migration; `files/DATABASE_SCHEMA.md` should be updated in the same PR.
+Managed with Alembic (`apps/api/alembic/`). Every schema change ships as a migration; `files/DATABASE_SCHEMA.md` should be updated in the same PR.

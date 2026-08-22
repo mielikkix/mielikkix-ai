@@ -82,7 +82,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
 
     resend_api_key: str = ""
-    notification_from_email: str = "onboarding@resend.dev"
+    # mielikkix.no is verified on Resend (see files/CLAUDE.md's notification
+    # setup). Default to the real sender, not Resend's sandbox address
+    # (onboarding@resend.dev) -- the sandbox only ever delivers to the Resend
+    # account owner, so a deployment that forgot to set
+    # NOTIFICATION_FROM_EMAIL would silently never reach real customers/leads.
+    notification_from_email: str = "post@mielikkix.no"
 
     # Where dashboard-facing links in emails (e.g. password reset) should point.
     frontend_url: str = "http://localhost:5173"

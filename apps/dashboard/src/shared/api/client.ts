@@ -26,6 +26,18 @@ api.interceptors.response.use(
     if (err.response?.status === 401 && !PUBLIC_ROUTES.includes(window.location.pathname)) {
       window.location.href = '/login'
     }
+    // FastAPI/Pydantic validation errors (422) return `detail` as an array of
+    // {loc, msg, type} objects instead of a string. Every call site reads
+    // `detail` expecting a string and hands it straight to setError/JSX, so an
+    // unnormalized array crashes the page (React can't render raw objects as
+    // children). Normalize once here instead of patching every call site.
+    const detail = err.response?.data?.detail
+    if (Array.isArray(detail)) {
+      err.response.data.detail = detail
+        .map((d: { msg?: string }) => d.msg)
+        .filter(Boolean)
+        .join(' ')
+    }
     return Promise.reject(err)
   }
 )

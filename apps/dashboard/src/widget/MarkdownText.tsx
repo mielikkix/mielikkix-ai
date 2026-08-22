@@ -15,17 +15,32 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   })
 }
 
+function CodeBlock({ lines }: { lines: string[] }) {
+  return (
+    <pre className="bg-white border border-gray-200 rounded-lg p-2 text-xs font-mono overflow-x-auto">
+      <code>{lines.join('\n')}</code>
+    </pre>
+  )
+}
+
 export function MarkdownText({ text }: { text: string }) {
   const lines = text.split('\n')
   const blocks: ReactNode[] = []
   let listItems: string[] = []
   let listType: 'ul' | 'ol' | null = null
+  let listStart = 1
+  let inCodeBlock = false
+  let codeLines: string[] = []
 
   const flushList = (key: string) => {
     if (!listItems.length || !listType) return
     const Tag = listType
     blocks.push(
-      <Tag key={key} className={Tag === 'ul' ? 'list-disc pl-4 space-y-0.5' : 'list-decimal pl-4 space-y-0.5'}>
+      <Tag
+        key={key}
+        start={Tag === 'ol' ? listStart : undefined}
+        className={Tag === 'ul' ? 'list-disc pl-4 space-y-0.5' : 'list-decimal pl-4 space-y-0.5'}
+      >
         {listItems.map((item, i) => (
           <li key={i}>{renderInline(item, `${key}-li-${i}`)}</li>
         ))}
@@ -36,8 +51,28 @@ export function MarkdownText({ text }: { text: string }) {
   }
 
   lines.forEach((line, idx) => {
+    // Fenced code blocks (```lang ... ```) -- kept as raw text, no inline
+    // bold/list parsing inside, since LLM replies use these for the embed
+    // snippet and similar copy-pasteable content.
+    if (/^\s*```/.test(line)) {
+      if (!inCodeBlock) {
+        flushList(`flush-${idx}`)
+        inCodeBlock = true
+        codeLines = []
+      } else {
+        blocks.push(<CodeBlock key={`code-${idx}`} lines={codeLines} />)
+        inCodeBlock = false
+        codeLines = []
+      }
+      return
+    }
+    if (inCodeBlock) {
+      codeLines.push(line)
+      return
+    }
+
     const bullet = line.match(/^\s*[-*]\s+(.*)/)
-    const numbered = line.match(/^\s*\d+\.\s+(.*)/)
+    const numbered = line.match(/^\s*(\d+)\.\s+(.*)/)
 
     if (bullet) {
       if (listType !== 'ul') flushList(`flush-${idx}`)
@@ -46,9 +81,12 @@ export function MarkdownText({ text }: { text: string }) {
       return
     }
     if (numbered) {
-      if (listType !== 'ol') flushList(`flush-${idx}`)
+      if (listType !== 'ol') {
+        flushList(`flush-${idx}`)
+        listStart = Number(numbered[1])
+      }
       listType = 'ol'
-      listItems.push(numbered[1])
+      listItems.push(numbered[2])
       return
     }
 
@@ -58,6 +96,11 @@ export function MarkdownText({ text }: { text: string }) {
     }
   })
   flushList('flush-end')
+  // An unterminated fence (LLM cut off before closing ```) still renders
+  // whatever was collected, rather than silently dropping it.
+  if (inCodeBlock && codeLines.length) {
+    blocks.push(<CodeBlock key="code-end" lines={codeLines} />)
+  }
 
   return <div className="space-y-1.5">{blocks}</div>
 }

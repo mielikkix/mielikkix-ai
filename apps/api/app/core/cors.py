@@ -63,6 +63,19 @@ class PublicRouteCORSMiddleware:
 
             async def send_wrapper(message):
                 if message["type"] == "http.response.start":
+                    # The standard CORSMiddleware further down the stack also adds its
+                    # own Access-Control-Allow-Origin/Vary headers when this origin
+                    # happens to also be in the restrictive allowlist (e.g. testing the
+                    # widget from the dashboard's own localhost origin). Strip those
+                    # before adding ours so the browser sees exactly one value --
+                    # Chrome rejects a response with a duplicated
+                    # Access-Control-Allow-Origin header as an invalid CORS response,
+                    # even though the underlying request succeeded.
+                    message["headers"] = [
+                        (k, v)
+                        for k, v in message["headers"]
+                        if k.lower() not in (b"access-control-allow-origin", b"vary")
+                    ]
                     message["headers"].append((b"access-control-allow-origin", origin))
                     message["headers"].append((b"vary", b"Origin"))
                 await send(message)

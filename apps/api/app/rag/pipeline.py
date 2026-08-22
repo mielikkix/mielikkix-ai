@@ -158,7 +158,16 @@ def _detect_intent(message: str) -> str:
     msg = message.lower()
     if _matches_any(msg, ["price", "cost", "how much", "fee", "rate"]):
         return "product_inquiry"
-    if _matches_any(msg, ["contact", "call", "email", "reach", "phone"]):
+    # "contact"/"call"/"email"/"reach"/"phone" alone missed plenty of obvious
+    # buying/contact intent -- "I'd like to connect with your team", "can you
+    # set up a demo", "I have a business proposal" all fell through to "faq"
+    # and never triggered the lead-capture form.
+    if _matches_any(msg, [
+        "contact", "call", "email", "reach", "phone",
+        "connect", "talk to", "speak to", "speak with",
+        "get in touch", "reach out", "demo", "meeting", "proposal",
+        "quote", "schedule",
+    ]):
         return "lead"
     if _matches_any(msg, ["problem", "issue", "broken", "not working", "help"]):
         return "support"

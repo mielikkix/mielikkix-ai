@@ -13,6 +13,7 @@ mocked too; no test in this file makes a real Groq call.
 
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi.testclient import TestClient
 from twilio.request_validator import RequestValidator
 
@@ -22,6 +23,15 @@ from app.api import agents_voice
 from mielikkix_agent_core import LLMResult, LLMUsage
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _debug_mode(monkeypatch):
+    """All /dev/* routes 404 outside settings.debug (see agents_voice.py's
+    _require_debug) -- this module's whole point is exercising those
+    routes, so default every test in it to debug mode. The one test that
+    cares about the opposite (production-mode 404) overrides this itself."""
+    monkeypatch.setattr(settings, "debug", True)
 
 
 def test_incoming_call_without_auth_token_configured(monkeypatch):
@@ -167,6 +177,36 @@ def test_gather_ends_call_on_goodbye_phrase(monkeypatch):
     assert "CAtest-goodbye" not in agents_voice._call_history
 
 
+def test_gather_ends_call_after_max_turns(monkeypatch):
+    """A caller who just keeps talking (never says goodbye, never goes
+    silent) must still be cut off eventually -- otherwise one open phone
+    line can generate an unbounded number of paid Groq calls."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-turncap"
+    agents_voice._call_turn_counts.pop(call_sid, None)
+    agents_voice._call_history.pop(call_sid, None)
+    fake_chat = AsyncMock(return_value=LLMResult(text="Sure, here's more info.", usage=None))
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    for _ in range(agents_voice._MAX_TURNS_PER_CALL):
+        resp = client.post(
+            "/api/agents/voice/gather", data={"CallSid": call_sid, "SpeechResult": "tell me more"}
+        )
+        assert "Hangup" not in resp.text
+
+    final_resp = client.post(
+        "/api/agents/voice/gather", data={"CallSid": call_sid, "SpeechResult": "tell me more"}
+    )
+
+    assert final_resp.status_code == 200
+    assert "Hangup" in final_resp.text
+    assert "Gather" not in final_resp.text
+    assert agents_voice._TURN_CAP_CLOSING_LINE in final_resp.text
+    assert call_sid not in agents_voice._call_turn_counts
+    assert call_sid not in agents_voice._call_history
+
+
 def test_gather_falls_back_gracefully_on_llm_error(monkeypatch):
     """Never leave the caller in dead air if the LLM call fails -- see this
     agent's CLAUDE.md testing checklist."""
@@ -194,6 +234,18 @@ def test_dev_start_returns_greeting_as_json():
 
     assert resp.status_code == 200
     assert resp.json() == {"reply": agents_voice._GREETING, "ended": False, "heard_as": None}
+
+
+def test_dev_routes_404_outside_debug_mode(monkeypatch):
+    """Outside debug mode, /dev/* must not exist -- not just reject with
+    403/401, so an outsider scanning for routes gets no hint they're there."""
+    monkeypatch.setattr(settings, "debug", False)
+
+    assert client.post("/api/agents/voice/dev/start", json={"call_sid": "CAnodebug"}).status_code == 404
+    assert client.post(
+        "/api/agents/voice/dev/gather", json={"call_sid": "CAnodebug", "speech": "hi"}
+    ).status_code == 404
+    assert client.get("/api/agents/voice/dev/voice-test").status_code == 404
 
 
 def test_dev_gather_uses_same_turn_logic_as_real_gather(monkeypatch):

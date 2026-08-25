@@ -134,6 +134,14 @@ class Settings(BaseSettings):
     # the agent only has one number's worth of traffic to handle so far.
     # Empty means ungrounded (Phase 1 behavior: honest "I don't know").
     voice_agent_business_id: str = ""
+    # Deliberately NOT settings.debug -- debug also controls auth.py's
+    # cookie `secure` flag (secure=not settings.debug), so flipping it on
+    # in production to unlock the public demo would silently make every
+    # login session cookie on the live dashboard non-Secure. This flag only
+    # affects agents_voice.py's /dev/start and /dev/gather JSON routes (the
+    # ones the public marketing-site demo page calls) -- NOT /dev/voice-test,
+    # the internal HTML test harness, which stays debug-only either way.
+    voice_agent_public_demo: bool = False
 
     # Comma-separated emails allowed into the platform-operator-only /admin
     # dashboard (see app/core/dependencies.py:require_platform_admin). Not a

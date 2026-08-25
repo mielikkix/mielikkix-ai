@@ -1,12 +1,12 @@
 {
   "SEO": {
-    "TITLE": "Funksjoner",
-    "DESCRIPTION": "Alt du trenger for å automatisere kundeservice, fange opp leads og vokse bedriften din — samlet på én plattform."
+    "TITLE": "Chat Widget-funksjoner",
+    "DESCRIPTION": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og vokse bedriften din."
   },
   "PAGE_HERO": {
-    "LINE1": "Kraftige AI-funksjoner for",
+    "LINE1": "Kraftige Chat Widget-funksjoner for",
     "LINE2": "moderne bedrifter",
-    "SUBHEADING": "Alt du trenger for å automatisere kundeservice, fange opp leads og vokse bedriften din — samlet på én plattform.",
+    "SUBHEADING": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og vokse bedriften din.",
     "EXTRA_INTRO": "Enten du driver en butikk, klinikk, restaurant, kurssenter, eiendomsmegling eller servicebedrift, hjelper MielikkiX deg med å engasjere besøkende døgnet rundt og gjøre dem til kunder."
   },
   "VALUE_PROPS": [
@@ -35,9 +35,18 @@
         "Tilpassede reservesvar"
       ],
       "STATS": [
-        { "VALUE": "<2s", "LABEL": "Gj.snittlig responstid" },
-        { "VALUE": "24/7", "LABEL": "Alltid tilgjengelig" },
-        { "VALUE": "0", "LABEL": "Uteblitte henvendelser" }
+        {
+          "VALUE": "<2s",
+          "LABEL": "Gj.snittlig responstid"
+        },
+        {
+          "VALUE": "24/7",
+          "LABEL": "Alltid tilgjengelig"
+        },
+        {
+          "VALUE": "0",
+          "LABEL": "Uteblitte henvendelser"
+        }
       ],
       "CALLOUT": "Svaret til høyre genereres i sanntid av MielikkiXs AI, basert på denne bedriftens reelle FAQ-er og katalog — ikke en scriptet demo.",
       "VIDEO_ALT": "Live demo av MielikkiX AI-chattevindu som svarer på et kundespørsmål"
@@ -45,7 +54,16 @@
     "KNOWLEDGE_BASE": {
       "TITLE": "AI-kunnskapsbase",
       "DESCRIPTION": "Ingen koding nødvendig — last opp dokumenter eller importer nettsiden din, så bygger MielikkiX kunnskapsbasen automatisk.",
-      "BULLETS": ["Nettside-URL-er", "PDF-dokumenter", "Microsoft Word", "Excel-filer", "CSV-filer", "Tekstfiler", "FAQ-database", "Produktkatalog"],
+      "BULLETS": [
+        "Nettside-URL-er",
+        "PDF-dokumenter",
+        "Microsoft Word",
+        "Excel-filer",
+        "CSV-filer",
+        "Tekstfiler",
+        "FAQ-database",
+        "Produktkatalog"
+      ],
       "TAG_FAQS": "FAQ-er",
       "TAG_DOCUMENTS": "Dokumenter",
       "TAG_CATALOG": "Katalog",
@@ -54,7 +72,15 @@
     "LEAD_GENERATION": {
       "TITLE": "Leadgenerering",
       "DESCRIPTION": "Mist aldri en potensiell kunde — samle automatisk inn kontaktinfo idet AI-en fornemmer kjøpsinteresse.",
-      "BULLETS": ["Navn", "E-post", "Telefonnummer", "Kundemelding", "Leadstatus", "Leadhistorikk", "E-postvarsler"],
+      "BULLETS": [
+        "Navn",
+        "E-post",
+        "Telefonnummer",
+        "Kundemelding",
+        "Leadstatus",
+        "Leadhistorikk",
+        "E-postvarsler"
+      ],
       "CONTACT_DETAILS": "Kontaktopplysninger",
       "NEW_LEAD": "Nytt lead",
       "CONTACT_ME": "Kontakt meg"
@@ -62,22 +88,55 @@
     "BUSINESS_ANALYTICS": {
       "TITLE": "Forretningsanalyse",
       "DESCRIPTION": "Forstå hva kundene dine spør om, og ta smartere beslutninger med innebygd analyse.",
-      "BULLETS": ["Besøkstall", "AI-samtaler", "Totalt antall meldinger", "Genererte leads", "Mest stilte spørsmål", "Populære produkter", "Samtalehistorikk", "Kundeinnsikt"],
+      "BULLETS": [
+        "Besøkstall",
+        "AI-samtaler",
+        "Totalt antall meldinger",
+        "Genererte leads",
+        "Mest stilte spørsmål",
+        "Populære produkter",
+        "Samtalehistorikk",
+        "Kundeinnsikt"
+      ],
       "STATS": [
-        { "VALUE": "42", "LABEL": "Leads" },
-        { "VALUE": "128", "LABEL": "Samtaler" },
-        { "VALUE": "76%", "LABEL": "Besvart" }
+        {
+          "VALUE": "42",
+          "LABEL": "Leads"
+        },
+        {
+          "VALUE": "128",
+          "LABEL": "Samtaler"
+        },
+        {
+          "VALUE": "76%",
+          "LABEL": "Besvart"
+        }
       ]
     },
     "NOTIFICATIONS": {
       "TITLE": "Umiddelbare varsler",
       "DESCRIPTION": "Gå aldri glipp av en kundehenvendelse — bli varslet idet det skjer.",
       "ITEMS": [
-        { "TEXT": "E-post", "AVAILABLE": true },
-        { "TEXT": "WhatsApp — kommer snart", "AVAILABLE": false },
-        { "TEXT": "Instagram — kommer snart", "AVAILABLE": false },
-        { "TEXT": "Gmail", "AVAILABLE": true },
-        { "TEXT": "Slack og Microsoft Teams — planlagt", "AVAILABLE": false }
+        {
+          "TEXT": "E-post",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "WhatsApp — kommer snart",
+          "AVAILABLE": false
+        },
+        {
+          "TEXT": "Instagram — kommer snart",
+          "AVAILABLE": false
+        },
+        {
+          "TEXT": "Gmail",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Slack og Microsoft Teams — planlagt",
+          "AVAILABLE": false
+        }
       ],
       "MOCK_NEW_BADGE": "Ny",
       "MOCK_TITLE": "Nytt lead fanget opp",
@@ -87,26 +146,58 @@
       "TITLE": "Flerspråklig støtte",
       "DESCRIPTION": "Snakk kundens språk og lever lokaltilpassede opplevelser med AI.",
       "ITEMS": [
-        { "TEXT": "10 språk, oppdaget automatisk fra den besøkendes nettleser", "AVAILABLE": true },
-        { "TEXT": "AI-svar tilpasses automatisk til den besøkendes språk", "AVAILABLE": true },
-        { "TEXT": "Kontaktskjemaet og alle tekster i chat-vinduet er også oversatt", "AVAILABLE": true }
+        {
+          "TEXT": "10 språk, oppdaget automatisk fra den besøkendes nettleser",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "AI-svar tilpasses automatisk til den besøkendes språk",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Kontaktskjemaet og alle tekster i chat-vinduet er også oversatt",
+          "AVAILABLE": true
+        }
       ]
     },
     "MULTI_CURRENCY": {
       "TITLE": "Klar for flere valutaer",
       "DESCRIPTION": "Perfekt for bedrifter som betjener kunder over hele verden.",
-      "ITEMS": ["Indiske rupi", "Amerikanske dollar", "Euro", "Norske kroner"]
+      "ITEMS": [
+        "Indiske rupi",
+        "Amerikanske dollar",
+        "Euro",
+        "Norske kroner"
+      ]
     },
     "WIDGET_CUSTOMIZATION": {
       "TITLE": "Tilpasning av widget",
       "DESCRIPTION": "Tilpass chatboten til merkevaren din, ned til minste detalj.",
       "ITEMS": [
-        { "TEXT": "Merkevarefarge", "AVAILABLE": true },
-        { "TEXT": "Chatbotnavn", "AVAILABLE": true },
-        { "TEXT": "Velkomstmelding", "AVAILABLE": true },
-        { "TEXT": "Widgetplassering", "AVAILABLE": true },
-        { "TEXT": "Tema", "AVAILABLE": true },
-        { "TEXT": "Botavatar — kommer snart", "AVAILABLE": false }
+        {
+          "TEXT": "Merkevarefarge",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Chatbotnavn",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Velkomstmelding",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Widgetplassering",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Tema",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Botavatar — kommer snart",
+          "AVAILABLE": false
+        }
       ],
       "BOT_NAME_LABEL": "Botnavn:",
       "BOT_NAME_VALUE": "Aria"
@@ -115,11 +206,26 @@
       "TITLE": "Bygg kundetillit",
       "DESCRIPTION": "Vis besøkende at du er en pålitelig, etablert bedrift.",
       "ITEMS": [
-        { "TEXT": "Google-anmeldelser", "AVAILABLE": true },
-        { "TEXT": "Kontaktskjema", "AVAILABLE": true },
-        { "TEXT": "Bedriftsinformasjon", "AVAILABLE": true },
-        { "TEXT": "Åpningstider — kommer snart", "AVAILABLE": false },
-        { "TEXT": "Beliggenhet og kart — kommer snart", "AVAILABLE": false }
+        {
+          "TEXT": "Google-anmeldelser",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Kontaktskjema",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Bedriftsinformasjon",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Åpningstider — kommer snart",
+          "AVAILABLE": false
+        },
+        {
+          "TEXT": "Beliggenhet og kart — kommer snart",
+          "AVAILABLE": false
+        }
       ],
       "RATING_VALUE": "4.9",
       "RATING_MAX": "/5",
@@ -128,14 +234,25 @@
     "SECURITY": {
       "TITLE": "Sikkerhet i toppklasse",
       "DESCRIPTION": "Bygget med sikkerhet fra dag én, ikke lagt til i etterkant.",
-      "BULLETS": ["Flerleiearkitektur", "Sikker dataisolasjon", "Shadow DOM-widget", "Rate limiting", "Sikker URL-import", "SSL-kryptering"],
+      "BULLETS": [
+        "Flerleiearkitektur",
+        "Sikker dataisolasjon",
+        "Shadow DOM-widget",
+        "Rate limiting",
+        "Sikker URL-import",
+        "SSL-kryptering"
+      ],
       "BUSINESS_A": "Bedrift A",
       "BUSINESS_B": "Bedrift B"
     },
     "EASY_INSTALLATION": {
       "TITLE": "Enkel installasjon",
       "DESCRIPTION": "Lanser AI-assistenten din på under 2 minutter. Bare kopier og lim inn én linje på nettsiden din. Ingen plugins, ingen koding, ingen komplisert oppsett.",
-      "BULLETS": ["Ingen plugins", "Ingen koding", "Ingen komplisert oppsett"]
+      "BULLETS": [
+        "Ingen plugins",
+        "Ingen koding",
+        "Ingen komplisert oppsett"
+      ]
     }
   },
   "WHY_CHOOSE": {
@@ -154,5 +271,9 @@
   "CTA": {
     "HEADING": "Se det fungere med ditt eget innhold",
     "SUBHEADING": "Book en gratis demo, så setter vi opp FAQ-er, dokumenter og katalog sammen."
+  },
+  "AGENTS_CALLOUT": {
+    "TEXT": "Ser du etter mer enn en chat-widget? Utforsk Force Crew — 10 AI-agenter for tale, booking, support og mer.",
+    "CTA": "Se agentene"
   }
 }

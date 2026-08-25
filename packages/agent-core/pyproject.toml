@@ -1,9 +1,12 @@
 [project]
 name = "mielikkix-agent-core"
-version = "0.0.0"
+version = "0.1.0"
 description = "Shared LLM client, prompt/tool-calling framework, and memory/RAG utilities used by every Mielikkix Force agent and the Chat Widget."
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "groq==0.8.0",
+    "pydantic-settings==2.2.1",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

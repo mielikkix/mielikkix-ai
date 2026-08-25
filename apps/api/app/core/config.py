@@ -21,9 +21,10 @@ _INSECURE_SECRET_KEYS = {
 #
 # Found by walking up rather than by a fixed parents[N], because how deep
 # this file sits depends on where it's running: on a checkout it's
-# <repo>/apps/api/app/core/config.py, but the image copies apps/api to /app,
-# making it /app/app/core/config.py. A hardcoded index that matches the
-# checkout raises IndexError in the container, killing the app at import.
+# <repo>/apps/api/app/core/config.py, but the Docker image copies apps/api
+# to /repo/apps/api, making it /repo/apps/api/app/core/config.py. A
+# hardcoded index that matches the checkout raises IndexError in the
+# container, killing the app at import.
 def _find_root_env_file() -> Path:
     here = Path(__file__).resolve()
     for parent in here.parents:
@@ -111,6 +112,28 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    # Voice Receptionist agent (apps/agents/voice-receptionist). Empty
+    # twilio_auth_token is treated as "not configured yet" and skips webhook
+    # signature validation (see app/api/agents_voice.py) -- convenient for a
+    # first local run, but this MUST be set before the number goes anywhere
+    # near production, or anyone who finds the webhook URL can post fake
+    # call events at it.
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_phone_number: str = ""
+    # The public URL Twilio actually calls -- your ngrok/cloudflared URL
+    # while testing locally, the real api.mielikkix.ai URL in production.
+    # Needed because Twilio signs its request against the exact URL it
+    # dialed, and that's not always what request.url reports on this end
+    # once a tunnel/proxy sits in front of the server.
+    voice_agent_public_base_url: str = "http://localhost:8000"
+    # Which business's FAQs/documents/products the voice agent's replies are
+    # grounded against -- a stand-in for real multi-tenant routing (looking
+    # this up from the dialed phone number), which doesn't exist yet since
+    # the agent only has one number's worth of traffic to handle so far.
+    # Empty means ungrounded (Phase 1 behavior: honest "I don't know").
+    voice_agent_business_id: str = ""
 
     # Comma-separated emails allowed into the platform-operator-only /admin
     # dashboard (see app/core/dependencies.py:require_platform_admin). Not a

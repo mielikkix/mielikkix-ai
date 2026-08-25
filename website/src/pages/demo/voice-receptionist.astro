@@ -1,0 +1,289 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+// Not linked from the header nav (see Header.astro) -- reachable only via
+// direct link for now. Real voice in (your mic, via the browser's own
+// speech recognition) / real voice out (browser TTS), talking to the same
+// conversation + RAG-grounding logic apps/api/app/api/agents_voice.py's
+// real Twilio-facing route uses. NOT Twilio's voice or speech recognition,
+// and NOT a real phone call -- see the on-page note below for why, and
+// apps/agents/voice-receptionist/CLAUDE.md for the actual phased plan.
+---
+
+<Layout
+  title="Talk to Our Voice Receptionist"
+  description="An early preview of Mielikkix's AI Voice Receptionist -- talk to it live, right in your browser."
+  path="/demo/voice-receptionist"
+>
+  <PageHero
+    line1="Meet Mielikkix's"
+    line2="Voice Receptionist"
+    subheading="An early preview -- talk to it right now, using your own microphone."
+  />
+
+  <section class="mx-auto max-w-lg px-6 py-16">
+    <div class="rounded-3xl border border-slate-100 bg-white p-9 text-center shadow-sm">
+      <p id="unsupported" class="mb-6 hidden text-sm font-medium text-red-600">
+        This browser doesn't support live speech recognition. Please try a recent Chrome or Edge.
+      </p>
+
+      <div class="relative mx-auto mb-4 h-24 w-24">
+        <div id="avatarRing" class="brand-gradient absolute inset-0 rounded-full opacity-20"></div>
+        <div class="brand-gradient relative flex h-24 w-24 items-center justify-center rounded-full shadow-lg shadow-violet-200">
+          <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" class="h-11 w-11">
+            <path
+              fill="#fff"
+              d="M50.4 78.5a75.1 75.1 0 0 0-28.5 6.9l24.2-65.7c.7-2 1.9-3.2 3.4-3.2h29c1.5 0 2.7 1.2 3.4 3.2l24.2 65.7s-11.6-7-28.5-7L67 45.5c-.4-1.7-1.6-2.8-2.9-2.8-1.3 0-2.5 1.1-2.9 2.7L50.4 78.5Zm-1.1 28.2Zm-4.2-20.2c-2 6.6-.6 15.8 4.2 20.2a17.5 17.5 0 0 1 .2-.7 5.5 5.5 0 0 1 5.7-4.5c2.8.1 4.3 1.5 4.7 4.7.2 1.1.2 2.3.2 3.5v.4c0 2.7.7 5.2 2.2 7.4a13 13 0 0 0 5.7 4.9v-.3l-.2-.3c-1.8-5.6-.5-9.5 4.4-12.8l1.5-1a73 73 0 0 0 3.2-2.2 16 16 0 0 0 6.8-11.4c.3-2 .1-4-.6-6l-.8.6-1.6 1a37 37 0 0 1-22.4 2.7c-5-.7-9.7-2-13.2-6.2Z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <div id="waveform" class="mb-3 flex h-6 items-center justify-center gap-1">
+        <span class="w-1 rounded-full bg-violet-500" style="height:6px"></span>
+        <span class="w-1 rounded-full bg-violet-500" style="height:6px"></span>
+        <span class="w-1 rounded-full bg-violet-500" style="height:6px"></span>
+        <span class="w-1 rounded-full bg-violet-500" style="height:6px"></span>
+        <span class="w-1 rounded-full bg-violet-500" style="height:6px"></span>
+      </div>
+
+      <p id="status" class="mb-6 text-sm font-semibold text-slate-500">Idle &mdash; click Start Call</p>
+
+      <div class="mb-6 flex justify-center gap-3">
+        <button
+          id="startBtn"
+          class="brand-gradient rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-105"
+        >
+          Start Call
+        </button>
+        <button
+          id="hangupBtn"
+          disabled
+          class="rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Hang Up
+        </button>
+      </div>
+
+      <div id="transcript" class="flex max-h-80 flex-col gap-2 overflow-y-auto text-left"></div>
+    </div>
+
+    <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
+      Real voice in, real voice out via your browser's own speech recognition/synthesis &mdash;
+      not Twilio's voice or a real phone call (see our <a href="/features" class="underline">features page</a>
+      for how the real product works). Proves the conversation and RAG-grounding logic; a real
+      call will sound different. Speech-to-text briefly sends your audio to your browser's own
+      recognition service, so this needs an internet connection.
+    </p>
+  </section>
+
+  <script is:inline define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL }}>
+    const avatarRing = document.getElementById("avatarRing");
+    const waveformBars = document.querySelectorAll("#waveform span");
+    const statusEl = document.getElementById("status");
+    const transcriptEl = document.getElementById("transcript");
+    const startBtn = document.getElementById("startBtn");
+    const hangupBtn = document.getElementById("hangupBtn");
+    const unsupportedEl = document.getElementById("unsupported");
+
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognizer = null;
+    let callSid = null;
+    let active = false;
+
+    const STATE_COLORS = { idle: "text-slate-500", listening: "text-emerald-600", thinking: "text-amber-600", speaking: "text-violet-600" };
+
+    function setState(state, text) {
+      statusEl.textContent = text;
+      statusEl.className = "mb-6 text-sm font-semibold " + (STATE_COLORS[state] || STATE_COLORS.idle);
+      const animate = state === "listening" || state === "speaking";
+      avatarRing.style.animation = animate ? "pulse-ring 1.4s ease-out infinite" : "none";
+      waveformBars.forEach((bar, i) => {
+        bar.style.animation = animate ? `wave 0.9s ease-in-out ${i * 0.1}s infinite` : "none";
+        bar.style.background = state === "listening" ? "#1a7f37" : "#8b5cf6";
+        if (!animate) bar.style.height = "6px";
+      });
+    }
+
+    function logLine(who, text) {
+      const p = document.createElement("p");
+      const base = "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-snug";
+      if (who === "caller") {
+        p.className = base + " brand-gradient self-end rounded-br-md text-white";
+      } else if (who === "error") {
+        p.className = base + " self-center rounded-lg bg-red-50 font-semibold text-red-700";
+        text = "Mic problem: " + text;
+      } else {
+        p.className = base + " self-start rounded-bl-md bg-slate-100 text-slate-800";
+      }
+      p.textContent = text;
+      transcriptEl.appendChild(p);
+      transcriptEl.style.display = "flex";
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+      return p; // so callers can update this exact bubble later (see heard_as correction)
+    }
+
+    async function postJSON(path, body) {
+      const resp = await fetch(`${apiUrl}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error(`${path} returned ${resp.status}`);
+      return resp.json();
+    }
+
+    function getVoicesAsync() {
+      return new Promise((resolve) => {
+        const existing = window.speechSynthesis.getVoices();
+        if (existing.length) return resolve(existing);
+        window.speechSynthesis.onvoiceschanged = () => resolve(window.speechSynthesis.getVoices());
+      });
+    }
+
+    function pickFemaleVoice(voices) {
+      const patterns = /female|zira|hazel|susan|samantha|victoria|karen|moira|tessa|fiona|aria|jenny/i;
+      return voices.find((v) => patterns.test(v.name)) || null;
+    }
+
+    let femaleVoice = null;
+    getVoicesAsync().then((voices) => { femaleVoice = pickFemaleVoice(voices); });
+
+    function speak(text) {
+      return new Promise((resolve) => {
+        setState("speaking", "Speaking...");
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (femaleVoice) utterance.voice = femaleVoice;
+        utterance.onend = resolve;
+        utterance.onerror = resolve;
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    function listenOnce() {
+      return new Promise((resolve) => {
+        // "Get ready..." here, not "Listening..." -- recognizer.start() is
+        // still ~300ms away (see below), and showing "Listening..." before
+        // the mic is actually capturing was making people start talking
+        // right away, clipping the first word or two of what they said.
+        // The status only switches to "Listening..." once recognition has
+        // genuinely started (onstart, below).
+        setState("listening", "Get ready...");
+        recognizer = new SpeechRecognitionCtor();
+        recognizer.lang = "en-US";
+        recognizer.continuous = false;
+        recognizer.interimResults = false;
+        recognizer.maxAlternatives = 1;
+
+        let resolved = false;
+        const finish = (transcript, error) => {
+          if (resolved) return;
+          resolved = true;
+          resolve({ transcript, error: error || null });
+        };
+
+        recognizer.onstart = () => setState("listening", "Listening...");
+        recognizer.onresult = (event) => finish(event.results[0][0].transcript);
+        recognizer.onerror = (event) => {
+          console.error("SpeechRecognition error:", event.error);
+          finish("", event.error === "no-speech" ? null : event.error);
+        };
+        recognizer.onend = () => finish("");
+        setTimeout(() => recognizer.start(), 300);
+      });
+    }
+
+    const ERROR_HINTS = {
+      "not-allowed": "Microphone permission was denied/blocked. Click the mic/lock icon in the address bar and allow it.",
+      "audio-capture": "No microphone was found. Check a mic is connected and selected as the default input device.",
+      network: "Couldn't reach the speech-recognition service. Check your internet connection.",
+      "service-not-allowed": "The browser blocked access to its speech-recognition service.",
+      aborted: "Recognition was interrupted before it finished.",
+    };
+
+    async function conversationLoop() {
+      while (active) {
+        const { transcript, error } = await listenOnce();
+        if (!active) return;
+
+        if (error) {
+          logLine("error", `${error} -- ${ERROR_HINTS[error] || "see the browser console (F12) for details."}`);
+          continue;
+        }
+
+        const callerBubble = transcript ? logLine("caller", transcript) : null;
+
+        setState("thinking", "Thinking...");
+        let reply, ended = false, heard_as = null;
+        try {
+          ({ reply, ended, heard_as } = await postJSON("/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript }));
+        } catch (err) {
+          reply = "Sorry, something went wrong reaching the server.";
+        }
+        if (!active) return;
+        // If the server recognized this as a known mishearing of
+        // "Mielikkix", visibly correct the caller's own bubble to show
+        // what was actually meant, live -- the same recognized text is
+        // still what was sent for retrieval either way (see
+        // agents_voice.py's _anchor_query_for_retrieval, which is separate
+        // and always general-purpose, not tied to this list).
+        if (callerBubble && heard_as) callerBubble.textContent = heard_as;
+        logLine("agent", reply);
+        await speak(reply);
+        if (ended) {
+          // Caller said something like "bye", or went quiet for too long --
+          // the server already decided the call is over; end it here too
+          // instead of listening again, same as clicking Hang Up.
+          hangUp();
+          return;
+        }
+      }
+    }
+
+    async function startCall() {
+      callSid = crypto.randomUUID();
+      transcriptEl.innerHTML = "";
+      active = true;
+      startBtn.disabled = true;
+      hangupBtn.disabled = false;
+
+      setState("thinking", "Connecting...");
+      const { reply } = await postJSON("/api/agents/voice/dev/start", { call_sid: callSid });
+      logLine("agent", reply);
+      await speak(reply);
+
+      conversationLoop();
+    }
+
+    function hangUp() {
+      active = false;
+      window.speechSynthesis.cancel();
+      if (recognizer) {
+        try { recognizer.stop(); } catch (e) {}
+      }
+      startBtn.disabled = false;
+      hangupBtn.disabled = true;
+      setState("idle", "Call ended -- click Start Call to talk again");
+    }
+
+    if (!SpeechRecognitionCtor) {
+      unsupportedEl.classList.remove("hidden");
+      startBtn.disabled = true;
+    } else {
+      startBtn.addEventListener("click", startCall);
+      hangupBtn.addEventListener("click", hangUp);
+    }
+  </script>
+
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 0.35; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    @keyframes wave {
+      0%, 100% { height: 6px; }
+      50% { height: 22px; }
+    }
+  </style>
+</Layout>

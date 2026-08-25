@@ -27,3 +27,12 @@ PyPDF2==3.0.1
 python-docx==1.1.2
 openpyxl==3.1.5
 beautifulsoup4==4.15.0
+twilio==9.10.9
+# Editable install, resolved relative to the cwd `pip install -r` is run
+# from (apps/api, per this repo's documented dev commands) -- works for
+# local/dev installs. NOT yet wired into the Docker image: apps/api's
+# Dockerfile build context is ./apps/api, which can't see this sibling
+# ../../packages directory. Fixing that is Phase 6 ("Deploy") work per
+# apps/agents/voice-receptionist/CLAUDE.md, not done yet -- see that
+# phase's notes before wiring this into apps/api/Dockerfile.
+-e ../../packages/agent-core

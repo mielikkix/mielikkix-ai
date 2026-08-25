@@ -146,6 +146,45 @@ const planAccents = [
     </div>
   </section>
 
+  <!--
+    Force Crew add-ons: a separate purchase axis from the plans above (see
+    packages/billing/README.md -- individual agent / 3-agent bundle / Full
+    Crew). Deliberately no dollar amounts here yet: that pricing hasn't
+    actually been decided anywhere in the codebase, and inventing numbers
+    on a live pricing page would be worse than not showing them.
+  -->
+  <section class="border-t border-slate-100 bg-white py-16">
+    <div class="mx-auto max-w-[1440px] px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="font-display text-3xl font-bold text-slate-900">Add Force Crew agents</h2>
+        <p class="mt-3 text-sm text-slate-500">
+          The plans above cover the Chat Widget. The Force Crew (Voice Receptionist, Booking
+          Assistant, and more) are separate add-ons on top of any plan --
+          <a href="/agents" class="text-violet-600 underline">see the full crew</a>.
+        </p>
+      </div>
+      <div class="mx-auto mt-10 grid max-w-4xl gap-6 sm:grid-cols-3">
+        {
+          [
+            { name: "Individual Agent", description: "Add one Force Crew agent to your plan." },
+            { name: "3-Agent Bundle", description: "Pick any 3 agents at a bundled rate." },
+            { name: "Full Crew", description: "All 10 agents, one price." },
+          ].map((tier) => (
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 text-center">
+              <h3 class="font-display font-bold text-slate-900">{tier.name}</h3>
+              <p class="mt-1.5 text-xs leading-relaxed text-slate-500">{tier.description}</p>
+              <p class="mt-4 text-sm font-semibold text-violet-600">Pricing coming soon</p>
+            </div>
+          ))
+        }
+      </div>
+      <p class="mt-6 text-center text-xs text-slate-400">
+        Want to be notified when Force Crew pricing is live?{" "}
+        <a href="/demo" class="text-violet-600 underline">Get in touch</a>.
+      </p>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="border-t border-slate-100 bg-slate-50 py-16">
     <div class="mx-auto max-w-3xl px-6">

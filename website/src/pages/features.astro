@@ -46,6 +46,29 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
     </div>
   </PageHero>
 
+  <!-- This page only covers the Chat Widget (see the retitled hero above)
+       -- the Force Crew agents are a separate product line with their own
+       page, and a visitor scanning this grid for "AI agents" content
+       should be redirected there immediately, not partway down the page. -->
+  <section class="mx-auto max-w-[1440px] px-6 pt-10">
+    <div class="brand-gradient relative overflow-hidden rounded-2xl px-6 py-5 shadow-xl shadow-violet-200">
+      <!-- Glossy highlight: a soft white-to-transparent sheen across the top
+           half, the same "polished surface" trick used on glossy buttons/
+           banners -- purely decorative, sits above the gradient, below the text. -->
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent"></div>
+      <div class="relative flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+        <p class="text-sm font-medium text-white" data-i18n="AGENTS_CALLOUT.TEXT">{en.AGENTS_CALLOUT.TEXT}</p>
+        <a
+          href="/agents"
+          data-i18n="AGENTS_CALLOUT.CTA"
+          class="shrink-0 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
+        >
+          {en.AGENTS_CALLOUT.CTA} &rarr;
+        </a>
+      </div>
+    </div>
+  </section>
+
   <section class="mx-auto max-w-[1440px] px-6 py-16">
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-6">
       <!-- AI Chat Assistant (flagship, full width) -->

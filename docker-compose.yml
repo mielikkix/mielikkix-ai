@@ -18,8 +18,13 @@ services:
 
   backend:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      # Repo root, not ./apps/api: apps/api/requirements.txt now has an
+      # editable install of the sibling packages/agent-core (see that
+      # file's comment), which Docker can only COPY if the build context
+      # includes both directories -- a context scoped to ./apps/api alone
+      # can't see anything outside it.
+      context: .
+      dockerfile: apps/api/Dockerfile
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-mielikkix}:${POSTGRES_PASSWORD:-mielikkix}@db:5432/${POSTGRES_DB:-mielikkix}
@@ -29,8 +34,9 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./apps/api:/app
-      - uploads:/app/uploads
+      - ./apps/api:/repo/apps/api
+      - ./packages/agent-core:/repo/packages/agent-core
+      - uploads:/repo/apps/api/uploads
       - hf_cache:/root/.cache/huggingface
 
   frontend:

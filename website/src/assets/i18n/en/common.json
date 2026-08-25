@@ -1,7 +1,8 @@
 {
   "NAV": {
     "FEATURES": "Features",
-    "PRICING": "Pricing"
+    "PRICING": "Pricing",
+    "AGENTS": "Agents"
   },
   "BUTTONS": {
     "BOOK_DEMO": "Book a Free Demo",

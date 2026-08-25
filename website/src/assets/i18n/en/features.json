@@ -1,12 +1,12 @@
 {
   "SEO": {
-    "TITLE": "Features",
-    "DESCRIPTION": "Everything you need to automate customer support, capture leads, and grow your business — all in one platform."
+    "TITLE": "Chat Widget Features",
+    "DESCRIPTION": "Everything the Mielikkix Chat Widget does to automate customer support, capture leads, and grow your business."
   },
   "PAGE_HERO": {
-    "LINE1": "Powerful AI Features for",
+    "LINE1": "Powerful Chat Widget Features for",
     "LINE2": "Modern Businesses",
-    "SUBHEADING": "Everything you need to automate customer support, capture leads, and grow your business — all in one platform.",
+    "SUBHEADING": "Everything the Mielikkix Chat Widget does to automate customer support, capture leads, and grow your business.",
     "EXTRA_INTRO": "Whether you're a retail store, clinic, restaurant, coaching center, real estate agency, or service business, MielikkiX helps you engage visitors 24/7 and convert them into customers."
   },
   "VALUE_PROPS": [
@@ -35,9 +35,18 @@
         "Custom fallback responses"
       ],
       "STATS": [
-        { "VALUE": "<2s", "LABEL": "Avg. response time" },
-        { "VALUE": "24/7", "LABEL": "Always available" },
-        { "VALUE": "0", "LABEL": "Missed enquiries" }
+        {
+          "VALUE": "<2s",
+          "LABEL": "Avg. response time"
+        },
+        {
+          "VALUE": "24/7",
+          "LABEL": "Always available"
+        },
+        {
+          "VALUE": "0",
+          "LABEL": "Missed enquiries"
+        }
       ],
       "CALLOUT": "The reply on the right is generated live by MielikkiX's AI, answering from this business's real FAQs and catalog — not a scripted demo.",
       "VIDEO_ALT": "Live demo of the MielikkiX AI chat widget answering a customer question"
@@ -45,7 +54,16 @@
     "KNOWLEDGE_BASE": {
       "TITLE": "AI Knowledge Base",
       "DESCRIPTION": "No coding required — upload documents or import your website and MielikkiX builds the knowledge base automatically.",
-      "BULLETS": ["Website URLs", "PDF documents", "Microsoft Word", "Excel files", "CSV files", "Text files", "FAQ database", "Product catalog"],
+      "BULLETS": [
+        "Website URLs",
+        "PDF documents",
+        "Microsoft Word",
+        "Excel files",
+        "CSV files",
+        "Text files",
+        "FAQ database",
+        "Product catalog"
+      ],
       "TAG_FAQS": "FAQs",
       "TAG_DOCUMENTS": "Documents",
       "TAG_CATALOG": "Catalog",
@@ -54,7 +72,15 @@
     "LEAD_GENERATION": {
       "TITLE": "Lead Generation",
       "DESCRIPTION": "Never lose a potential customer — automatically collect their details the moment your AI senses buying interest.",
-      "BULLETS": ["Name", "Email", "Phone number", "Customer message", "Lead status", "Lead history", "Email notifications"],
+      "BULLETS": [
+        "Name",
+        "Email",
+        "Phone number",
+        "Customer message",
+        "Lead status",
+        "Lead history",
+        "Email notifications"
+      ],
       "CONTACT_DETAILS": "Contact details",
       "NEW_LEAD": "New lead",
       "CONTACT_ME": "Contact Me"
@@ -62,22 +88,55 @@
     "BUSINESS_ANALYTICS": {
       "TITLE": "Business Analytics",
       "DESCRIPTION": "Understand what your customers are asking, and make smarter decisions with built-in analytics.",
-      "BULLETS": ["Visitor count", "AI conversations", "Total messages", "Leads generated", "Top questions", "Popular products", "Conversation history", "Customer insights"],
+      "BULLETS": [
+        "Visitor count",
+        "AI conversations",
+        "Total messages",
+        "Leads generated",
+        "Top questions",
+        "Popular products",
+        "Conversation history",
+        "Customer insights"
+      ],
       "STATS": [
-        { "VALUE": "42", "LABEL": "Leads" },
-        { "VALUE": "128", "LABEL": "Chats" },
-        { "VALUE": "76%", "LABEL": "Answered" }
+        {
+          "VALUE": "42",
+          "LABEL": "Leads"
+        },
+        {
+          "VALUE": "128",
+          "LABEL": "Chats"
+        },
+        {
+          "VALUE": "76%",
+          "LABEL": "Answered"
+        }
       ]
     },
     "NOTIFICATIONS": {
       "TITLE": "Instant Notifications",
       "DESCRIPTION": "Never miss a customer enquiry — get notified the moment it happens.",
       "ITEMS": [
-        { "TEXT": "Email", "AVAILABLE": true },
-        { "TEXT": "WhatsApp — coming soon", "AVAILABLE": false },
-        { "TEXT": "Instagram — coming soon", "AVAILABLE": false },
-        { "TEXT": "Gmail", "AVAILABLE": true },
-        { "TEXT": "Slack & Microsoft Teams — planned", "AVAILABLE": false }
+        {
+          "TEXT": "Email",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "WhatsApp — coming soon",
+          "AVAILABLE": false
+        },
+        {
+          "TEXT": "Instagram — coming soon",
+          "AVAILABLE": false
+        },
+        {
+          "TEXT": "Gmail",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Slack & Microsoft Teams — planned",
+          "AVAILABLE": false
+        }
       ],
       "MOCK_NEW_BADGE": "New",
       "MOCK_TITLE": "New lead captured",
@@ -87,26 +146,58 @@
       "TITLE": "Multi-Language Support",
       "DESCRIPTION": "Speak your customer's language and deliver localized experiences with AI.",
       "ITEMS": [
-        { "TEXT": "10 languages, detected automatically from each visitor's message", "AVAILABLE": true },
-        { "TEXT": "AI replies match the visitor's language automatically", "AVAILABLE": true },
-        { "TEXT": "Lead form and every widget label are translated too", "AVAILABLE": true }
+        {
+          "TEXT": "10 languages, detected automatically from each visitor's message",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "AI replies match the visitor's language automatically",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Lead form and every widget label are translated too",
+          "AVAILABLE": true
+        }
       ]
     },
     "MULTI_CURRENCY": {
       "TITLE": "Multi-Currency Ready",
       "DESCRIPTION": "Perfect for businesses serving customers worldwide.",
-      "ITEMS": ["Indian Rupee", "US Dollar", "Euro", "Norwegian Krone"]
+      "ITEMS": [
+        "Indian Rupee",
+        "US Dollar",
+        "Euro",
+        "Norwegian Krone"
+      ]
     },
     "WIDGET_CUSTOMIZATION": {
       "TITLE": "Widget Customization",
       "DESCRIPTION": "Match your chatbot with your brand, down to the last detail.",
       "ITEMS": [
-        { "TEXT": "Brand color", "AVAILABLE": true },
-        { "TEXT": "Chatbot name", "AVAILABLE": true },
-        { "TEXT": "Welcome message", "AVAILABLE": true },
-        { "TEXT": "Widget position", "AVAILABLE": true },
-        { "TEXT": "Theme", "AVAILABLE": true },
-        { "TEXT": "Bot avatar — coming soon", "AVAILABLE": false }
+        {
+          "TEXT": "Brand color",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Chatbot name",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Welcome message",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Widget position",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Theme",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Bot avatar — coming soon",
+          "AVAILABLE": false
+        }
       ],
       "BOT_NAME_LABEL": "Bot name:",
       "BOT_NAME_VALUE": "Aria"
@@ -115,11 +206,26 @@
       "TITLE": "Build Customer Trust",
       "DESCRIPTION": "Show visitors you're a trusted, established business.",
       "ITEMS": [
-        { "TEXT": "Google reviews", "AVAILABLE": true },
-        { "TEXT": "Contact form", "AVAILABLE": true },
-        { "TEXT": "Business information", "AVAILABLE": true },
-        { "TEXT": "Operating hours — coming soon", "AVAILABLE": false },
-        { "TEXT": "Location & map — coming soon", "AVAILABLE": false }
+        {
+          "TEXT": "Google reviews",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Contact form",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Business information",
+          "AVAILABLE": true
+        },
+        {
+          "TEXT": "Operating hours — coming soon",
+          "AVAILABLE": false
+        },
+        {
+          "TEXT": "Location & map — coming soon",
+          "AVAILABLE": false
+        }
       ],
       "RATING_VALUE": "4.9",
       "RATING_MAX": "/5",
@@ -128,14 +234,25 @@
     "SECURITY": {
       "TITLE": "Enterprise-Grade Security",
       "DESCRIPTION": "Built with security from day one, not bolted on later.",
-      "BULLETS": ["Multi-tenant architecture", "Secure data isolation", "Shadow DOM widget", "Rate limiting", "Secure URL import", "SSL encryption"],
+      "BULLETS": [
+        "Multi-tenant architecture",
+        "Secure data isolation",
+        "Shadow DOM widget",
+        "Rate limiting",
+        "Secure URL import",
+        "SSL encryption"
+      ],
       "BUSINESS_A": "Business A",
       "BUSINESS_B": "Business B"
     },
     "EASY_INSTALLATION": {
       "TITLE": "Easy Installation",
       "DESCRIPTION": "Launch your AI assistant in under 2 minutes. Just copy and paste one line into your website. No plugins, no coding, no complicated setup.",
-      "BULLETS": ["No plugins", "No coding", "No complicated setup"]
+      "BULLETS": [
+        "No plugins",
+        "No coding",
+        "No complicated setup"
+      ]
     }
   },
   "WHY_CHOOSE": {
@@ -154,5 +271,9 @@
   "CTA": {
     "HEADING": "See it running on your own content",
     "SUBHEADING": "Book a free demo and we'll set up your FAQs, documents, and catalog together."
+  },
+  "AGENTS_CALLOUT": {
+    "TEXT": "Looking for more than a chat widget? Explore the Force Crew — 10 AI agents for voice, booking, support, and more.",
+    "CTA": "See the Agents"
   }
 }

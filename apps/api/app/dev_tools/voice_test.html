@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mielikkix Voice Receptionist -- Live Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Same brand tokens as website/src/styles/global.css: Royal Orange
+     (primary) / Warm Gold (secondary) / Deep Charcoal (text) / Soft Cream
+     (background) -- reused exactly, not reinvented for this page. */
+  :root {
+    --orange: #ff6b00;
+    --orange-dark: #e05e00;
+    --gold: #f5a623;
+    --charcoal: #1a1a1a;
+    --cream: #fff8f0;
+    --slate-100: #efe8e1;
+    --slate-300: #bdb8b2;
+    --slate-500: #7c7976;
+    --brand-gradient: linear-gradient(135deg, var(--orange) 0%, var(--gold) 100%);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cream);
+    font-family: "Open Sans", "Gill Sans MT", Corbel, Arial, sans-serif;
+    color: var(--charcoal);
+    padding: 32px 16px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 480px;
+    background: #fff;
+    border: 1px solid var(--slate-100);
+    border-radius: 28px;
+    box-shadow: 0 10px 40px rgba(26, 26, 26, 0.08);
+    padding: 36px 32px 28px;
+    text-align: center;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .brand svg { width: 26px; height: 26px; }
+  .brand span {
+    font-weight: 800;
+    font-size: 1.15rem;
+    background-image: var(--brand-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tagline { color: var(--slate-500); font-size: 0.82rem; margin: 0 0 28px; }
+
+  /* Avatar: the brand mark inside a circle, with a pulsing glow ring that
+     only animates while the agent is actively listening or speaking --
+     idle/thinking stay visually calm so the animation actually means
+     something instead of just looping forever. */
+  .avatar-wrap { position: relative; width: 96px; height: 96px; margin: 0 auto 18px; }
+  .avatar-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: var(--brand-gradient);
+    opacity: 0.18;
+    transform: scale(1);
+  }
+  .avatar {
+    position: relative; width: 96px; height: 96px; border-radius: 50%;
+    background: var(--brand-gradient);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(255, 107, 0, 0.25);
+  }
+  .avatar svg { width: 46px; height: 46px; }
+  .avatar svg path { fill: #fff; }
+
+  body[data-state="listening"] .avatar-ring,
+  body[data-state="speaking"] .avatar-ring {
+    animation: pulse-ring 1.4s ease-out infinite;
+  }
+  @keyframes pulse-ring {
+    0%   { transform: scale(1);   opacity: 0.35; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  /* Waveform: five bars, animated only while listening/speaking. Idle and
+     thinking show flat/still bars so the state is readable at a glance. */
+  .waveform { display: flex; align-items: center; justify-content: center; gap: 4px; height: 22px; margin-bottom: 10px; }
+  .waveform span {
+    display: block; width: 4px; border-radius: 2px;
+    background: var(--orange);
+    height: 6px;
+    transition: background 0.2s;
+  }
+  body[data-state="listening"] .waveform span,
+  body[data-state="speaking"] .waveform span {
+    animation: wave 0.9s ease-in-out infinite;
+  }
+  body[data-state="listening"] .waveform span { background: #1a7f37; }
+  .waveform span:nth-child(1) { animation-delay: 0s; }
+  .waveform span:nth-child(2) { animation-delay: 0.1s; }
+  .waveform span:nth-child(3) { animation-delay: 0.2s; }
+  .waveform span:nth-child(4) { animation-delay: 0.3s; }
+  .waveform span:nth-child(5) { animation-delay: 0.4s; }
+  @keyframes wave {
+    0%, 100% { height: 6px; }
+    50% { height: 22px; }
+  }
+
+  #status { font-weight: 700; font-size: 0.95rem; margin: 0 0 20px; color: var(--slate-500); }
+  body[data-state="listening"] #status { color: #1a7f37; }
+  body[data-state="thinking"] #status { color: var(--gold); }
+  body[data-state="speaking"] #status { color: var(--orange-dark); }
+
+  .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 22px; }
+  button {
+    font-family: inherit; font-size: 0.9rem; font-weight: 700;
+    padding: 11px 24px; border-radius: 999px; border: none; cursor: pointer;
+    transition: transform 0.15s;
+  }
+  button:hover:not(:disabled) { transform: scale(1.03); }
+  button:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+  #startBtn { background-image: var(--brand-gradient); color: #fff; box-shadow: 0 4px 14px rgba(255, 107, 0, 0.3); }
+  #hangupBtn { background: #fff; color: var(--charcoal); border: 1.5px solid var(--slate-300); }
+
+  #transcript {
+    text-align: left;
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 4px;
+  }
+  .bubble { max-width: 84%; padding: 9px 14px; border-radius: 16px; font-size: 0.88rem; line-height: 1.4; }
+  .bubble.agent { align-self: flex-start; background: var(--slate-100); border-bottom-left-radius: 4px; }
+  .bubble.caller { align-self: flex-end; background-image: var(--brand-gradient); color: #fff; border-bottom-right-radius: 4px; }
+  .bubble.error { align-self: center; background: #fdecea; color: #b00020; font-weight: 600; border-radius: 10px; }
+
+  .note {
+    text-align: left; color: var(--slate-500); font-size: 0.76rem; line-height: 1.5;
+    background: var(--cream); border: 1px solid var(--slate-100); border-radius: 14px;
+    padding: 12px 14px; margin-top: 20px;
+  }
+  #unsupported { color: #b00020; display: none; font-size: 0.85rem; margin-bottom: 16px; }
+</style>
+</head>
+<body data-state="idle">
+<div class="card">
+  <div class="brand">
+    <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ff6b00"/>
+          <stop offset="100%" stop-color="#f5a623"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#brandGrad)" d="M50.4 78.5a75.1 75.1 0 0 0-28.5 6.9l24.2-65.7c.7-2 1.9-3.2 3.4-3.2h29c1.5 0 2.7 1.2 3.4 3.2l24.2 65.7s-11.6-7-28.5-7L67 45.5c-.4-1.7-1.6-2.8-2.9-2.8-1.3 0-2.5 1.1-2.9 2.7L50.4 78.5Zm-1.1 28.2Zm-4.2-20.2c-2 6.6-.6 15.8 4.2 20.2a17.5 17.5 0 0 1 .2-.7 5.5 5.5 0 0 1 5.7-4.5c2.8.1 4.3 1.5 4.7 4.7.2 1.1.2 2.3.2 3.5v.4c0 2.7.7 5.2 2.2 7.4a13 13 0 0 0 5.7 4.9v-.3l-.2-.3c-1.8-5.6-.5-9.5 4.4-12.8l1.5-1a73 73 0 0 0 3.2-2.2 16 16 0 0 0 6.8-11.4c.3-2 .1-4-.6-6l-.8.6-1.6 1a37 37 0 0 1-22.4 2.7c-5-.7-9.7-2-13.2-6.2Z"/>
+    </svg>
+    <span>Mielikkix</span>
+  </div>
+  <p class="tagline">AI Voice Receptionist &mdash; Live Preview</p>
+
+  <p id="unsupported">This browser doesn't support live speech recognition. Please try a recent Chrome or Edge.</p>
+
+  <div class="avatar-wrap">
+    <div class="avatar-ring"></div>
+    <div class="avatar">
+      <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50.4 78.5a75.1 75.1 0 0 0-28.5 6.9l24.2-65.7c.7-2 1.9-3.2 3.4-3.2h29c1.5 0 2.7 1.2 3.4 3.2l24.2 65.7s-11.6-7-28.5-7L67 45.5c-.4-1.7-1.6-2.8-2.9-2.8-1.3 0-2.5 1.1-2.9 2.7L50.4 78.5Zm-1.1 28.2Zm-4.2-20.2c-2 6.6-.6 15.8 4.2 20.2a17.5 17.5 0 0 1 .2-.7 5.5 5.5 0 0 1 5.7-4.5c2.8.1 4.3 1.5 4.7 4.7.2 1.1.2 2.3.2 3.5v.4c0 2.7.7 5.2 2.2 7.4a13 13 0 0 0 5.7 4.9v-.3l-.2-.3c-1.8-5.6-.5-9.5 4.4-12.8l1.5-1a73 73 0 0 0 3.2-2.2 16 16 0 0 0 6.8-11.4c.3-2 .1-4-.6-6l-.8.6-1.6 1a37 37 0 0 1-22.4 2.7c-5-.7-9.7-2-13.2-6.2Z"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="waveform"><span></span><span></span><span></span><span></span><span></span></div>
+  <p id="status">Idle &mdash; click Start Call</p>
+
+  <div class="controls">
+    <button id="startBtn">Start Call</button>
+    <button id="hangupBtn" disabled>Hang Up</button>
+  </div>
+
+  <div id="transcript"></div>
+
+  <p class="note">
+    Real voice in, real voice out via your browser's built-in speech
+    recognition/synthesis &mdash; not Twilio's voice or a real phone call.
+    Proves the conversation logic; a real call (once available) will sound
+    different. Speech-to-text briefly sends your audio to Chrome's own
+    recognition service, so this needs an internet connection.
+  </p>
+</div>
+
+<script>
+const bodyEl = document.body;
+const statusEl = document.getElementById("status");
+const transcriptEl = document.getElementById("transcript");
+const startBtn = document.getElementById("startBtn");
+const hangupBtn = document.getElementById("hangupBtn");
+const unsupportedEl = document.getElementById("unsupported");
+
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognizer = null;
+let callSid = null;
+let active = false;
+
+// state drives both the status text/color and the avatar-ring/waveform
+// animations via body[data-state="..."] CSS selectors above.
+function setState(state, text) {
+  bodyEl.setAttribute("data-state", state);
+  statusEl.textContent = text;
+}
+
+function logLine(who, text) {
+  const p = document.createElement("p");
+  p.className = "bubble " + (who === "caller" ? "caller" : who === "error" ? "error" : "agent");
+  const prefix = who === "caller" ? "" : who === "error" ? "Mic problem: " : "";
+  p.textContent = prefix + text;
+  transcriptEl.appendChild(p);
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  return p; // so callers can update this exact bubble later (see heard_as correction)
+}
+
+async function postJSON(path, body) {
+  const resp = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(`${path} returned ${resp.status}`);
+  return resp.json();
+}
+
+// getVoices() returns an empty list until the browser has actually loaded
+// its voice roster, which happens asynchronously -- calling it too early
+// (e.g. on page load) silently gets nothing back. This waits for the
+// 'voiceschanged' event the first time, so pickFemaleVoice() below always
+// has the real list to choose from.
+function getVoicesAsync() {
+  return new Promise((resolve) => {
+    const existing = window.speechSynthesis.getVoices();
+    if (existing.length) return resolve(existing);
+    window.speechSynthesis.onvoiceschanged = () => resolve(window.speechSynthesis.getVoices());
+  });
+}
+
+// Voices don't carry an explicit gender field -- browsers just ship a list
+// of named voices (which vary by OS/browser). This matches on common
+// naming patterns for female-sounding voices across Windows/Chrome/Edge;
+// falls back to whatever the browser's default is if none match.
+function pickFemaleVoice(voices) {
+  const patterns = /female|zira|hazel|susan|samantha|victoria|karen|moira|tessa|fiona|aria|jenny/i;
+  return voices.find((v) => patterns.test(v.name)) || null;
+}
+
+let femaleVoice = null;
+getVoicesAsync().then((voices) => { femaleVoice = pickFemaleVoice(voices); });
+
+function speak(text) {
+  return new Promise((resolve) => {
+    setState("speaking", "Speaking...");
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (femaleVoice) utterance.voice = femaleVoice;
+    utterance.onend = resolve;
+    utterance.onerror = resolve;
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+function listenOnce() {
+  return new Promise((resolve) => {
+    // "Get ready..." here, not "Listening..." -- recognizer.start() is
+    // still ~300ms away (see below), and showing "Listening..." before the
+    // mic is actually capturing was making people start talking right
+    // away, which clipped the first word or two of what they said. The
+    // status only switches to "Listening..." once recognition has
+    // genuinely started (onstart, below).
+    setState("listening", "Get ready...");
+    recognizer = new SpeechRecognitionCtor();
+    recognizer.lang = "en-US";
+    recognizer.continuous = false;
+    recognizer.interimResults = false;
+    recognizer.maxAlternatives = 1;
+
+    let resolved = false;
+    const finish = (transcript, error) => {
+      if (resolved) return;
+      resolved = true;
+      resolve({ transcript, error: error || null });
+    };
+
+    recognizer.onstart = () => setState("listening", "Listening...");
+    recognizer.onresult = (event) => finish(event.results[0][0].transcript);
+    // "no-speech" just means the mic worked but nothing was said before the
+    // timeout -- not a real failure, so it's treated as ordinary silence.
+    // Every OTHER error code means recognition itself couldn't run at all;
+    // those get surfaced distinctly instead of being disguised as the
+    // bot's normal "didn't catch that" reply.
+    recognizer.onerror = (event) => {
+      console.error("SpeechRecognition error:", event.error);
+      finish("", event.error === "no-speech" ? null : event.error);
+    };
+    // Safety net: if the browser ends recognition without ever firing
+    // onresult or onerror (happens on some Chrome versions), don't hang
+    // the conversation loop forever waiting on a promise that never
+    // resolves -- treat it the same as silence.
+    recognizer.onend = () => finish("");
+
+    // A short pause before starting to listen: right after speechSynthesis
+    // finishes, Chrome sometimes hasn't fully released the audio device
+    // yet, which can make a recognizer started immediately fail with
+    // "audio-capture" or catch the tail end of the TTS playback as noise.
+    setTimeout(() => recognizer.start(), 300);
+  });
+}
+
+const _ERROR_HINTS = {
+  "not-allowed": "Microphone permission was denied/blocked. Click the mic/lock icon in the address bar and allow it.",
+  "audio-capture": "No microphone was found. Check a mic is connected and selected as the default input device.",
+  network: "Chrome couldn't reach its speech-recognition service. Check your internet connection.",
+  "service-not-allowed": "The browser blocked access to its speech-recognition service (sometimes a corporate/network policy).",
+  aborted: "Recognition was interrupted before it finished.",
+};
+
+async function conversationLoop() {
+  while (active) {
+    const { transcript, error } = await listenOnce();
+    if (!active) return;
+
+    if (error) {
+      logLine("error", `${error} -- ${_ERROR_HINTS[error] || "see the browser console (F12) for details."}`);
+      continue; // retry listening instead of sending this as a fake turn to the bot
+    }
+
+    const callerBubble = transcript ? logLine("caller", transcript) : null;
+
+    setState("thinking", "Thinking...");
+    let reply, ended = false, heard_as = null;
+    try {
+      ({ reply, ended, heard_as } = await postJSON("/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript }));
+    } catch (err) {
+      reply = "Sorry, something went wrong reaching the server.";
+    }
+    if (!active) return;
+    // If the server recognized this as a known mishearing of "Mielikkix",
+    // visibly correct the caller's own bubble to show what was actually
+    // meant, live -- same recognized text is still what was sent for
+    // retrieval either way (see agents_voice.py's _anchor_query_for_retrieval,
+    // which is separate and always general-purpose, not tied to this list).
+    if (callerBubble && heard_as) callerBubble.textContent = heard_as;
+    logLine("agent", reply);
+    await speak(reply);
+    if (ended) {
+      // Caller said something like "bye", or went quiet for too long --
+      // the server already decided the call is over; end it here too
+      // instead of listening again, same as clicking Hang Up.
+      hangUp();
+      return;
+    }
+  }
+}
+
+async function startCall() {
+  callSid = crypto.randomUUID();
+  transcriptEl.innerHTML = "";
+  active = true;
+  startBtn.disabled = true;
+  hangupBtn.disabled = false;
+
+  setState("thinking", "Connecting...");
+  const { reply } = await postJSON("/api/agents/voice/dev/start", { call_sid: callSid });
+  logLine("agent", reply);
+  await speak(reply);
+
+  conversationLoop();
+}
+
+function hangUp() {
+  active = false;
+  window.speechSynthesis.cancel();
+  if (recognizer) {
+    try { recognizer.stop(); } catch (e) {}
+  }
+  startBtn.disabled = false;
+  hangupBtn.disabled = true;
+  setState("idle", "Call ended -- click Start Call to talk again");
+}
+
+if (!SpeechRecognitionCtor) {
+  unsupportedEl.style.display = "block";
+  startBtn.disabled = true;
+} else {
+  startBtn.addEventListener("click", startCall);
+  hangupBtn.addEventListener("click", hangUp);
+}
+</script>
+</body>
+</html>

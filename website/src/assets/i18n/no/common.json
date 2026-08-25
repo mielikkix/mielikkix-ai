@@ -1,7 +1,8 @@
 {
   "NAV": {
     "FEATURES": "Funksjoner",
-    "PRICING": "Priser"
+    "PRICING": "Priser",
+    "AGENTS": "Agenter"
   },
   "BUTTONS": {
     "BOOK_DEMO": "Book en gratis demo",

@@ -5,9 +5,10 @@ Place this file at the **root of the `mielikkix-ai` repo**.
 ## What this repo is
 
 Monorepo for the Mielikkix AI product platform: the live Chat Widget, the customer
-dashboard, the core API, and the 10 Mielikkix Force AI agents. It does **not** contain
-the public marketing/company site — that's the separate `mielikkix-company-site` repo
-(see `github.com/orgs/mielikkix/`).
+dashboard, the core API, the 10 Mielikkix Force AI agents, **and** the public
+marketing site (`website/`) — kept in this same repo deliberately, so that adding
+AI-agent promotion pages to the marketing site later has full context on the
+product/agents right alongside it, rather than being split across two repos.
 
 ## Structure
 
@@ -19,12 +20,14 @@ mielikkix-ai/
 │   │                     Renders only the modules a tenant is entitled to (packages/billing).
 │   ├── api/             # core backend (was backend/): auth, chat logic, agent orchestration.
 │   └── agents/
+│       ├── CLAUDE.md             # shared conventions for the 3 active flagship agents
 │       ├── voice-receptionist/   # flagship — see its own CLAUDE.md
 │       ├── booking-assistant/    # flagship — see its own CLAUDE.md
-│       ├── review-reputation/    # flagship — see its own CLAUDE.md
-│       ├── _template/            # copy this folder to start any of the remaining 7 agents
-│       └── ...                   # support-triage, social-media, email-marketing,
-│                                  # seo-copywriter, feedback-survey, loyalty-reengage, quote-invoice
+│       ├── support-triage/       # flagship — see its own CLAUDE.md
+│       ├── review-reputation/    # queued (was flagship 3; superseded by support-triage — see apps/agents/CLAUDE.md)
+│       ├── _template/            # copy this folder to start any of the remaining queued agents
+│       └── ...                   # social-media, email-marketing, seo-copywriter,
+│                                  # feedback-survey, loyalty-reengage, quote-invoice
 ├── packages/
 │   ├── agent-core/      # shared LLM client, prompt/tool-calling framework, memory/RAG.
 │   │                     Every agent imports this — do not reimplement LLM plumbing per agent.
@@ -37,6 +40,9 @@ mielikkix-ai/
 │   ├── docker-compose.yml
 │   ├── docker/           # one Dockerfile per app/agent
 │   └── deploy/           # CI/CD + per-env config
+├── website/              # mielikkix.ai marketing site — Astro, own stack/CLAUDE.md/ARCHITECTURE.md.
+│                          # Static build → Hostinger shared hosting, separate from the VPS apps run on.
+│                          # Product/agent AI-promotion pages get added here as they ship.
 ├── files/
 ├── .claude/
 └── .env*, .gitignore
@@ -61,8 +67,10 @@ mielikkix-ai/
 
 - Chat Widget: **live**, in production.
 - Dashboard: **live**, serving the Chat Widget module today; agent modules added as they ship.
-- Force agents: flagship 3 (Voice Receptionist, Booking Assistant, Review & Reputation)
-  in active build. Remaining 7 queued as fast-follow using the same `_template/` pattern.
+- Force agents: flagship 3 (Voice Receptionist, Booking Assistant, Support Triage)
+  in active build — see `apps/agents/CLAUDE.md` for shared conventions across
+  the three. Review & Reputation (originally the third flagship) and the
+  remaining 6 are queued as fast-follow using the same `_template/` pattern.
 
 ## Where to look next
 

@@ -102,6 +102,17 @@ def signup(client):
         token = resp.cookies.get("access_token")
         headers = {"Authorization": f"Bearer {token}"}
 
+        # get_current_user checks the access_token cookie before the
+        # Authorization header (see core/dependencies.py) -- the dashboard
+        # only ever uses the cookie, so that's correct for real traffic.
+        # But `client` is one TestClient shared across every signup() call
+        # in a test, and TestClient persists cookies, so a second signup()
+        # silently overwrites the first business's cookie in the jar. A
+        # test that then passes `headers=` to pick which business is
+        # acting would otherwise have that choice overridden by whichever
+        # business signed up last, regardless of which headers it sent.
+        client.cookies.clear()
+
         me = client.get("/api/businesses/me", headers=headers)
         assert me.status_code == 200, me.text
 

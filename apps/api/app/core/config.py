@@ -1,6 +1,6 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from functools import lru_cache
 
 # Known placeholder values from .env.example / older defaults. If the running
@@ -144,6 +144,28 @@ class Settings(BaseSettings):
     @property
     def platform_admin_emails_list(self) -> list[str]:
         return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]
+
+    # A Twilio account/number configured with no auth token means
+    # agents_voice.py's _assert_valid_twilio_request silently skips signature
+    # checking -- fine for a fresh local checkout (nothing configured at
+    # all), but if TWILIO_ACCOUNT_SID or TWILIO_PHONE_NUMBER is set while
+    # TWILIO_AUTH_TOKEN isn't, that's a half-finished deployment leaving the
+    # /incoming and /gather webhooks open to anyone who finds the URL. Only
+    # checked outside debug mode, and only once the voice agent is actually
+    # being turned on -- not a blanket requirement, since apps/api is one
+    # shared process for every feature (see root CLAUDE.md convention #4)
+    # and most deployments won't have Twilio configured at all yet.
+    @model_validator(mode="after")
+    def _require_twilio_auth_token_if_voice_configured(self) -> "Settings":
+        voice_configured = bool(self.twilio_account_sid or self.twilio_phone_number)
+        if not self.debug and voice_configured and not self.twilio_auth_token:
+            raise ValueError(
+                "TWILIO_AUTH_TOKEN is empty but TWILIO_ACCOUNT_SID/"
+                "TWILIO_PHONE_NUMBER is set -- that leaves the voice agent's "
+                "Twilio webhooks unauthenticated. Set TWILIO_AUTH_TOKEN, or "
+                "clear the other Twilio settings if it isn't deployed yet."
+            )
+        return self
 
     class Config:
         env_file = str(_ROOT_ENV_FILE)

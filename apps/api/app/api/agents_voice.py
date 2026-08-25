@@ -14,6 +14,7 @@ process" apps/agents/CLAUDE.md describes.
 """
 
 import re
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -36,6 +37,7 @@ router = APIRouter(prefix="/api/agents/voice", tags=["voice-receptionist"])
 _GREETING = "Hello, thanks for calling Mielikkix. How can I help you today?"
 _CLOSING_LINE = "Thanks for calling Mielikkix. Have a great day, goodbye!"
 _SILENCE_CLOSING_LINE = "I haven't heard anything for a bit, so I'll let you go -- feel free to call back anytime. Goodbye!"
+_TURN_CAP_CLOSING_LINE = "We've covered a lot today -- I'll have someone from the team follow up on anything else. Thanks for calling Mielikkix, goodbye!"
 
 _SYSTEM_PROMPT_BASE = (
     "You are a warm, professional voice receptionist answering a phone call "
@@ -71,6 +73,16 @@ _GOODBYE_PATTERN = re.compile(
 # per-minute billing) running indefinitely.
 _MAX_CONSECUTIVE_SILENCES = 2
 _call_silence_counts: dict[str, int] = {}
+
+# Caps how many LLM (Groq) calls a single call/session can make before the
+# receptionist wraps up on its own -- the silence-cap and goodbye-phrase
+# checks above only end the call if the caller goes quiet or says so, so a
+# caller who just keeps talking would otherwise generate an unbounded
+# number of paid LLM calls on one open phone line. Only real turns that
+# actually reach the LLM count -- a silent/no-speech turn doesn't call it,
+# so it doesn't count against this either.
+_MAX_TURNS_PER_CALL = 30
+_call_turn_counts: dict[str, int] = {}
 
 # --- Grounding a mis-heard/clipped question about Mielikkix itself ---
 #
@@ -184,6 +196,34 @@ def _build_system_prompt(context: str) -> str:
 # resets on every server restart -- fine for now, wrong for production.
 _call_history: dict[str, list[dict]] = {}
 
+# A real phone call has no explicit "it's over" signal on this end beyond
+# the goodbye/silence-cap paths in _handle_turn -- someone who just hangs up
+# the phone (or a /dev caller who closes the browser tab) leaves their entry
+# here forever otherwise, one small leak per call, unbounded over time.
+# _touch_call/_forget_call/_evict_stale_calls bound that: anything not
+# touched in _CALL_STATE_TTL_SECONDS is swept on the next turn.
+_CALL_STATE_TTL_SECONDS = 30 * 60
+_call_last_seen: dict[str, float] = {}
+
+
+def _touch_call(call_sid: str) -> None:
+    _call_last_seen[call_sid] = time.monotonic()
+
+
+def _forget_call(call_sid: str) -> None:
+    _call_last_seen.pop(call_sid, None)
+    _call_history.pop(call_sid, None)
+    _call_silence_counts.pop(call_sid, None)
+    _call_turn_counts.pop(call_sid, None)
+
+
+def _evict_stale_calls() -> None:
+    cutoff = time.monotonic() - _CALL_STATE_TTL_SECONDS
+    stale = [sid for sid, last_seen in _call_last_seen.items() if last_seen < cutoff]
+    for sid in stale:
+        _forget_call(sid)
+
+
 _llm_client = LLMClient()
 
 
@@ -209,6 +249,9 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     both interfaces just format its result differently (TwiML XML with a
     <Hangup/>, vs. plain JSON with an `ended` flag).
     """
+    _evict_stale_calls()
+    _touch_call(call_sid)
+
     speech = speech.strip()
     history = _call_history.setdefault(call_sid, [])
 
@@ -216,17 +259,21 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
         silence_count = _call_silence_counts.get(call_sid, 0) + 1
         _call_silence_counts[call_sid] = silence_count
         if silence_count >= _MAX_CONSECUTIVE_SILENCES:
-            _call_silence_counts.pop(call_sid, None)
-            _call_history.pop(call_sid, None)
+            _forget_call(call_sid)
             return _SILENCE_CLOSING_LINE, True
         return "Sorry, I didn't catch that. Could you say that again?", False
 
     _call_silence_counts[call_sid] = 0  # any real speech resets the count
 
     if _GOODBYE_PATTERN.search(speech):
-        _call_silence_counts.pop(call_sid, None)
-        _call_history.pop(call_sid, None)
+        _forget_call(call_sid)
         return _CLOSING_LINE, True
+
+    turn_count = _call_turn_counts.get(call_sid, 0) + 1
+    _call_turn_counts[call_sid] = turn_count
+    if turn_count > _MAX_TURNS_PER_CALL:
+        _forget_call(call_sid)
+        return _TURN_CAP_CLOSING_LINE, True
 
     history.append({"role": "user", "content": speech})
 
@@ -248,8 +295,11 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
 def _start_call(call_sid: str) -> str:
     """Resets this call's history and returns the greeting -- shared by
     /incoming (Twilio) and /dev/start (browser mic test page)."""
+    _evict_stale_calls()
+    _touch_call(call_sid)
     _call_history[call_sid] = []
     _call_silence_counts.pop(call_sid, None)
+    _call_turn_counts.pop(call_sid, None)
     return _GREETING
 
 
@@ -324,6 +374,19 @@ async def voice_gather(request: Request, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
+def _require_debug() -> None:
+    """Blocks all /dev/* routes unless settings.debug is set. Without this,
+    these routes are an unauthenticated, unlimited-by-anything-but-per-IP-
+    rate-limit free proxy to the LLM (real Groq cost per call) reachable by
+    anyone who finds the URL -- and /dev/gather writes into the exact same
+    _call_history/_call_silence_counts dicts a real Twilio call uses, keyed
+    only by a caller-supplied call_sid string, so it's also a way to inject
+    turns into a live call if its CallSid ever leaked. 404, not 403 --
+    no hint to an outsider that these routes exist at all."""
+    if not settings.debug:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
 class _DevStartRequest(BaseModel):
     call_sid: str
 
@@ -345,13 +408,13 @@ class _DevReply(BaseModel):
     heard_as: str | None = None
 
 
-@router.post("/dev/start", response_model=_DevReply)
+@router.post("/dev/start", response_model=_DevReply, dependencies=[Depends(_require_debug)])
 @limiter.limit("20/minute")
 async def dev_voice_start(request: Request, body: _DevStartRequest):
     return _DevReply(reply=_start_call(body.call_sid))
 
 
-@router.post("/dev/gather", response_model=_DevReply)
+@router.post("/dev/gather", response_model=_DevReply, dependencies=[Depends(_require_debug)])
 @limiter.limit("15/minute")
 async def dev_voice_gather(request: Request, body: _DevTurnRequest, db: Session = Depends(get_db)):
     # Each call here is a real Groq API call (a real cost) once this page's
@@ -365,6 +428,6 @@ async def dev_voice_gather(request: Request, body: _DevTurnRequest, db: Session 
 _DEV_VOICE_TEST_HTML_PATH = Path(__file__).resolve().parent.parent / "dev_tools" / "voice_test.html"
 
 
-@router.get("/dev/voice-test", response_class=HTMLResponse)
+@router.get("/dev/voice-test", response_class=HTMLResponse, dependencies=[Depends(_require_debug)])
 async def dev_voice_test_page():
     return HTMLResponse(content=_DEV_VOICE_TEST_HTML_PATH.read_text(encoding="utf-8"))

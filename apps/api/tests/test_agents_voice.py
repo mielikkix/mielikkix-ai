@@ -237,15 +237,56 @@ def test_dev_start_returns_greeting_as_json():
 
 
 def test_dev_routes_404_outside_debug_mode(monkeypatch):
-    """Outside debug mode, /dev/* must not exist -- not just reject with
-    403/401, so an outsider scanning for routes gets no hint they're there."""
+    """Outside debug mode (and with the public demo flag off), /dev/* must
+    not exist -- not just reject with 403/401, so an outsider scanning for
+    routes gets no hint they're there."""
     monkeypatch.setattr(settings, "debug", False)
+    monkeypatch.setattr(settings, "voice_agent_public_demo", False)
 
-    assert client.post("/api/agents/voice/dev/start", json={"call_sid": "CAnodebug"}).status_code == 404
+    assert client.post("/api/agents/voice/dev/start", json={"call_sid": "not-twilio-shaped"}).status_code == 404
     assert client.post(
-        "/api/agents/voice/dev/gather", json={"call_sid": "CAnodebug", "speech": "hi"}
+        "/api/agents/voice/dev/gather", json={"call_sid": "not-twilio-shaped", "speech": "hi"}
     ).status_code == 404
     assert client.get("/api/agents/voice/dev/voice-test").status_code == 404
+
+
+def test_public_demo_flag_opens_json_routes_but_not_the_internal_harness(monkeypatch):
+    """voice_agent_public_demo=True (independent of debug) must open
+    /dev/start and /dev/gather for the public marketing-site demo page,
+    while /dev/voice-test -- the internal HTML test harness, not meant for
+    a visitor -- stays 404 unless debug is also on."""
+    monkeypatch.setattr(settings, "debug", False)
+    monkeypatch.setattr(settings, "voice_agent_public_demo", True)
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+
+    start_resp = client.post("/api/agents/voice/dev/start", json={"call_sid": "public-demo-caller-1"})
+    assert start_resp.status_code == 200
+
+    fake_chat = AsyncMock(return_value=LLMResult(text="Sure thing.", usage=None))
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+    gather_resp = client.post(
+        "/api/agents/voice/dev/gather",
+        json={"call_sid": "public-demo-caller-1", "speech": "what do you do"},
+    )
+    assert gather_resp.status_code == 200
+
+    assert client.get("/api/agents/voice/dev/voice-test").status_code == 404
+
+
+def test_dev_routes_reject_twilio_shaped_call_sid(monkeypatch):
+    """A call_sid in the exact shape Twilio issues real CallSids in ("CA" +
+    32 hex chars) must be rejected on the /dev/* routes -- those routes
+    write into the same call-state dicts the real Twilio flow uses, keyed
+    only by call_sid, so accepting this shape here would let a public demo
+    visitor collide with (or inject turns into) a real live call."""
+    twilio_shaped = "CA" + "0" * 32
+
+    assert client.post(
+        "/api/agents/voice/dev/start", json={"call_sid": twilio_shaped}
+    ).status_code == 400
+    assert client.post(
+        "/api/agents/voice/dev/gather", json={"call_sid": twilio_shaped, "speech": "hi"}
+    ).status_code == 400
 
 
 def test_dev_gather_uses_same_turn_logic_as_real_gather(monkeypatch):

@@ -364,27 +364,61 @@ async def voice_gather(request: Request, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------------
-# Local browser mic/speaker test harness -- NOT part of the real Twilio call
-# flow, never called by Twilio. Lets you talk to the same conversation logic
-# above using your own microphone/speakers via the browser's built-in Web
-# Speech API (free, no account, no Twilio) instead of a real phone call --
-# see apps/agents/voice-receptionist/CLAUDE.md for why a real call is
-# currently blocked. Returns plain JSON, not TwiML, since a browser page has
-# no use for Twilio's XML dialect.
+# Browser mic/speaker harness -- NOT part of the real Twilio call flow, never
+# called by Twilio. Lets you talk to the same conversation logic above using
+# your own microphone/speakers via the browser's built-in Web Speech API
+# (free, no account, no Twilio) instead of a real phone call -- see
+# apps/agents/voice-receptionist/CLAUDE.md for why a real call is currently
+# blocked. Returns plain JSON, not TwiML, since a browser page has no use
+# for Twilio's XML dialect.
+#
+# Two different audiences, two different gates:
+#   - /dev/voice-test (the internal HTML page) is always debug-only -- it's
+#     a raw test harness, not something to show a visitor.
+#   - /dev/start and /dev/gather (the JSON API) additionally open up under
+#     voice_agent_public_demo -- these are what website/'s polished
+#     /demo/voice-receptionist page calls, so THAT page can be public while
+#     the internal harness stays internal.
 # ---------------------------------------------------------------------------
 
 
 def _require_debug() -> None:
-    """Blocks all /dev/* routes unless settings.debug is set. Without this,
-    these routes are an unauthenticated, unlimited-by-anything-but-per-IP-
-    rate-limit free proxy to the LLM (real Groq cost per call) reachable by
-    anyone who finds the URL -- and /dev/gather writes into the exact same
-    _call_history/_call_silence_counts dicts a real Twilio call uses, keyed
-    only by a caller-supplied call_sid string, so it's also a way to inject
-    turns into a live call if its CallSid ever leaked. 404, not 403 --
-    no hint to an outsider that these routes exist at all."""
+    """Blocks /dev/voice-test (the internal HTML test harness) unless
+    settings.debug is set -- deliberately NOT reused for /dev/start and
+    /dev/gather below, which have their own, deployable-to-production gate
+    (see _require_demo_access). 404, not 403 -- no hint to an outsider that
+    this route exists at all."""
     if not settings.debug:
         raise HTTPException(status_code=404, detail="Not found")
+
+
+def _require_demo_access() -> None:
+    """Blocks /dev/start and /dev/gather unless either debug mode or the
+    dedicated public-demo flag is on (see config.py's voice_agent_public_demo
+    for why this can't just reuse settings.debug). Without this, these
+    routes are an unauthenticated, unlimited-by-anything-but-per-IP-rate-
+    limit free proxy to the LLM (real Groq cost per call) reachable by
+    anyone who finds the URL. 404, not 403 -- no hint to an outsider that
+    these routes exist at all when neither is on."""
+    if not (settings.debug or settings.voice_agent_public_demo):
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+# Twilio CallSids are always "CA" + 32 lowercase hex chars. Real
+# /incoming and /gather traffic writes into the exact same
+# _call_history/_call_silence_counts/_call_turn_counts dicts these /dev/*
+# routes do, keyed only by call_sid -- once voice_agent_public_demo is on
+# for real strangers (not just you locally), a caller-supplied call_sid in
+# that exact shape could otherwise let someone inject turns into a real
+# live call if its CallSid ever leaked. Both real demo frontends generate
+# call_sid via crypto.randomUUID() already (never this shape), so this is
+# defense-in-depth, not something a legitimate demo caller should ever hit.
+_TWILIO_CALL_SID_PATTERN = re.compile(r"^CA[0-9a-f]{32}$", re.IGNORECASE)
+
+
+def _reject_twilio_shaped_call_sid(call_sid: str) -> None:
+    if _TWILIO_CALL_SID_PATTERN.match(call_sid):
+        raise HTTPException(status_code=400, detail="Invalid call_sid")
 
 
 class _DevStartRequest(BaseModel):
@@ -408,19 +442,22 @@ class _DevReply(BaseModel):
     heard_as: str | None = None
 
 
-@router.post("/dev/start", response_model=_DevReply, dependencies=[Depends(_require_debug)])
+@router.post("/dev/start", response_model=_DevReply, dependencies=[Depends(_require_demo_access)])
 @limiter.limit("20/minute")
 async def dev_voice_start(request: Request, body: _DevStartRequest):
+    _reject_twilio_shaped_call_sid(body.call_sid)
     return _DevReply(reply=_start_call(body.call_sid))
 
 
-@router.post("/dev/gather", response_model=_DevReply, dependencies=[Depends(_require_debug)])
+@router.post("/dev/gather", response_model=_DevReply, dependencies=[Depends(_require_demo_access)])
 @limiter.limit("15/minute")
 async def dev_voice_gather(request: Request, body: _DevTurnRequest, db: Session = Depends(get_db)):
-    # Each call here is a real Groq API call (a real cost) once this page's
-    # link leaves your own machine -- rate-limited for the same reason
-    # /api/chat/message is (see that route): nothing should be able to run
-    # up the LLM bill for free just by finding this URL.
+    # Each call here is a real Groq API call (a real cost) -- rate-limited
+    # for the same reason /api/chat/message is (see that route): nothing
+    # should be able to run up the LLM bill for free just by finding this
+    # URL, whether that's "found" by an outsider (debug mode) or "used as
+    # intended" by a public demo visitor (voice_agent_public_demo mode).
+    _reject_twilio_shaped_call_sid(body.call_sid)
     reply, ended = await _handle_turn(db, body.call_sid, body.speech)
     return _DevReply(reply=reply, ended=ended, heard_as=_display_correction(body.speech))
 

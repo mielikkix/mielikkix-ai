@@ -111,56 +111,10 @@ const reassurances = [
     <p id="demo-form-error" class="hidden mt-6 text-center text-sm font-medium text-red-600" role="alert"></p>
   </section>
 
-  <script is:inline define:vars={{ apiUrl: import.meta.env.PUBLIC_API_URL, businessId: import.meta.env.PUBLIC_MIELIKKIX_BUSINESS_ID }}>
-    const form = document.getElementById("demo-form");
-    const status = document.getElementById("demo-form-status");
-    const errorEl = document.getElementById("demo-form-error");
-    const submitButton = form?.querySelector('button[type="submit"]');
-
-    form?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      errorEl?.classList.add("hidden");
-
-      const data = new FormData(form);
-      const businessName = (data.get("business") || "").toString().trim();
-      const website = (data.get("website") || "").toString().trim();
-      const note = (data.get("message") || "").toString().trim();
-      const messageParts = [`Business: ${businessName}`];
-      if (website) messageParts.push(`Website: ${website}`);
-      if (note) messageParts.push(note);
-
-      if (submitButton) submitButton.disabled = true;
-      try {
-        const res = await fetch(`${apiUrl}/api/leads`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            business_id: businessId,
-            name: data.get("name"),
-            email: data.get("email"),
-            phone: data.get("phone") || undefined,
-            message: messageParts.join("\n"),
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error("request failed");
-        }
-
-        form.reset();
-        form.classList.add("hidden");
-        if (status) {
-          status.textContent = "Thanks! We'll be in touch within one business day to schedule your demo.";
-          status.classList.remove("hidden");
-        }
-      } catch {
-        if (errorEl) {
-          errorEl.textContent = "Something went wrong sending your request — please try again, or email us directly.";
-          errorEl.classList.remove("hidden");
-        }
-      } finally {
-        if (submitButton) submitButton.disabled = false;
-      }
-    });
-  </script>
+  <script
+    src="/demo-form.js"
+    data-api-url={import.meta.env.PUBLIC_API_URL}
+    data-business-id={import.meta.env.PUBLIC_MIELIKKIX_BUSINESS_ID}
+    defer
+  ></script>
 </Layout>

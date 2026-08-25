@@ -131,6 +131,13 @@ const ERROR_HINTS = {
   aborted: "Recognition was interrupted before it finished.",
 };
 
+// These won't resolve themselves by just trying again -- a denied mic
+// permission or missing hardware stays denied/missing on every retry, so
+// looping on them just spams the transcript with the same error forever
+// instead of actually recovering. Stop the call instead; only genuinely
+// transient errors (e.g. "network", "aborted") retry via the loop below.
+const FATAL_RECOGNITION_ERRORS = new Set(["not-allowed", "audio-capture", "service-not-allowed"]);
+
 async function conversationLoop() {
   while (active) {
     const { transcript, error } = await listenOnce();
@@ -138,6 +145,10 @@ async function conversationLoop() {
 
     if (error) {
       logLine("error", `${error} -- ${ERROR_HINTS[error] || "see the browser console (F12) for details."}`);
+      if (FATAL_RECOGNITION_ERRORS.has(error)) {
+        hangUp();
+        return;
+      }
       continue;
     }
 

@@ -116,14 +116,7 @@ const planAccents = [
         data-i18n-attr="aria-label:FEATURES_SECTION.VIDEO_ALT"
       />
     </div>
-    <script>
-      const dashboardVideoEl = document.getElementById("dashboard-demo-video") as HTMLVideoElement | null;
-      if (dashboardVideoEl && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        dashboardVideoEl.removeAttribute("autoplay");
-        dashboardVideoEl.removeAttribute("loop");
-        dashboardVideoEl.pause();
-      }
-    </script>
+    <script src="/reduced-motion-video.js" data-video-id="dashboard-demo-video" defer></script>
 
     <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       <!-- One-line embed -->

@@ -9,12 +9,38 @@
 const { apiUrl } = document.currentScript.dataset;
 
 const avatarRing = document.getElementById("avatarRing");
+const waveformEl = document.getElementById("waveform");
 const waveformBars = document.querySelectorAll("#waveform span");
 const statusEl = document.getElementById("status");
 const transcriptEl = document.getElementById("transcript");
-const startBtn = document.getElementById("startBtn");
+const pillBtn = document.getElementById("pillBtn");
+const pillLabel = document.getElementById("pillLabel");
+const pillMic = document.getElementById("pillMic");
+const hangupWrap = document.getElementById("hangupWrap");
 const hangupBtn = document.getElementById("hangupBtn");
 const unsupportedEl = document.getElementById("unsupported");
+
+// The pill button is the page's single call-to-action: "Speak now" (idle,
+// clickable) -> "Connecting you to Mieli..." (mid-handshake, mic hidden,
+// disabled) -> "Speak with Mieli" (call live; the detailed Listening/
+// Thinking/Speaking status and waveform take over below it, and "End call"
+// appears as its own control instead of overloading the pill).
+const PILL_LABELS = {
+  idle: "Speak now",
+  connecting: "Connecting you to Mieli...",
+  active: "Speak with Mieli",
+};
+
+function setPill(state) {
+  pillLabel.textContent = PILL_LABELS[state];
+  pillMic.classList.toggle("hidden", state === "connecting");
+  pillBtn.disabled = state !== "idle";
+  const showDetail = state === "active";
+  waveformEl.classList.toggle("hidden", !showDetail);
+  waveformEl.classList.toggle("flex", showDetail);
+  hangupWrap.classList.toggle("hidden", !showDetail);
+  hangupWrap.classList.toggle("flex", showDetail);
+}
 
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognizer = null;
@@ -185,11 +211,27 @@ async function startCall() {
   callSid = crypto.randomUUID();
   transcriptEl.innerHTML = "";
   active = true;
-  startBtn.disabled = true;
-  hangupBtn.disabled = false;
-
+  setPill("connecting");
   setState("thinking", "Connecting...");
-  const { reply } = await postJSON("/api/agents/voice/dev/start", { call_sid: callSid });
+
+  // Unlike the /gather call in conversationLoop (which falls back to an
+  // apology reply and keeps going, since the call is already underway by
+  // then), a failure here means the call never actually started -- there's
+  // no greeting and no call_sid registered server-side to continue against.
+  // Reset to idle instead of leaving the pill stuck on "Connecting..."
+  // forever with no feedback.
+  let reply;
+  try {
+    ({ reply } = await postJSON("/api/agents/voice/dev/start", { call_sid: callSid }));
+  } catch (err) {
+    console.error("Failed to start call:", err);
+    active = false;
+    setPill("idle");
+    setState("idle", "Couldn't reach the server -- check your connection and try again.");
+    return;
+  }
+
+  setPill("active");
   logLine("agent", reply);
   await speak(reply);
 
@@ -202,15 +244,14 @@ function hangUp() {
   if (recognizer) {
     try { recognizer.stop(); } catch (e) {}
   }
-  startBtn.disabled = false;
-  hangupBtn.disabled = true;
-  setState("idle", "Call ended -- click Start Call to talk again");
+  setPill("idle");
+  setState("idle", "Call ended -- click Speak now to talk again");
 }
 
 if (!SpeechRecognitionCtor) {
   unsupportedEl.classList.remove("hidden");
-  startBtn.disabled = true;
+  pillBtn.disabled = true;
 } else {
-  startBtn.addEventListener("click", startCall);
+  pillBtn.addEventListener("click", startCall);
   hangupBtn.addEventListener("click", hangUp);
 }

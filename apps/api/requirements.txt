@@ -22,6 +22,14 @@ httpx==0.27.0
 slowapi==0.1.9
 groq==0.8.0
 google-generativeai==0.5.4
+# Booking Assistant's Google Calendar integration (apps/agents/booking-assistant).
+# Only actually needed for scripts/connect_google_calendar.py's one-time local
+# OAuth setup (InstalledAppFlow) -- the running app's own client
+# (app/integrations/google_calendar_client.py) only ever refreshes an
+# already-obtained token via google.auth (already pulled in transitively by
+# google-generativeai above) and calls the API via googleapiclient (same),
+# so this is a dev-time-only addition, not new runtime surface for the app.
+google-auth-oauthlib==1.2.1
 ollama==0.2.1
 PyPDF2==3.0.1
 python-docx==1.1.2

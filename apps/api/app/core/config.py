@@ -149,6 +149,35 @@ class Settings(BaseSettings):
     # so it belongs in deployment config, not a table any tenant data touches.
     platform_admin_emails: str = ""
 
+    # Booking Assistant agent (apps/agents/booking-assistant) -- books
+    # directly against Google Calendar (not Cal.com -- see that agent's
+    # CLAUDE.md for why that plan was reversed). Each real tenant will
+    # eventually connect their OWN calendar via OAuth from the dashboard
+    # (Phase 5); these three settings are Phase 1 scope only -- ONE
+    # hardcoded test calendar's credentials, obtained by running
+    # scripts/connect_google_calendar.py once locally (opens a browser for
+    # you to sign in, then prints the values below to paste into .env).
+    #
+    # google_calendar_client_id/secret identify OUR APP to Google, not any
+    # one tenant -- created once in Google Cloud Console (Phase 0: a new
+    # project, Calendar API enabled, an OAuth 2.0 Client ID of type "Web
+    # application"). The SAME client_id/secret is reused for every tenant's
+    # OAuth connection later; only the refresh token differs per tenant.
+    google_calendar_client_id: str = ""
+    google_calendar_client_secret: str = ""
+    # The one test calendar's long-lived refresh token (Phase 1 only -- a
+    # real per-tenant one replaces this in Phase 5). Python note: unlike an
+    # API key, this alone can't authenticate a request -- app/integrations/
+    # google_calendar_client.py exchanges it for a short-lived access token
+    # on demand (google-auth's Credentials class does this refresh
+    # automatically), the same reason a Refresh/Access token pair works in
+    # any OAuth2-based TS auth library you've used.
+    google_calendar_refresh_token: str = ""
+    # Which calendar to check/book against for that connected account --
+    # "primary" is Google's own special ID for "this account's default
+    # calendar", not a placeholder needing to be filled in with a real ID.
+    google_calendar_id: str = "primary"
+
     @property
     def platform_admin_emails_list(self) -> list[str]:
         return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]

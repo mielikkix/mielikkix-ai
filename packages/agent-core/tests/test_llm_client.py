@@ -41,6 +41,39 @@ async def test_chat_returns_text_and_usage(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_chat_json_mode_sets_response_format(monkeypatch):
+    client = LLMClient(api_key="test-key", model="test-model")
+    fake_create = AsyncMock(return_value=_fake_response('{"category": "billing"}'))
+    monkeypatch.setattr(
+        client, "_get_client", lambda: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
+    )
+
+    result = await client.chat([{"role": "user", "content": "hi"}], json_mode=True)
+
+    assert result.text == '{"category": "billing"}'
+    fake_create.assert_awaited_once_with(
+        model="test-model",
+        messages=[{"role": "user", "content": "hi"}],
+        max_tokens=512,
+        temperature=0.7,
+        response_format={"type": "json_object"},
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_without_json_mode_sends_no_response_format(monkeypatch):
+    client = LLMClient(api_key="test-key", model="test-model")
+    fake_create = AsyncMock(return_value=_fake_response("plain text"))
+    monkeypatch.setattr(
+        client, "_get_client", lambda: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create)))
+    )
+
+    await client.chat([{"role": "user", "content": "hi"}])
+
+    assert fake_create.call_args.kwargs["response_format"] is None
+
+
+@pytest.mark.asyncio
 async def test_chat_retries_on_retryable_error_then_succeeds(monkeypatch):
     class RateLimitError(Exception):
         pass

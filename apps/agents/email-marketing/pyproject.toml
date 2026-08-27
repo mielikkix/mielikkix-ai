@@ -1,0 +1,10 @@
+[project]
+name = "mielikkix-agent-email-marketing"
+version = "0.0.0"
+description = "Email Marketing — writes and sends newsletters/promo campaigns to a business's own contacts via Resend. Queued agent."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

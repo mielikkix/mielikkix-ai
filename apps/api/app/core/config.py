@@ -178,6 +178,23 @@ class Settings(BaseSettings):
     # calendar", not a placeholder needing to be filled in with a real ID.
     google_calendar_id: str = "primary"
 
+    # Support Triage agent (apps/agents/support-triage) -- unlike every
+    # other agent, this one's "tenant" is the platform itself: it powers
+    # the chat widget on website/ (Mielikkix's OWN marketing site), talking
+    # to ITS visitors, not a tenant business's customers. This is Mielikkix's
+    # own Business record in packages/db, the same one
+    # scripts/setup_local_mielikkix_business.py creates -- a separate
+    # setting from voice_agent_business_id (not reused, even though it'll
+    # often point at that exact same business record locally) so each
+    # agent's grounding can be pointed elsewhere independently later.
+    # Empty means ungrounded (honest "I don't know" instead of guessing).
+    support_agent_business_id: str = ""
+    # Below this confidence (0-1, from the LLM's own classification call --
+    # see app/api/agents_support.py), Phase 1 does not attempt a direct
+    # answer. Phase 2 (this agent's CLAUDE.md) will additionally escalate
+    # to a human below this same threshold; Phase 1 just declines to guess.
+    support_agent_confidence_threshold: float = 0.6
+
     @property
     def platform_admin_emails_list(self) -> list[str]:
         return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]

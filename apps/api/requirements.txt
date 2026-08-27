@@ -30,6 +30,15 @@ google-generativeai==0.5.4
 # google-generativeai above) and calls the API via googleapiclient (same),
 # so this is a dev-time-only addition, not new runtime surface for the app.
 google-auth-oauthlib==1.2.1
+# IANA timezone database for Python's stdlib zoneinfo, used by
+# google_calendar_client.py to turn an IANA zone name (e.g.
+# "America/New_York") into a real UTC offset for Google's freebusy API
+# (which requires one -- see that module's comment). Linux (this app's
+# Docker/VPS environment) usually already has this via the OS itself, but
+# Windows never does -- confirmed the hard way (ZoneInfoNotFoundError
+# running tests locally on Windows) -- so this is a real runtime
+# dependency, not optional, for portability across dev machines.
+tzdata==2024.1
 ollama==0.2.1
 PyPDF2==3.0.1
 python-docx==1.1.2

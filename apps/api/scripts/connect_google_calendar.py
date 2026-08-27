@@ -30,7 +30,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.integrations.google_calendar_client import CALENDAR_SCOPE  # noqa: E402
+from app.integrations.google_calendar_client import CALENDAR_SCOPES  # noqa: E402
 
 
 def main() -> None:
@@ -58,7 +58,7 @@ def main() -> None:
                 "token_uri": "https://oauth2.googleapis.com/token",
             }
         },
-        scopes=[CALENDAR_SCOPE],
+        scopes=CALENDAR_SCOPES,
     )
 
     print("\nOpening your browser to sign in and approve access...")

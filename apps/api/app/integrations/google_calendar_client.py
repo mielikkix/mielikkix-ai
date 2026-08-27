@@ -32,7 +32,8 @@ refresh/API-call mechanics below don't change.
 
 import asyncio
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -41,14 +42,23 @@ from googleapiclient.errors import HttpError
 
 from ..core.config import settings
 
-# The only scope this agent needs: read freebusy + create/manage events it
-# creates -- NOT full calendar read/write (calendar.readonly would block
-# booking; the broader "calendar" scope would let this agent read/change
-# events it never created, more access than it needs). Must exactly match
-# the scope requested when the refresh token was obtained (see
-# scripts/connect_google_calendar.py) -- Google rejects an API call made
-# with a token that was never granted this scope.
-CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events"
+# Two narrow scopes, not the broad "calendar" (full read/write on
+# everything) or "calendar.readonly" (would block booking) scopes:
+#   - calendar.freebusy: read-only free/busy status. calendar.events does
+#     NOT cover freebusy.query -- confirmed the hard way (a live 403
+#     "Request had insufficient authentication scopes" from Google's own
+#     API), not just from reading Google's scope docs; freebusy.query
+#     specifically needs .freebusy, .readonly, or the full "calendar" scope,
+#     .events isn't enough even though it sounds calendar-data-adjacent.
+#   - calendar.events: create/manage events this agent creates. Doesn't
+#     cover freebusy.query itself, but Phase 3 (booking creation) needs it.
+# Must exactly match the scopes requested when the refresh token was
+# obtained (see scripts/connect_google_calendar.py) -- Google rejects an
+# API call made with a token that was never granted a scope it needs.
+CALENDAR_SCOPES = [
+    "https://www.googleapis.com/auth/calendar.freebusy",
+    "https://www.googleapis.com/auth/calendar.events",
+]
 
 
 @dataclass
@@ -92,7 +102,7 @@ def _build_credentials() -> Credentials:
         token_uri="https://oauth2.googleapis.com/token",
         client_id=settings.google_calendar_client_id,
         client_secret=settings.google_calendar_client_secret,
-        scopes=[CALENDAR_SCOPE],
+        scopes=CALENDAR_SCOPES,
     )
 
 
@@ -105,16 +115,26 @@ def _get_busy_blocks_sync(start: date, end: date, timezone: str) -> list[BusyBlo
 
     service = build("calendar", "v3", credentials=credentials)
     try:
+        # Google's freebusy API requires timeMin/timeMax to be full RFC3339
+        # datetimes WITH a UTC offset -- a bare "2026-08-27T00:00:00" (no
+        # offset) is invalid and Google rejects it with a plain, unhelpful
+        # "400 Bad Request" (confirmed live, not just from the docs). The
+        # "timeZone" field alone doesn't fix that -- it's the offset on
+        # each timestamp itself Google actually validates. zoneinfo (Python
+        # stdlib, no extra dependency) resolves the IANA zone name into a
+        # real UTC offset for these two specific moments -- necessary, not
+        # a fixed offset, because the same zone's offset can differ across
+        # the range being queried (daylight saving time changes).
+        tz = ZoneInfo(timezone)
+        time_min = datetime.combine(start, time.min, tzinfo=tz)
+        time_max = datetime.combine(end, time(23, 59, 59), tzinfo=tz)
+
         response = (
             service.freebusy()
             .query(
                 body={
-                    # Google's freebusy API wants full RFC3339 datetimes,
-                    # not bare dates -- midnight at the start of each day,
-                    # in the caller's timezone (the "timeZone" field below
-                    # is what makes "midnight" mean the right moment).
-                    "timeMin": f"{start.isoformat()}T00:00:00",
-                    "timeMax": f"{end.isoformat()}T23:59:59",
+                    "timeMin": time_min.isoformat(),
+                    "timeMax": time_max.isoformat(),
                     "timeZone": timezone,
                     "items": [{"id": settings.google_calendar_id}],
                 }

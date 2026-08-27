@@ -91,8 +91,11 @@ async def test_get_busy_blocks_sends_correct_query_body(monkeypatch):
     await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14), timezone="America/New_York")
 
     sent_body = fake_service.freebusy().last_query_body
-    assert sent_body["timeMin"] == "2024-08-13T00:00:00"
-    assert sent_body["timeMax"] == "2024-08-14T23:59:59"
+    # Must carry a real UTC offset, not a bare timestamp -- Google's API
+    # rejects timeMin/timeMax without one (see google_calendar_client.py's
+    # comment on this). August in America/New_York is EDT, UTC-4.
+    assert sent_body["timeMin"] == "2024-08-13T00:00:00-04:00"
+    assert sent_body["timeMax"] == "2024-08-14T23:59:59-04:00"
     assert sent_body["timeZone"] == "America/New_York"
     assert sent_body["items"] == [{"id": "primary"}]
 

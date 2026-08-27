@@ -12,6 +12,14 @@ pydantic==2.7.1
 pydantic-settings==2.2.1
 langchain==0.2.1
 langchain-community==0.2.1
+# CPU-only torch build: sentence-transformers pulls torch as a dependency, and
+# PyPI's default torch wheel for Linux bundles the full CUDA/NVIDIA GPU stack
+# (~2.5GB of nvidia-* packages) even though this app never runs on a GPU --
+# CLAUDE.md is explicit that no self-hosted models run on the VPS this
+# deploys to. The `+cpu` local version suffix forces pip to resolve torch
+# from the extra index below instead of PyPI's GPU build.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.1+cpu
 sentence-transformers==3.0.0
 httpx==0.27.0
 python-dotenv==1.0.1

@@ -80,6 +80,7 @@ class LLMClient:
         *,
         max_tokens: int = 512,
         temperature: float = 0.7,
+        json_mode: bool = False,
     ) -> LLMResult:
         """Send a chat-completion request. Retries transient failures with
         a short exponential backoff (0.5s, 1s, ...); re-raises immediately
@@ -87,6 +88,19 @@ class LLMClient:
         max_retries is exhausted -- callers decide their own fallback
         behavior (e.g. a TwiML apology line) rather than this client
         swallowing the failure silently.
+
+        json_mode=True asks the provider to return a raw JSON object as
+        `result.text` (still a `str` -- this doesn't parse it for you,
+        `json.loads(result.text)` is still the caller's job) instead of
+        free-form prose, e.g. for a classification call that needs
+        {"category": ..., "confidence": ...} back rather than a sentence.
+        Added for Support Triage's classification step (see
+        apps/agents/support-triage/CLAUDE.md) -- shared here, per this
+        package's CLAUDE.md convention #1, rather than any one agent
+        hand-rolling "please respond in JSON" prompt-wrangling itself. Your
+        prompt must still ask for JSON in words (Groq requires this even in
+        json_mode) -- this only *enforces* that the output parses as JSON,
+        it doesn't invent the schema for you.
         """
         client = self._get_client()
         attempt = 0
@@ -97,6 +111,7 @@ class LLMClient:
                     messages=messages,
                     max_tokens=max_tokens,
                     temperature=temperature,
+                    response_format={"type": "json_object"} if json_mode else None,
                 )
                 return self._to_result(response)
             except Exception as exc:

@@ -42,13 +42,18 @@ mielikkix.ai itself.
 
 ```
 Ticket
-  id, created_at, channel (web | voice), status (open | escalated | resolved),
+  id, session_id, created_at, channel (web | voice), status (open | escalated | resolved),
   category, priority (low | medium | high | urgent), confidence,
   customer_name, customer_email, customer_phone
 
-Message
+TicketMessage
   id, ticket_id, role (user | agent | human), content, created_at
 ```
+
+(`TicketMessage`, not `Message` — `apps/api/app/models/conversation.py`
+already has a `Message` class/table for the product's own tenant-facing
+chat widget; this is a different, platform-level concept and needed its
+own name to avoid colliding with it.)
 
 ## Real-time or batch?
 

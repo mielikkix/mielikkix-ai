@@ -1,0 +1,10 @@
+[project]
+name = "mielikkix-agent-loyalty-reengage"
+version = "0.0.0"
+description = "Loyalty & Re-engagement — finds inactive customers and sends automated win-back offers on a schedule. Queued agent."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

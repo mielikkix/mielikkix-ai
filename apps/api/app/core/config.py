@@ -149,6 +149,52 @@ class Settings(BaseSettings):
     # so it belongs in deployment config, not a table any tenant data touches.
     platform_admin_emails: str = ""
 
+    # Booking Assistant agent (apps/agents/booking-assistant) -- books
+    # directly against Google Calendar (not Cal.com -- see that agent's
+    # CLAUDE.md for why that plan was reversed). Each real tenant will
+    # eventually connect their OWN calendar via OAuth from the dashboard
+    # (Phase 5); these three settings are Phase 1 scope only -- ONE
+    # hardcoded test calendar's credentials, obtained by running
+    # scripts/connect_google_calendar.py once locally (opens a browser for
+    # you to sign in, then prints the values below to paste into .env).
+    #
+    # google_calendar_client_id/secret identify OUR APP to Google, not any
+    # one tenant -- created once in Google Cloud Console (Phase 0: a new
+    # project, Calendar API enabled, an OAuth 2.0 Client ID of type "Web
+    # application"). The SAME client_id/secret is reused for every tenant's
+    # OAuth connection later; only the refresh token differs per tenant.
+    google_calendar_client_id: str = ""
+    google_calendar_client_secret: str = ""
+    # The one test calendar's long-lived refresh token (Phase 1 only -- a
+    # real per-tenant one replaces this in Phase 5). Python note: unlike an
+    # API key, this alone can't authenticate a request -- app/integrations/
+    # google_calendar_client.py exchanges it for a short-lived access token
+    # on demand (google-auth's Credentials class does this refresh
+    # automatically), the same reason a Refresh/Access token pair works in
+    # any OAuth2-based TS auth library you've used.
+    google_calendar_refresh_token: str = ""
+    # Which calendar to check/book against for that connected account --
+    # "primary" is Google's own special ID for "this account's default
+    # calendar", not a placeholder needing to be filled in with a real ID.
+    google_calendar_id: str = "primary"
+
+    # Support Triage agent (apps/agents/support-triage) -- unlike every
+    # other agent, this one's "tenant" is the platform itself: it powers
+    # the chat widget on website/ (Mielikkix's OWN marketing site), talking
+    # to ITS visitors, not a tenant business's customers. This is Mielikkix's
+    # own Business record in packages/db, the same one
+    # scripts/setup_local_mielikkix_business.py creates -- a separate
+    # setting from voice_agent_business_id (not reused, even though it'll
+    # often point at that exact same business record locally) so each
+    # agent's grounding can be pointed elsewhere independently later.
+    # Empty means ungrounded (honest "I don't know" instead of guessing).
+    support_agent_business_id: str = ""
+    # Below this confidence (0-1, from the LLM's own classification call --
+    # see app/api/agents_support.py), Phase 1 does not attempt a direct
+    # answer. Phase 2 (this agent's CLAUDE.md) will additionally escalate
+    # to a human below this same threshold; Phase 1 just declines to guess.
+    support_agent_confidence_threshold: float = 0.6
+
     @property
     def platform_admin_emails_list(self) -> list[str]:
         return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]

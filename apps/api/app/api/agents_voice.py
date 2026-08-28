@@ -1,11 +1,15 @@
 """
-Voice Receptionist -- Phase 0 + Phase 1 (see
+Voice Receptionist -- Phase 0 through Phase 4 (see
 apps/agents/voice-receptionist/CLAUDE.md for the full phased plan).
 
-Phase 0 proved the Twilio webhook round-trip works. Phase 1 adds the actual
-conversation: greet the caller, listen, generate a reply via agent-core's
-LLM client, and loop -- "just a friendly echo/conversation," deliberately
-no intent routing or business-data grounding yet (that's Phase 2+).
+Phase 0 proved the Twilio webhook round-trip works. Phase 1 added the
+actual conversation loop. Phase 4 (agent-to-agent handoff) is this file's
+newest piece: real tool-calling lets the LLM actually check availability
+and create a real booking mid-call via app/services/booking_service.py --
+the same core logic the chat widget's Booking Assistant uses -- instead of
+just talking about scheduling with nothing behind it (confirmed live,
+before this: a real test call ended with the agent promising "I'll email
+you a scheduling link" and no email or calendar event was ever created).
 
 WHY THIS FILE LIVES IN apps/api, NOT apps/agents/voice-receptionist:
 see the module docstring history in git -- unchanged from Phase 0: Twilio
@@ -13,9 +17,14 @@ needs one running HTTP server, and apps/api is the "shared modular agent
 process" apps/agents/CLAUDE.md describes.
 """
 
+import asyncio
+import json
+import logging
 import re
 import time
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
@@ -24,13 +33,18 @@ from sqlalchemy.orm import Session
 from twilio.request_validator import RequestValidator
 from twilio.twiml.voice_response import VoiceResponse, Gather
 
-from mielikkix_agent_core import LLMClient
+from mielikkix_agent_core import LLMClient, ToolCall
 
 from ..core.config import settings
 from ..core.database import get_db
 from ..core.limiter import limiter
+from ..integrations.google_calendar_client import GoogleCalendarError
+from ..notifications import notify_new_booking
 from ..rag.embeddings import embed_query
 from ..rag.pipeline import retrieve_chunks, retrieve_faqs, retrieve_products
+from ..services import booking_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/agents/voice", tags=["voice-receptionist"])
 
@@ -54,6 +68,139 @@ _SYSTEM_PROMPT_BASE = (
     "unknown company you have no information about."
 )
 
+# Appended to every system prompt (booking has nothing to do with whether
+# RAG found business context, so this isn't conditional on that) --
+# instructs the LLM on the two real tools it has (see _BOOKING_TOOLS
+# below), and enforces the "always get an explicit yes" rule at the prompt
+# level too, not just the server-side _CONFIRMATION_PATTERN gate in
+# _execute_tool -- belt and suspenders, since Twilio's speech-to-text is
+# not perfectly reliable and a wrongly-created real calendar event is a
+# worse failure than one extra confirmation exchange.
+_BOOKING_SYSTEM_PROMPT_ADDENDUM = (
+    "\n\nYou can also help callers book a real appointment. Use the "
+    "check_availability tool as soon as you know roughly what they want to "
+    "book and roughly when -- you don't need an exact date or time first. "
+    "When it returns options, read out at most 2-3 of them using their "
+    "'spoken' text exactly as given (never read out a raw date/time "
+    "yourself) and ask which works. Once the caller has picked one AND "
+    "given you a name and email, read the specific day/time, name, and "
+    "email back to them and explicitly ask 'shall I book it?' -- only call "
+    "book_appointment after they clearly say yes to that specific "
+    "question, in a separate reply from when you offered the times. Never "
+    "invent a name or email -- ask for them if you don't have them yet."
+)
+
+
+def _format_slot_for_speech(slot_start: datetime) -> str:
+    """"Tuesday at 2 PM" style, in the fixed voice-booking timezone (see
+    _VOICE_BOOKING_TIMEZONE below) -- the LLM reads this exact string aloud
+    rather than being handed a raw ISO/UTC timestamp to convert and speak
+    itself, which would risk it mis-converting the timezone or misreading
+    digits."""
+    local = slot_start.astimezone(ZoneInfo(_VOICE_BOOKING_TIMEZONE))
+    day = local.strftime("%A")
+    time_part = (
+        local.strftime("%I %p").lstrip("0")
+        if local.minute == 0
+        else local.strftime("%I:%M %p").lstrip("0")
+    )
+    return f"{day} at {time_part}"
+
+
+# Booking Assistant's /request and /confirm routes take the VISITOR's own
+# IANA timezone (from the browser) -- a phone call has no browser. Every
+# .no-domain signal in this codebase (mielikkix.no, panthermedia.no,
+# NOTIFICATION_FROM_EMAIL=post@mielikkix.no) points at a Norway-based
+# business, and this is the same single-business scope boundary already
+# accepted for RAG grounding (settings.voice_agent_business_id) -- applied
+# here to booking too. The real permanent fix is a per-business
+# BusinessSettings.timezone column (also fixing business_hours' own
+# visitor-timezone quirk noted in notifications/__init__.py), deferred as
+# separate scope.
+_VOICE_BOOKING_TIMEZONE = "Europe/Oslo"
+
+_CHECK_AVAILABILITY_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "check_availability",
+        "description": (
+            "Look up real open appointment slots for what the caller wants "
+            "to book. Call this as soon as you know roughly what they want "
+            "and roughly when -- an exact date/time isn't required."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": (
+                        "The caller's request in their own words, e.g. "
+                        "'30 minute consultation next Tuesday afternoon'."
+                    ),
+                }
+            },
+            "required": ["description"],
+        },
+    },
+}
+
+_BOOK_APPOINTMENT_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "book_appointment",
+        "description": (
+            "Actually creates the booking. Only call this after the caller "
+            "has clearly confirmed OUT LOUD which slot number they want, in "
+            "a separate reply from when you offered it, and you have their "
+            "name and email."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "slot_index": {
+                    "type": "integer",
+                    "description": (
+                        "The number (1, 2, ...) of the slot from the most "
+                        "recent check_availability results the caller picked."
+                    ),
+                },
+                "name": {"type": "string"},
+                "email": {"type": "string"},
+                "phone": {
+                    "type": "string",
+                    "description": (
+                        "Optional -- omit if not given; the system already "
+                        "has the caller's number from the call itself."
+                    ),
+                },
+            },
+            "required": ["slot_index", "name", "email"],
+        },
+    },
+}
+
+_BOOKING_TOOLS = [_CHECK_AVAILABILITY_TOOL, _BOOK_APPOINTMENT_TOOL]
+
+# How many extra LLM round-trips one phone turn may spend on tool calls
+# before giving up -- Twilio's own webhook response budget is on the order
+# of ~15s (verify the current figure in Twilio's docs before relying on
+# this), and each round-trip is a real Groq call plus, for
+# check_availability, a real Google Calendar call. _llm_client below is
+# built with a tighter per-call timeout than the module default
+# specifically because of this chaining -- tune both numbers against real
+# measured latency via /dev/voice-test, not this guess.
+_MAX_TOOL_ROUNDS = 2
+_TOOL_LOOP_FALLBACK = (
+    "Let me have someone from the team follow up on the booking details so "
+    "I don't keep you waiting -- is there anything else I can help with?"
+)
+
+# check_availability truncates to this many slots before they ever reach
+# the model -- see _execute_tool's own comment on why this must happen
+# before storing/returning them, not just as a hint for how many to read
+# aloud.
+_MAX_SPOKEN_SLOTS = 3
+
 # Simple heuristic, not full intent classification (that's Phase 2+ per
 # this agent's CLAUDE.md) -- just enough to let a caller end the call by
 # saying so, instead of the loop continuing until they hang up the phone
@@ -64,6 +211,24 @@ _SYSTEM_PROMPT_BASE = (
 _GOODBYE_PATTERN = re.compile(
     r"\b(bye|goodbye|good bye|that'?s all|nothing else|no thanks|no that'?s it|"
     r"hang up|end the call|that'?s it for now)\b",
+    re.IGNORECASE,
+)
+
+# Gates book_appointment (see _execute_tool) -- checked against the raw
+# caller speech for the turn that triggers the call, not turn-count
+# bookkeeping. An earlier version tracked "was book_appointment called in
+# the same turn as check_availability" instead, but that broke on a real,
+# legitimate flow (confirmed live): the model redundantly re-called
+# check_availability to double-check a slot it had already offered in an
+# earlier turn, then tried to book in that same turn -- the re-check
+# stamped "just checked" over the ORIGINAL turn, making an already-
+# confirmed booking look same-turn and get wrongly refused. Checking the
+# caller's own words directly avoids that fragility: it doesn't matter how
+# many tool calls happened or in which turn, only whether the human
+# actually said something affirmative in the turn that's about to book.
+_CONFIRMATION_PATTERN = re.compile(
+    r"\b(yes|yeah|yep|yup|sure|go ahead|book it|please book|confirm|"
+    r"that works|sounds good|correct|do it|book that|please do)\b",
     re.IGNORECASE,
 )
 
@@ -176,17 +341,19 @@ def _retrieve_context(db: Session, query: str) -> str:
 
 def _build_system_prompt(context: str) -> str:
     if context:
-        return (
+        base = (
             f"{_SYSTEM_PROMPT_BASE}\n\nUse the following real information about "
             f"Mielikkix to answer the caller's question. If the answer isn't in "
             f"this information, say so plainly and offer to have someone follow "
             f"up, rather than guessing or inventing details.\n\n{context}"
         )
-    return (
-        f"{_SYSTEM_PROMPT_BASE} You don't currently have access to specific "
-        f"business information for this question, so say so plainly and offer "
-        f"to have someone follow up, rather than guessing."
-    )
+    else:
+        base = (
+            f"{_SYSTEM_PROMPT_BASE} You don't currently have access to specific "
+            f"business information for this question, so say so plainly and offer "
+            f"to have someone follow up, rather than guessing."
+        )
+    return base + _BOOKING_SYSTEM_PROMPT_ADDENDUM
 
 # Python note: a plain module-level dict, not a database table. This is
 # Phase 1 scope only -- "just a friendly echo/conversation," per this
@@ -205,6 +372,15 @@ _call_history: dict[str, list[dict]] = {}
 _CALL_STATE_TTL_SECONDS = 30 * 60
 _call_last_seen: dict[str, float] = {}
 
+# Booking's own per-call state, swept by the same TTL/forget mechanism as
+# the conversation state above.
+_call_pending_slots: dict[str, list[booking_service.SlotOption]] = {}
+_call_pending_meeting_type: dict[str, str] = {}
+# Twilio's own `From` field on the incoming call -- captured once in
+# voice_incoming, never from speech-to-text, so book_appointment has a
+# verified phone number to fall back on if the caller doesn't state one.
+_call_caller_number: dict[str, str] = {}
+
 
 def _touch_call(call_sid: str) -> None:
     _call_last_seen[call_sid] = time.monotonic()
@@ -215,6 +391,9 @@ def _forget_call(call_sid: str) -> None:
     _call_history.pop(call_sid, None)
     _call_silence_counts.pop(call_sid, None)
     _call_turn_counts.pop(call_sid, None)
+    _call_pending_slots.pop(call_sid, None)
+    _call_pending_meeting_type.pop(call_sid, None)
+    _call_caller_number.pop(call_sid, None)
 
 
 def _evict_stale_calls() -> None:
@@ -224,7 +403,155 @@ def _evict_stale_calls() -> None:
         _forget_call(sid)
 
 
-_llm_client = LLMClient()
+# A tighter per-call timeout than LLMClient's own 15s default: a single
+# turn can now chain up to _MAX_TOOL_ROUNDS+1 LLM calls plus a real Google
+# Calendar call (inside check_availability), and Twilio's own webhook
+# response budget is itself only ~15s total for the whole turn -- verify
+# both numbers against real measured latency via /dev/voice-test rather
+# than trusting this guess.
+_llm_client = LLMClient(timeout_seconds=8.0)
+
+# Fire-and-forget booking-notification tasks (see _fire_booking_notification)
+# need a kept reference or asyncio can garbage-collect a running task mid-
+# send -- there's no FastAPI BackgroundTasks available in a Twilio webhook
+# handler the way agents_booking.py's HTTP route has, so this module owns
+# its own equivalent.
+_pending_notification_tasks: set[asyncio.Task] = set()
+
+
+def _fire_booking_notification(result: booking_service.ConfirmBookingResult) -> None:
+    if not result.notify_email:
+        return
+    task = asyncio.create_task(notify_new_booking(result.notify_email, result.booking))
+    _pending_notification_tasks.add(task)
+    task.add_done_callback(_pending_notification_tasks.discard)
+
+
+async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str, tool_call: ToolCall) -> str:
+    """Runs one tool the LLM asked for and returns its result as a JSON
+    string -- the shape `role: "tool"` messages need (see _handle_turn).
+    Never raises: GoogleCalendarError becomes a plain {"status":
+    "calendar_error"} result so the LLM apologizes gracefully instead of
+    crashing the whole call turn.
+    """
+    try:
+        args = json.loads(tool_call.arguments)
+    except (json.JSONDecodeError, TypeError):
+        logger.info("call=%s turn=%s tool=%s invalid_arguments raw=%r", call_sid, turn_count, tool_call.name, tool_call.arguments)
+        return json.dumps({"status": "invalid_arguments"})
+
+    logger.info("call=%s turn=%s tool=%s args=%s", call_sid, turn_count, tool_call.name, args)
+
+    if tool_call.name == "check_availability":
+        try:
+            result = await booking_service.resolve_booking_request(
+                db, args.get("description", ""), _VOICE_BOOKING_TIMEZONE, None
+            )
+        except GoogleCalendarError:
+            logger.info("call=%s turn=%s check_availability calendar_error", call_sid, turn_count)
+            return json.dumps({"status": "calendar_error"})
+
+        logger.info("call=%s turn=%s check_availability -> status=%s slots=%d", call_sid, turn_count, result.status, len(result.slots))
+
+        if result.status != "needs_selection":
+            return json.dumps(
+                {"status": result.status, "clarification_question": result.clarification_question}
+            )
+
+        # Truncate BEFORE storing, not just before speaking -- confirmed
+        # live as a real bug: resolve_booking_request can return up to 8
+        # slots, but the system prompt only asks the model to read 2-3
+        # aloud. When all 8 were included in the tool result, the model
+        # sometimes renumbered "1, 2" in its own spoken prose to match
+        # whichever ones it chose to mention, which didn't line up with
+        # their REAL index in the full list -- so book_appointment(index=1)
+        # could silently book a completely different slot than the one the
+        # caller actually heard and agreed to. Storing the same truncated
+        # list book_appointment looks up from makes that mismatch
+        # impossible: index 1 in the tool result and index 1 in
+        # _call_pending_slots are now guaranteed to be the same slot.
+        spoken_slots = result.slots[:_MAX_SPOKEN_SLOTS]
+        _call_pending_slots[call_sid] = spoken_slots
+        _call_pending_meeting_type[call_sid] = result.meeting_type or "appointment"
+        return json.dumps(
+            {
+                "status": "needs_selection",
+                "meeting_type": result.meeting_type,
+                "duration_minutes": result.duration_minutes,
+                "slots": [
+                    {"index": i + 1, "spoken": _format_slot_for_speech(slot.start)}
+                    for i, slot in enumerate(spoken_slots)
+                ],
+            }
+        )
+
+    if tool_call.name == "book_appointment":
+        # Server-enforced, not just prompt discipline (see the system
+        # prompt addendum) -- refuses to book unless the CALLER's own
+        # words for this turn contain a clear affirmative (see
+        # _CONFIRMATION_PATTERN's own comment for why this checks the raw
+        # speech rather than turn-count bookkeeping around
+        # check_availability).
+        if not _CONFIRMATION_PATTERN.search(speech):
+            logger.info("call=%s turn=%s book_appointment refused: no confirmation phrase in speech=%r", call_sid, turn_count, speech)
+            return json.dumps(
+                {
+                    "status": "confirmation_required",
+                    "message": (
+                        "Read the slot, name, and email back and get an "
+                        "explicit yes in your NEXT reply before booking."
+                    ),
+                }
+            )
+
+        slots = _call_pending_slots.get(call_sid, [])
+        slot_index = args.get("slot_index")
+        # LLM-generated JSON isn't guaranteed to emit a number as a JSON
+        # number rather than a numeric string (e.g. "1" instead of 1) --
+        # untrusted input from this app's own perspective either way (same
+        # reasoning as agents_booking.py's own LLM-output handling), so
+        # coerce a clean numeric string before rejecting it outright.
+        if isinstance(slot_index, str) and slot_index.strip().isdigit():
+            slot_index = int(slot_index.strip())
+        if not isinstance(slot_index, int) or not (1 <= slot_index <= len(slots)):
+            logger.info("call=%s turn=%s book_appointment invalid_slot_index=%r (have %d slots)", call_sid, turn_count, slot_index, len(slots))
+            return json.dumps({"status": "invalid_slot_index"})
+
+        name, email = args.get("name"), args.get("email")
+        if not name or not email:
+            logger.info("call=%s turn=%s book_appointment missing_details name=%r email=%r", call_sid, turn_count, name, email)
+            return json.dumps({"status": "missing_details"})
+
+        chosen = slots[slot_index - 1]
+        try:
+            result = await booking_service.confirm_booking_slot(
+                db,
+                None,
+                chosen.start,
+                chosen.end,
+                _VOICE_BOOKING_TIMEZONE,
+                name,
+                email,
+                args.get("phone") or _call_caller_number.get(call_sid),
+                _call_pending_meeting_type.get(call_sid, "appointment"),
+                call_sid,
+            )
+        except GoogleCalendarError:
+            logger.info("call=%s turn=%s book_appointment calendar_error", call_sid, turn_count)
+            return json.dumps({"status": "calendar_error"})
+
+        logger.info("call=%s turn=%s book_appointment -> status=%s", call_sid, turn_count, result.status)
+
+        if result.status == "booked":
+            _fire_booking_notification(result)
+            _call_pending_slots.pop(call_sid, None)
+            _call_pending_meeting_type.pop(call_sid, None)
+            return json.dumps({"status": "booked", "spoken_time": _format_slot_for_speech(chosen.start)})
+
+        return json.dumps({"status": result.status})
+
+    logger.info("call=%s turn=%s unknown_tool=%s", call_sid, turn_count, tool_call.name)
+    return json.dumps({"status": "unknown_tool"})
 
 
 def _assert_valid_twilio_request(request: Request, form: dict) -> None:
@@ -241,13 +568,22 @@ def _assert_valid_twilio_request(request: Request, form: dict) -> None:
 
 
 async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bool]:
-    """Core Phase 1+2 conversation turn: given what the caller said, returns
-    (what the receptionist should say back, whether the call should end
-    after saying it). Shared by the real Twilio-facing /gather route below
-    AND the local-only /dev/gather route (browser mic test page) further
-    down -- the actual conversation logic exists in exactly one place, and
-    both interfaces just format its result differently (TwiML XML with a
+    """Core conversation turn: given what the caller said, returns (what
+    the receptionist should say back, whether the call should end after
+    saying it). Shared by the real Twilio-facing /gather route below AND
+    the local-only /dev/gather route (browser mic test page) further down
+    -- the actual conversation logic exists in exactly one place, and both
+    interfaces just format its result differently (TwiML XML with a
     <Hangup/>, vs. plain JSON with an `ended` flag).
+
+    Phase 4: the single LLM call is now a bounded tool-calling loop -- the
+    model may ask to run check_availability/book_appointment (see
+    _BOOKING_TOOLS) before returning the plain text it actually says aloud.
+    Only that final text is persisted to `history`; the intermediate
+    tool-call/tool-result messages live only in this turn's local
+    `messages` list and are discarded once the turn ends -- replaying raw
+    tool JSON across turns would bloat context for no benefit, since the
+    LLM already said the outcome aloud in plain language.
     """
     _evict_stale_calls()
     _touch_call(call_sid)
@@ -279,9 +615,54 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
 
     try:
         context = _retrieve_context(db, _anchor_query_for_retrieval(speech))
-        result = await _llm_client.chat(
-            [{"role": "system", "content": _build_system_prompt(context)}, *history]
-        )
+        messages = [{"role": "system", "content": _build_system_prompt(context)}, *history]
+
+        # Python note for a reader new to Python coming from TS/Angular:
+        # this loop's `else` clause (way below, at the same indent as
+        # `for`) only runs if the loop finishes all its iterations WITHOUT
+        # hitting `break` -- there's no equivalent in JS/TS `for`. Here
+        # that means "the model still wanted another tool call when we ran
+        # out of rounds," which falls through to the fallback line instead
+        # of looping forever.
+        for _ in range(_MAX_TOOL_ROUNDS + 1):
+            result = await _llm_client.chat(
+                messages,
+                tools=_BOOKING_TOOLS,
+                tool_choice="auto",
+                # LLMClient's own default (512) is too tight here -- confirmed
+                # live: a real reply came back as pages of garbled whitespace/
+                # ellipsis characters, the same "reasoning model spent its
+                # budget before finishing" failure mode _parse_request in
+                # booking_service.py already needed a raised budget for, just
+                # silent instead of raising (this isn't json_mode, so nothing
+                # validates the shape of what comes back). The final spoken
+                # reply itself stays short (the system prompt already asks for
+                # 1-3 sentences) -- this headroom is for the model's own
+                # internal reasoning plus a whole tool-result history, not the
+                # visible output.
+                max_tokens=2048,
+            )
+            if not result.tool_calls:
+                break
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": result.text,
+                    "tool_calls": [
+                        {
+                            "id": tool_call.id,
+                            "type": "function",
+                            "function": {"name": tool_call.name, "arguments": tool_call.arguments},
+                        }
+                        for tool_call in result.tool_calls
+                    ],
+                }
+            )
+            for tool_call in result.tool_calls:
+                tool_output = await _execute_tool(db, call_sid, turn_count, speech, tool_call)
+                messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": tool_output})
+        else:
+            return _TOOL_LOOP_FALLBACK, False
     except Exception:
         # Never leave the caller in dead air if the LLM call fails/times
         # out mid-call (see this agent's CLAUDE.md testing checklist) --
@@ -294,12 +675,18 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
 
 def _start_call(call_sid: str) -> str:
     """Resets this call's history and returns the greeting -- shared by
-    /incoming (Twilio) and /dev/start (browser mic test page)."""
+    /incoming (Twilio) and /dev/start (browser mic test page). Does NOT
+    clear _call_caller_number -- voice_incoming sets that from the same
+    request's own From field right after calling this, and /dev/start (the
+    browser mic harness) has no real caller number to set in the first
+    place."""
     _evict_stale_calls()
     _touch_call(call_sid)
     _call_history[call_sid] = []
     _call_silence_counts.pop(call_sid, None)
     _call_turn_counts.pop(call_sid, None)
+    _call_pending_slots.pop(call_sid, None)
+    _call_pending_meeting_type.pop(call_sid, None)
     return _GREETING
 
 
@@ -331,8 +718,14 @@ async def voice_incoming(request: Request):
     form = dict(await request.form())
     _assert_valid_twilio_request(request, form)
 
+    call_sid = form.get("CallSid", "")
+    # Twilio's own caller-ID field -- captured once, here, never from
+    # speech-to-text, so book_appointment has a verified phone number to
+    # fall back on if the caller doesn't state one (see _execute_tool).
+    _call_caller_number[call_sid] = form.get("From", "")
+
     response = VoiceResponse()
-    response.say(_start_call(form.get("CallSid", "")))
+    response.say(_start_call(call_sid))
     _gather(response)
     return Response(content=str(response), media_type="application/xml")
 

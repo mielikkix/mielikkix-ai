@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.api import agents_booking
 from app.integrations.google_calendar_client import BusyBlock, GoogleCalendarError
 from app.models.booking import Booking
+from app.services import booking_service
 from mielikkix_agent_core import LLMResult
 
 client = TestClient(app)
@@ -146,7 +147,7 @@ class TestAvailableSlotsForRange:
     def test_full_day_free_fills_business_hours(self):
         monday = _next_monday(date.today())
 
-        slots = agents_booking._available_slots_for_range([], monday, monday, 60, "UTC")
+        slots = booking_service._available_slots_for_range([], monday, monday, 60, "UTC")
 
         assert len(slots) == 8  # 09:00-17:00 in 1-hour slots
         assert slots[0][0].isoformat() == f"{monday}T09:00:00+00:00"
@@ -156,7 +157,7 @@ class TestAvailableSlotsForRange:
         monday = _next_monday(date.today())
         busy = [BusyBlock(start=f"{monday}T09:00:00+00:00", end=f"{monday}T10:30:00+00:00")]
 
-        slots = agents_booking._available_slots_for_range(busy, monday, monday, 30, "UTC")
+        slots = booking_service._available_slots_for_range(busy, monday, monday, 30, "UTC")
 
         assert slots[0][0].isoformat() == f"{monday}T10:30:00+00:00"
 
@@ -164,7 +165,7 @@ class TestAvailableSlotsForRange:
         monday = _next_monday(date.today())
         busy = [BusyBlock(start=f"{monday}T12:00:00+00:00", end=f"{monday}T13:00:00+00:00")]
 
-        slots = agents_booking._available_slots_for_range(busy, monday, monday, 180, "UTC")
+        slots = booking_service._available_slots_for_range(busy, monday, monday, 180, "UTC")
 
         assert [(s.isoformat(), e.isoformat()) for s, e in slots] == [
             (f"{monday}T09:00:00+00:00", f"{monday}T12:00:00+00:00"),
@@ -175,16 +176,16 @@ class TestAvailableSlotsForRange:
         monday = _next_monday(date.today())
         saturday, sunday = monday + timedelta(days=5), monday + timedelta(days=6)
 
-        slots = agents_booking._available_slots_for_range([], saturday, sunday, 30, "UTC")
+        slots = booking_service._available_slots_for_range([], saturday, sunday, 30, "UTC")
 
         assert slots == []
 
     def test_result_is_capped_at_max_slots_returned(self):
         monday = _next_monday(date.today())
 
-        slots = agents_booking._available_slots_for_range([], monday, monday, 15, "UTC")
+        slots = booking_service._available_slots_for_range([], monday, monday, 15, "UTC")
 
-        assert len(slots) == agents_booking._MAX_SLOTS_RETURNED
+        assert len(slots) == booking_service._MAX_SLOTS_RETURNED
 
 
 # ---------------------------------------------------------------------------
@@ -443,7 +444,7 @@ def test_confirm_works_outside_debug_mode(client, db_session, monkeypatch):
 # ---------------------------------------------------------------------------
 # Phase 5: a real business_id resolves to THAT business's own connected
 # calendar/hours instead of Mielikkix's demo one, via
-# agents_booking._resolve_calendar_provider/_resolve_business_hours (see
+# booking_service._resolve_calendar_provider/_resolve_business_hours (see
 # app/integrations/calendar_provider.py's get_calendar_provider). All of
 # these use the isolated `client`/`db_session`/`business`/`set_plan`
 # fixtures since they touch real CalendarConnection/BusinessSettings rows.
@@ -537,7 +538,7 @@ def test_request_with_business_id_uses_tenant_calendar_and_hours(client, busines
 
     fake_provider = MagicMock()
     fake_provider.get_busy_blocks = AsyncMock(return_value=[])
-    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    monkeypatch.setattr(booking_service, "get_calendar_provider", lambda db, business_id: fake_provider)
     _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday))
 
     resp = client.post(
@@ -573,7 +574,7 @@ def test_confirm_with_business_id_books_via_tenant_calendar(client, business, se
     fake_provider = MagicMock()
     fake_provider.get_busy_blocks = AsyncMock(return_value=[])
     fake_provider.create_event = AsyncMock(return_value="tenant-event-id")
-    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    monkeypatch.setattr(booking_service, "get_calendar_provider", lambda db, business_id: fake_provider)
     # This business_id's own booking must never reach Mielikkix's demo
     # calendar -- fail loudly if anything still routes there.
     monkeypatch.setattr(
@@ -618,7 +619,7 @@ def test_confirm_with_business_id_notifies_the_businesss_own_contact_email(
     fake_provider = MagicMock()
     fake_provider.get_busy_blocks = AsyncMock(return_value=[])
     fake_provider.create_event = AsyncMock(return_value="tenant-event-id")
-    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    monkeypatch.setattr(booking_service, "get_calendar_provider", lambda db, business_id: fake_provider)
     fake_notify = AsyncMock()
     monkeypatch.setattr(agents_booking, "notify_new_booking", fake_notify)
 
@@ -655,7 +656,7 @@ def test_confirm_with_business_id_skips_notification_when_no_contact_email_on_fi
     fake_provider = MagicMock()
     fake_provider.get_busy_blocks = AsyncMock(return_value=[])
     fake_provider.create_event = AsyncMock(return_value="tenant-event-id")
-    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    monkeypatch.setattr(booking_service, "get_calendar_provider", lambda db, business_id: fake_provider)
     fake_notify = AsyncMock()
     monkeypatch.setattr(agents_booking, "notify_new_booking", fake_notify)
 

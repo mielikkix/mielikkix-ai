@@ -11,6 +11,8 @@ the database or loads the real embedding model. The LLM client is always
 mocked too; no test in this file makes a real Groq call.
 """
 
+import json
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -20,7 +22,8 @@ from twilio.request_validator import RequestValidator
 from app.main import app
 from app.core.config import settings
 from app.api import agents_voice
-from mielikkix_agent_core import LLMResult, LLMUsage
+from app.services import booking_service
+from mielikkix_agent_core import LLMResult, LLMUsage, ToolCall
 
 client = TestClient(app)
 
@@ -534,3 +537,351 @@ def test_dev_voice_test_page_serves_html():
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/html")
     assert "SpeechRecognition" in resp.text
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: agent-to-agent handoff -- the LLM can now call check_availability/
+# book_appointment mid-call (see agents_voice.py's _BOOKING_TOOLS,
+# _execute_tool, and the tool-calling loop in _handle_turn). Both
+# booking_service functions are always mocked here, same "never a real
+# Google Calendar/LLM call" convention as the rest of this file -- and
+# specifically to avoid this file's plain module-level TestClient (no
+# db_session fixture, no dependency override) writing a real Booking row
+# against whatever DATABASE_URL happens to be configured.
+# ---------------------------------------------------------------------------
+
+
+def _tool_call_result(text: str, *tool_calls: ToolCall) -> LLMResult:
+    return LLMResult(text=text, usage=None, tool_calls=list(tool_calls) or None)
+
+
+def test_gather_check_availability_tool_populates_pending_slots(monkeypatch):
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-checkavail"
+    agents_voice._forget_call(call_sid)
+
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    slots = [
+        booking_service.SlotOption(start=monday.replace(hour=14, minute=0), end=monday.replace(hour=14, minute=30)),
+        booking_service.SlotOption(start=monday.replace(hour=16, minute=0), end=monday.replace(hour=16, minute=30)),
+    ]
+    fake_resolve = AsyncMock(
+        return_value=booking_service.ResolveBookingResult(
+            status="needs_selection", slots=slots, meeting_type="consultation", duration_minutes=30
+        )
+    )
+    monkeypatch.setattr(booking_service, "resolve_booking_request", fake_resolve)
+
+    tool_call = ToolCall(id="call_1", name="check_availability", arguments='{"description": "a consultation"}')
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", tool_call),
+            _tool_call_result("I've got two times open -- does either work for you?"),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "I'd like to book a consultation"},
+    )
+
+    assert resp.status_code == 200
+    assert "does either work for you" in resp.text
+    fake_resolve.assert_awaited_once()
+    assert agents_voice._call_pending_slots[call_sid] == slots
+    assert agents_voice._call_pending_meeting_type[call_sid] == "consultation"
+
+
+def test_check_availability_truncates_slots_before_storing_or_returning_them(monkeypatch):
+    """Real live bug: resolve_booking_request can return up to 8 slots, but
+    only _MAX_SPOKEN_SLOTS are ever meant to be offered -- when all 8 were
+    included in the tool result, the model's own spoken "1, 2" labels
+    didn't reliably line up with their real index in the full list, so
+    book_appointment(index=1) could silently book a slot the caller never
+    actually heard or agreed to. Truncating BEFORE storing (not just
+    trusting the model to only mention a few) makes that mismatch
+    impossible -- index 1 in what's returned and index 1 in
+    _call_pending_slots must always be the exact same slot."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-truncate"
+    agents_voice._forget_call(call_sid)
+
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    many_slots = [
+        booking_service.SlotOption(start=monday.replace(hour=9 + i, minute=0), end=monday.replace(hour=9 + i, minute=30))
+        for i in range(8)
+    ]
+    monkeypatch.setattr(
+        booking_service,
+        "resolve_booking_request",
+        AsyncMock(
+            return_value=booking_service.ResolveBookingResult(
+                status="needs_selection", slots=many_slots, meeting_type="call", duration_minutes=30
+            )
+        ),
+    )
+    tool_call = ToolCall(id="call_1", name="check_availability", arguments='{"description": "a call"}')
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", tool_call),
+            _tool_call_result("A couple of times are open -- which works?"),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "book me a call"},
+    )
+
+    assert agents_voice._call_pending_slots[call_sid] == many_slots[: agents_voice._MAX_SPOKEN_SLOTS]
+    # The tool-result JSON fed back to the LLM must only ever contain the
+    # same truncated set -- never all 8.
+    tool_result = json.loads(fake_chat.call_args_list[1].args[0][-1]["content"])
+    assert len(tool_result["slots"]) == agents_voice._MAX_SPOKEN_SLOTS
+
+
+def test_gather_book_appointment_refused_without_a_confirmation_phrase(monkeypatch):
+    """The LLM deciding to call book_appointment with no clear affirmative
+    anywhere in the caller's own words for this turn must be refused
+    server-side -- prompt discipline alone isn't enough given Twilio's
+    speech-to-text isn't perfectly reliable."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-noconfirm"
+    agents_voice._forget_call(call_sid)
+
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    slots = [booking_service.SlotOption(start=monday.replace(hour=14, minute=0), end=monday.replace(hour=14, minute=30))]
+    fake_resolve = AsyncMock(
+        return_value=booking_service.ResolveBookingResult(
+            status="needs_selection", slots=slots, meeting_type="call", duration_minutes=30
+        )
+    )
+    monkeypatch.setattr(booking_service, "resolve_booking_request", fake_resolve)
+    fake_confirm = AsyncMock()
+    monkeypatch.setattr(booking_service, "confirm_booking_slot", fake_confirm)
+
+    check_call = ToolCall(id="call_1", name="check_availability", arguments='{"description": "a call"}')
+    book_call = ToolCall(
+        id="call_2",
+        name="book_appointment",
+        arguments='{"slot_index": 1, "name": "John", "email": "john@example.com"}',
+    )
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", check_call),
+            _tool_call_result("", book_call),
+            _tool_call_result("Let's confirm the details before I book it -- does the time work?"),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    # No "yes"/"book it"/"go ahead" etc. anywhere in this -- describing the
+    # request isn't the same as confirming it.
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "here is my name John and email john@example.com for the call"},
+    )
+
+    assert resp.status_code == 200
+    assert "confirm the details" in resp.text
+    fake_confirm.assert_not_awaited()
+    # The tool-result message fed back to the LLM must have told it why.
+    third_call_messages = fake_chat.call_args_list[2].args[0]
+    tool_result_message = third_call_messages[-1]
+    assert tool_result_message["role"] == "tool"
+    assert "confirmation_required" in tool_result_message["content"]
+
+
+def test_gather_book_appointment_allowed_with_confirmation_even_after_a_redundant_recheck(monkeypatch):
+    """Real live bug this guards against: the model redundantly re-calling
+    check_availability to double-check a slot already offered in an
+    earlier turn, then booking in that SAME turn, must NOT be refused just
+    because a check and a book happened in the same turn -- what matters is
+    whether the caller's own words for this turn are a clear yes, which
+    they are here ("Yes, go ahead and book it")."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-recheck-then-book"
+    agents_voice._forget_call(call_sid)
+
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    slots = [booking_service.SlotOption(start=monday.replace(hour=14, minute=0), end=monday.replace(hour=14, minute=30))]
+    monkeypatch.setattr(
+        booking_service,
+        "resolve_booking_request",
+        AsyncMock(
+            return_value=booking_service.ResolveBookingResult(
+                status="needs_selection", slots=slots, meeting_type="call", duration_minutes=30
+            )
+        ),
+    )
+    fake_booking = type("FakeBooking", (), {"calendar_event_id": "evt-1"})()
+    fake_confirm = AsyncMock(
+        return_value=booking_service.ConfirmBookingResult(
+            status="booked", event_id="evt-1", booking=fake_booking, notify_email=None
+        )
+    )
+    monkeypatch.setattr(booking_service, "confirm_booking_slot", fake_confirm)
+
+    check_call = ToolCall(id="call_1", name="check_availability", arguments='{"description": "a call"}')
+    book_call = ToolCall(
+        id="call_2",
+        name="book_appointment",
+        arguments='{"slot_index": 1, "name": "John", "email": "john@example.com"}',
+    )
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", check_call),
+            _tool_call_result("", book_call),
+            _tool_call_result("You're all set for Tuesday at 2 PM!"),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "Yes, go ahead and book it"},
+    )
+
+    assert resp.status_code == 200
+    assert "You're all set" in resp.text
+    fake_confirm.assert_awaited_once()
+
+
+def test_gather_falls_back_after_exhausting_tool_rounds(monkeypatch):
+    """The model still wanting another tool call after _MAX_TOOL_ROUNDS+1
+    LLM calls must degrade to the fallback line, not loop forever or hang
+    the webhook past Twilio's own response budget."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-toolcap"
+    agents_voice._forget_call(call_sid)
+
+    monkeypatch.setattr(
+        booking_service,
+        "resolve_booking_request",
+        AsyncMock(return_value=booking_service.ResolveBookingResult(status="clarification_needed")),
+    )
+    always_wants_a_tool = ToolCall(id="call_x", name="check_availability", arguments='{"description": "something"}')
+    fake_chat = AsyncMock(return_value=_tool_call_result("", always_wants_a_tool))
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "book me something"},
+    )
+
+    assert resp.status_code == 200
+    assert agents_voice._TOOL_LOOP_FALLBACK in resp.text
+    assert fake_chat.await_count == agents_voice._MAX_TOOL_ROUNDS + 1
+
+
+def test_gather_books_on_a_later_turn_after_check_availability(monkeypatch):
+    """The real two-turn shape: turn 1 offers times, turn 2 (a separate
+    webhook call, so a different turn_count) books one -- must NOT be
+    refused by the same-turn guard, since it's a genuinely different turn."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-twoturn"
+    agents_voice._forget_call(call_sid)
+
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    slots = [booking_service.SlotOption(start=monday.replace(hour=14, minute=0), end=monday.replace(hour=14, minute=30))]
+    monkeypatch.setattr(
+        booking_service,
+        "resolve_booking_request",
+        AsyncMock(
+            return_value=booking_service.ResolveBookingResult(
+                status="needs_selection", slots=slots, meeting_type="call", duration_minutes=30
+            )
+        ),
+    )
+    check_call = ToolCall(id="call_1", name="check_availability", arguments='{"description": "a call"}')
+    monkeypatch.setattr(
+        agents_voice._llm_client,
+        "chat",
+        AsyncMock(
+            side_effect=[
+                _tool_call_result("", check_call),
+                _tool_call_result("Tuesday at 2 PM is open -- does that work?"),
+            ]
+        ),
+    )
+    turn_one = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "book me a call"},
+    )
+    assert turn_one.status_code == 200
+
+    fake_booking = type("FakeBooking", (), {"calendar_event_id": "evt-1"})()
+    fake_confirm_result = booking_service.ConfirmBookingResult(
+        status="booked", event_id="evt-1", booking=fake_booking, notify_email="owner@example.com"
+    )
+    fake_confirm = AsyncMock(return_value=fake_confirm_result)
+    monkeypatch.setattr(booking_service, "confirm_booking_slot", fake_confirm)
+    fake_notify_task = AsyncMock()
+    monkeypatch.setattr(agents_voice, "notify_new_booking", fake_notify_task)
+    book_call = ToolCall(
+        id="call_2",
+        name="book_appointment",
+        arguments='{"slot_index": 1, "name": "John", "email": "john@example.com"}',
+    )
+    monkeypatch.setattr(
+        agents_voice._llm_client,
+        "chat",
+        AsyncMock(
+            side_effect=[
+                _tool_call_result("", book_call),
+                _tool_call_result("You're all set for Tuesday at 2 PM!"),
+            ]
+        ),
+    )
+
+    turn_two = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "yes, book it, John, john@example.com"},
+    )
+
+    assert turn_two.status_code == 200
+    assert "You're all set" in turn_two.text
+    fake_confirm.assert_awaited_once()
+    # confirm_booking_slot(db, business_id, start, end, timezone, name, email, phone, meeting_type, session_id)
+    awaited_args = fake_confirm.await_args.args
+    assert awaited_args[5] == "John"
+    assert awaited_args[6] == "john@example.com"
+    assert call_sid not in agents_voice._call_pending_slots
+
+
+@pytest.mark.asyncio
+async def test_fire_booking_notification_schedules_a_kept_task(monkeypatch):
+    fake_notify = AsyncMock()
+    monkeypatch.setattr(agents_voice, "notify_new_booking", fake_notify)
+    fake_booking = object()
+    result = booking_service.ConfirmBookingResult(
+        status="booked", event_id="evt-1", booking=fake_booking, notify_email="owner@example.com"
+    )
+
+    agents_voice._fire_booking_notification(result)
+
+    assert len(agents_voice._pending_notification_tasks) == 1
+    task = next(iter(agents_voice._pending_notification_tasks))
+    await task
+    fake_notify.assert_awaited_once_with("owner@example.com", fake_booking)
+    # add_done_callback(discard) should have removed it once it completed.
+    assert len(agents_voice._pending_notification_tasks) == 0
+
+
+def test_fire_booking_notification_noop_without_notify_email(monkeypatch):
+    fake_notify = AsyncMock()
+    monkeypatch.setattr(agents_voice, "notify_new_booking", fake_notify)
+    result = booking_service.ConfirmBookingResult(status="booked", event_id="evt-1", booking=None, notify_email=None)
+
+    agents_voice._fire_booking_notification(result)
+
+    assert len(agents_voice._pending_notification_tasks) == 0
+    fake_notify.assert_not_called()

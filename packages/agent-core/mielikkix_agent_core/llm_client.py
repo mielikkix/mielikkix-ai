@@ -44,9 +44,27 @@ class LLMUsage:
 
 
 @dataclass
+class ToolCall:
+    """One function the model wants called, from a `chat(tools=...)` reply.
+    `arguments` is the raw JSON string the model produced -- untrusted input
+    from this app's own perspective (same as any other model completion), so
+    the caller does its own `json.loads` and validates the shape, exactly
+    like `agents_booking.py`'s `_parse_request` already does for json_mode
+    output."""
+
+    id: str
+    name: str
+    arguments: str
+
+
+@dataclass
 class LLMResult:
     text: str
     usage: LLMUsage | None
+    # None for every call that doesn't pass `tools=` -- populated only when
+    # the model chose to call one or more tools instead of (or before)
+    # replying in prose. `text` is "" on a tool-calls-only turn.
+    tool_calls: list[ToolCall] | None = None
 
 
 class LLMClient:
@@ -81,6 +99,8 @@ class LLMClient:
         max_tokens: int = 512,
         temperature: float = 0.7,
         json_mode: bool = False,
+        tools: list[dict] | None = None,
+        tool_choice: str | dict | None = None,
     ) -> LLMResult:
         """Send a chat-completion request. Retries transient failures with
         a short exponential backoff (0.5s, 1s, ...); re-raises immediately
@@ -101,8 +121,39 @@ class LLMClient:
         prompt must still ask for JSON in words (Groq requires this even in
         json_mode) -- this only *enforces* that the output parses as JSON,
         it doesn't invent the schema for you.
+
+        tools=[{"type": "function", "function": {...}}, ...] gives the model
+        real function-calling (OpenAI/Groq's shared shape) -- pass tool_choice
+        ("auto"/"required"/"none", or a specific-tool dict) to steer whether
+        it's allowed to skip calling one. Added for Voice Receptionist's
+        booking handoff (see apps/agents/voice-receptionist/CLAUDE.md's Phase
+        4) -- shared here rather than per-agent, per this package's own
+        convention #1, since any future agent needing real actions (not just
+        a reply) needs the same capability. When the model calls a tool,
+        `result.tool_calls` is populated and `result.text` may be empty --
+        the caller executes each tool, appends the results as `role: "tool"`
+        messages, and calls `chat()` again to continue the conversation
+        (Groq's own message-shape convention, not something this wrapper
+        abstracts away, since the exact tool-result message shape is the
+        caller's own conversation loop to manage).
         """
         client = self._get_client()
+        # tools/tool_choice must be OMITTED from the request entirely when
+        # unused, not sent as an explicit null -- confirmed live (a real
+        # groq.BadRequestError: "Only allowed string values for
+        # 'tool_choice' are [none, auto, required]") the moment a
+        # tools-less call (e.g. agents_booking.py's own json_mode parse
+        # call) went through this method after tool_choice was added as an
+        # always-forwarded kwarg. Unlike response_format, which Groq
+        # accepts fine as an explicit null, tool_choice specifically does
+        # not -- so build the kwargs conditionally rather than assuming
+        # every optional param tolerates the same null-vs-omitted handling.
+        extra_kwargs = {}
+        if tools is not None:
+            extra_kwargs["tools"] = tools
+        if tool_choice is not None:
+            extra_kwargs["tool_choice"] = tool_choice
+
         attempt = 0
         while True:
             try:
@@ -112,6 +163,7 @@ class LLMClient:
                     max_tokens=max_tokens,
                     temperature=temperature,
                     response_format={"type": "json_object"} if json_mode else None,
+                    **extra_kwargs,
                 )
                 return self._to_result(response)
             except Exception as exc:
@@ -131,4 +183,18 @@ class LLMClient:
             if usage
             else None
         )
-        return LLMResult(text=response.choices[0].message.content, usage=llm_usage)
+        message = response.choices[0].message
+        # Groq (like OpenAI) leaves `content` as None, not "", on a
+        # tool-calls-only turn -- normalize so callers can always treat
+        # `result.text` as a plain str.
+        text = message.content or ""
+        raw_tool_calls = getattr(message, "tool_calls", None)
+        tool_calls = (
+            [
+                ToolCall(id=tc.id, name=tc.function.name, arguments=tc.function.arguments)
+                for tc in raw_tool_calls
+            ]
+            if raw_tool_calls
+            else None
+        )
+        return LLMResult(text=text, usage=llm_usage, tool_calls=tool_calls)

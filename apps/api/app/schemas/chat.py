@@ -17,6 +17,14 @@ class ChatMessageResponse(BaseModel):
     confidence: Optional[float] = None
     session_id: str
     suggest_lead_capture: bool = False
+    # True when _detect_intent (rag/pipeline.py) reads the message as a
+    # booking request -- the widget renders an inline BookingFlow when this
+    # is set, same "flag here, act on it in the widget" separation
+    # suggest_lead_capture already uses. This app never calls Booking
+    # Assistant's tools itself (see agents_booking.py) -- see "Mielikkix AI
+    # -- Claude Code Project Instructions.md" Section 3: "chatbot should NOT
+    # contain hardcoded booking logic."
+    suggest_booking_flow: bool = False
     # The language chat_service detected from the visitor's own message (see
     # rag/language_detect.py) -- the widget uses this to keep its own UI
     # (lead form, placeholders) in sync with the conversation's language,

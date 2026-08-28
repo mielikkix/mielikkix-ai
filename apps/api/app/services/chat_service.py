@@ -106,5 +106,6 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
         confidence=confidence,
         session_id=req.session_id,
         suggest_lead_capture=suggest_lead,
+        suggest_booking_flow=intent == "booking",
         lang=detected_lang,
     )

@@ -158,6 +158,19 @@ def _detect_intent(message: str) -> str:
     msg = message.lower()
     if _matches_any(msg, ["price", "cost", "how much", "fee", "rate"]):
         return "product_inquiry"
+    # Checked before "lead" below on purpose: "schedule"/"demo"/"call" are
+    # already lead keywords (a generic "let's set up a call" is a lead, not
+    # necessarily a real-time booking), so a real booking request needs its
+    # own, more specific words to avoid being swallowed by that broader
+    # bucket first. See "Mielikkix AI -- Claude Code Project Instructions.md"
+    # Section 14 for why this exists: a visitor typing "I want to book a
+    # consultation" should be routed to Booking Assistant's real
+    # availability/booking tools (app/api/agents_booking.py), not just
+    # flagged as a lead. Deliberately narrow and unchanged from "lead"'s own
+    # keyword list otherwise -- this must not change how existing tenants'
+    # messages already classify.
+    if _matches_any(msg, ["book", "booking", "appointment", "reschedule", "rescheduling"]):
+        return "booking"
     # "contact"/"call"/"email"/"reach"/"phone" alone missed plenty of obvious
     # buying/contact intent -- "I'd like to connect with your team", "can you
     # set up a demo", "I have a business proposal" all fell through to "faq"

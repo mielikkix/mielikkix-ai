@@ -177,6 +177,16 @@ class Settings(BaseSettings):
     # "primary" is Google's own special ID for "this account's default
     # calendar", not a placeholder needing to be filled in with a real ID.
     google_calendar_id: str = "primary"
+    # Phase 2 (availability = business_hours minus busy blocks) needs SOME
+    # business hours to subtract against. The real design (this agent's
+    # CLAUDE.md) reads a per-tenant BusinessSettings.business_hours row,
+    # set via a "Connect Google Calendar" dashboard UI -- but that UI is
+    # Phase 5, not built yet, so there's no way to populate that JSON column
+    # for anyone yet either. Same Phase-1-style simplification as
+    # google_calendar_id above: one hardcoded Mon-Fri window, from settings,
+    # until Phase 5 replaces this with the real per-tenant lookup.
+    booking_agent_hours_start: str = "09:00"
+    booking_agent_hours_end: str = "17:00"
 
     # Support Triage agent (apps/agents/support-triage) -- unlike every
     # other agent, this one's "tenant" is the platform itself: it powers

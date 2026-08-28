@@ -163,7 +163,60 @@ async def get_busy_blocks(start: date, end: date, timezone: str = "UTC") -> list
     return await asyncio.to_thread(_get_busy_blocks_sync, start, end, timezone)
 
 
-# create_event(...) (events.insert) arrives in Phase 3 (booking creation) --
-# not written yet, per this agent's CLAUDE.md phased plan: Phase 1 is
-# get_busy_blocks only, proven end-to-end, before anything books a real
-# event.
+def _create_event_sync(
+    summary: str, start: datetime, end: datetime, timezone: str, attendee_email: str, description: str
+) -> str:
+    """The actual (synchronous, blocking) events.insert call -- see this
+    module's docstring for why create_event() below wraps this in
+    asyncio.to_thread instead of calling it directly, same reasoning as
+    _get_busy_blocks_sync above."""
+    credentials = _build_credentials()
+    credentials.refresh(Request())
+
+    service = build("calendar", "v3", credentials=credentials)
+    try:
+        # .execute() both makes the real API call AND returns the created
+        # event resource (a dict) -- captured here as `created` so its "id"
+        # field can be returned below, the same way any REST client
+        # returns the response body of a POST that creates something.
+        created = (
+            service.events()
+            .insert(
+                calendarId=settings.google_calendar_id,
+                # sendUpdates="all" is what makes Google email the invite
+                # (and later reminders) to the attendee automatically --
+                # this agent's CLAUDE.md calls this out specifically
+                # ("reminders sent automatically... no extra work") as the
+                # reason this agent talks to Google Calendar directly
+                # rather than building its own reminder system.
+                sendUpdates="all",
+                body={
+                    "summary": summary,
+                    "description": description,
+                    "start": {"dateTime": start.isoformat(), "timeZone": timezone},
+                    "end": {"dateTime": end.isoformat(), "timeZone": timezone},
+                    "attendees": [{"email": attendee_email}],
+                },
+            )
+            .execute()
+        )
+    except HttpError as exc:
+        raise GoogleCalendarError(f"Google Calendar event creation failed: {exc}") from exc
+
+    return created["id"]
+
+
+async def create_event(
+    summary: str, start: datetime, end: datetime, timezone: str, attendee_email: str, description: str = ""
+) -> str:
+    """Creates a real event on settings.google_calendar_id and returns its
+    Google Calendar event ID. Phase 3 (booking creation) -- unlike
+    get_busy_blocks (read-only), this actually writes to the connected
+    calendar, so callers must have already re-confirmed the slot is still
+    free immediately before calling this (see app/api/agents_booking.py's
+    dev_confirm_booking, which does exactly that) -- this function itself
+    does not re-check freebusy, to keep "check" and "write" as two
+    separate, individually-testable steps rather than one that silently
+    does both.
+    """
+    return await asyncio.to_thread(_create_event_sync, summary, start, end, timezone, attendee_email, description)

@@ -12,12 +12,12 @@ or network call happens here. Two things get mocked at the boundary:
    approach test_calcom_client.py used for httpx.
 """
 
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
 from app.integrations import google_calendar_client
-from app.integrations.google_calendar_client import GoogleCalendarError, get_busy_blocks
+from app.integrations.google_calendar_client import GoogleCalendarError, create_event, get_busy_blocks
 
 
 class _FakeFreebusy:
@@ -33,12 +33,29 @@ class _FakeFreebusy:
         return self._response
 
 
+class _FakeEvents:
+    def __init__(self, created_event: dict):
+        self._created_event = created_event
+        self.last_insert_kwargs = None
+
+    def insert(self, **kwargs):
+        self.last_insert_kwargs = kwargs
+        return self
+
+    def execute(self):
+        return self._created_event
+
+
 class _FakeService:
-    def __init__(self, response: dict):
+    def __init__(self, response: dict, created_event: dict | None = None):
         self._freebusy = _FakeFreebusy(response)
+        self._events = _FakeEvents(created_event or {"id": "fake-event-id"})
 
     def freebusy(self):
         return self._freebusy
+
+    def events(self):
+        return self._events
 
 
 def _configure_credentials(monkeypatch):
@@ -148,3 +165,79 @@ async def test_get_busy_blocks_raises_google_calendar_error_on_api_error(monkeyp
 
     with pytest.raises(GoogleCalendarError, match="freebusy query failed"):
         await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+
+
+@pytest.mark.asyncio
+async def test_create_event_returns_the_new_event_id(monkeypatch):
+    _configure_credentials(monkeypatch)
+    fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
+    fake_service._events = _FakeEvents({"id": "real-event-id-123"})
+
+    event_id = await create_event(
+        summary="Consultation with Jane Doe",
+        start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
+        end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),
+        timezone="UTC",
+        attendee_email="jane@example.com",
+        description="Booked via Mielikkix Booking Assistant.",
+    )
+
+    assert event_id == "real-event-id-123"
+
+
+@pytest.mark.asyncio
+async def test_create_event_sends_attendee_and_sends_updates(monkeypatch):
+    _configure_credentials(monkeypatch)
+    fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
+
+    await create_event(
+        summary="Consultation with Jane Doe",
+        start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
+        end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),
+        timezone="UTC",
+        attendee_email="jane@example.com",
+        description="Notes here.",
+    )
+
+    sent = fake_service._events.last_insert_kwargs
+    # sendUpdates="all" is what makes Google actually email the invite to
+    # the attendee -- silently dropping this would mean a "booked"
+    # response with no confirmation email ever sent, a real regression
+    # this test exists to catch.
+    assert sent["sendUpdates"] == "all"
+    assert sent["calendarId"] == "primary"
+    assert sent["body"]["attendees"] == [{"email": "jane@example.com"}]
+    assert sent["body"]["summary"] == "Consultation with Jane Doe"
+    assert sent["body"]["start"] == {"dateTime": "2024-08-13T14:00:00+00:00", "timeZone": "UTC"}
+    assert sent["body"]["end"] == {"dateTime": "2024-08-13T14:30:00+00:00", "timeZone": "UTC"}
+
+
+@pytest.mark.asyncio
+async def test_create_event_raises_google_calendar_error_on_api_error(monkeypatch):
+    _configure_credentials(monkeypatch)
+
+    class _FailingEvents:
+        def insert(self, **kwargs):
+            return self
+
+        def execute(self):
+            from types import SimpleNamespace
+
+            from googleapiclient.errors import HttpError
+
+            raise HttpError(SimpleNamespace(status=409, reason="Conflict"), b"already booked")
+
+    class _FailingService:
+        def events(self):
+            return _FailingEvents()
+
+    monkeypatch.setattr(google_calendar_client, "build", lambda *args, **kwargs: _FailingService())
+
+    with pytest.raises(GoogleCalendarError, match="event creation failed"):
+        await create_event(
+            summary="x",
+            start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
+            end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),
+            timezone="UTC",
+            attendee_email="jane@example.com",
+        )

@@ -25,6 +25,16 @@ A snapshot of what's actually implemented and verified working, as of this point
 - **Custom fallback message** — businesses write their own "I don't have that info" wording instead of a generic canned response.
 - **Automatic intent detection** — distinguishes FAQ questions, product inquiries, support issues, and lead-generating moments.
 
+## Booking Assistant (Force Agent)
+
+- **Books real appointments from plain language** — a visitor can type something like "I'd like to book a consultation next Tuesday afternoon" straight into the chat widget; an LLM parses that into a real availability search, no separate booking form to fill out first.
+- **Real calendar availability, not guessed slots** — checks a real connected Google Calendar's actual busy times and only offers genuinely open slots, computed against real business hours.
+- **Double-booking is impossible** — availability is re-checked at the moment of confirmation, not just when slots were first shown, so two visitors can never grab the same slot.
+- **Real calendar event + real invite** — confirming a slot creates an actual Google Calendar event and Google emails the customer a real calendar invite automatically, no separate reminder system needed.
+- **The business gets notified too** — a booking notification email fires the moment a booking is confirmed, separate from the customer's own calendar invite.
+- **Asks instead of guessing** — if a request is too vague to search a date for (e.g. "I want to book something" with no timeframe), it asks a clarifying question rather than inventing a date.
+- *Current scope: verified working end-to-end against Mielikkix's own demo calendar and business hours — real per-business connected calendars (each customer's own Google Calendar via OAuth) are not built yet.*
+
 ## Admin Dashboard
 
 - **Multi-tenant from the ground up** — every business's data (FAQs, documents, leads, conversations) is fully isolated from every other business's.

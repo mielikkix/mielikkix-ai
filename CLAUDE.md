@@ -62,6 +62,11 @@ mielikkix-ai/
    work (emails, review polling, non-real-time tasks) goes through the shared job queue,
    not a standalone always-on daemon per agent.
 5. **All 10 agents call external LLM/STT/TTS APIs.** No self-hosted models on this VPS.
+6. **Third-party integrations sit behind a provider abstraction, not spread through the app.**
+   `apps/api/app/rag/providers/` (LLM/embeddings) and `apps/api/app/integrations/
+   calendar_provider.py` (calendar) are the pattern: an ABC + a `get_*_provider()` factory,
+   so swapping Groq/Gemini/Ollama or Google/Outlook is a factory change, not a rewrite. New
+   integrations (payments, SMS, etc.) follow the same shape.
 
 ## Current status
 
@@ -74,6 +79,11 @@ mielikkix-ai/
 
 ## Where to look next
 
+- **Target SaaS architecture (multi-tenant entitlements, calendar-provider abstraction,
+  AI-agent-core intent routing, live-demo goals): `files/Mielikkix AI — Claude Code Project
+  Instructions.md`.** Read this before any change that touches Booking Assistant, the
+  chatbot's intent handling, or multi-tenant/billing structure — it's the authoritative
+  reference for where this platform is headed, not just what exists today.
 - Architecture rationale and per-agent specs: `Mielikkix_10_Agent_Architecture_Plan.docx`
   (project docs).
 - Day-by-day build plan: `Mielikkix_8Day_ToDo.docx`.

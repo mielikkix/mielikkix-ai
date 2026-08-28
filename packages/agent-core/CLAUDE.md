@@ -8,6 +8,23 @@ The shared runtime every Mielikkix Force agent is built on. It generalizes the e
 already powering the live Chat Widget — the same RAG/LLM plumbing, extended so any
 agent can use it, not just the widget.
 
+## Current status (honesty check for whoever reads this next)
+
+Only the **LLM client** below is actually built (`mielikkix_agent_core.LLMClient`,
+`LLMResult`, `LLMUsage` — a thin wrapper with retries/JSON-mode, no tool-calling). The
+**prompt/tool-calling framework**, **memory/RAG utilities**, and **tenant context
+loader** below are still just this file's stated intent, not code that exists yet.
+Concretely: the Chat Widget (`rag/pipeline.py`), Support Triage, Voice Receptionist,
+and Booking Assistant each hand-roll their own system prompt and their own JSON output
+shape against the shared `LLMClient` — there is no shared classification/dispatch
+layer. The chat-widget → Booking Assistant handoff (`chat_service.py`'s
+`suggest_booking_flow`, see `apps/agents/booking-assistant/CLAUDE.md`) is a real
+example of what a generalized tool-router would eventually replace: it's a single
+boolean flag set by a keyword classifier, not an agent-core capability, and it should
+be read as evidence for *why* this framework is worth building, not as it having been
+built. Don't assume anything else in this file exists without checking the actual
+code first.
+
 ## What belongs here
 
 - **LLM client** — a single wrapper around whichever provider SDK(s) you call

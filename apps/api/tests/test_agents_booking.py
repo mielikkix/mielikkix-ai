@@ -10,7 +10,7 @@ call.
 
 import json
 from datetime import date, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -271,6 +271,22 @@ def test_request_falls_back_to_clarification_on_malformed_llm_json(monkeypatch):
     assert resp.json()["status"] == "clarification_needed"
 
 
+def test_request_falls_back_to_clarification_when_the_llm_call_itself_fails(monkeypatch):
+    """A real live failure this covers: groq.BadRequestError ("max
+    completion tokens reached before generating a valid document") when a
+    reasoning model spends its completion budget on internal reasoning
+    before ever emitting JSON -- used to propagate straight past
+    _parse_request as a raw 500 instead of degrading like a malformed
+    response already did."""
+    fake_chat = AsyncMock(side_effect=RuntimeError("boom"))
+    monkeypatch.setattr(agents_booking._llm_client, "chat", fake_chat)
+
+    resp = _request()
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "clarification_needed"
+
+
 def test_request_falls_back_to_clarification_when_dates_are_backwards(monkeypatch):
     monday = _next_monday(date.today())
     _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday - timedelta(days=1)))
@@ -422,3 +438,228 @@ def test_confirm_works_outside_debug_mode(client, db_session, monkeypatch):
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "booked"
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: a real business_id resolves to THAT business's own connected
+# calendar/hours instead of Mielikkix's demo one, via
+# agents_booking._resolve_calendar_provider/_resolve_business_hours (see
+# app/integrations/calendar_provider.py's get_calendar_provider). All of
+# these use the isolated `client`/`db_session`/`business`/`set_plan`
+# fixtures since they touch real CalendarConnection/BusinessSettings rows.
+# The critical property under test throughout: a business with no working
+# setup gets "not_configured", never a silent fallback to Mielikkix's own
+# demo calendar (_calendar_provider) on that business's behalf.
+# ---------------------------------------------------------------------------
+
+
+def test_request_with_business_id_not_configured_when_plan_lacks_feature(client, business):
+    # Free plan (business fixture's default) doesn't include booking_enabled.
+    resp = client.post(
+        "/api/agents/booking/request",
+        json={"message": "book a call", "business_id": business["business_id"]},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "not_configured"
+
+
+def test_request_with_business_id_not_configured_when_no_connection(client, business, set_plan):
+    set_plan(business["business_id"], "business")
+
+    resp = client.post(
+        "/api/agents/booking/request",
+        json={"message": "book a call", "business_id": business["business_id"]},
+    )
+
+    assert resp.json()["status"] == "not_configured"
+
+
+def test_request_with_unknown_business_id_not_configured(client):
+    resp = client.post(
+        "/api/agents/booking/request",
+        json={"message": "book a call", "business_id": "00000000-0000-0000-0000-000000000000"},
+    )
+
+    assert resp.json()["status"] == "not_configured"
+
+
+def test_request_with_business_id_not_configured_when_hours_unset(client, business, set_plan, db_session):
+    from app.core.encryption import encrypt
+    from app.models.calendar_connection import CalendarConnection
+
+    set_plan(business["business_id"], "business")
+    db_session.add(
+        CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
+    )
+    db_session.commit()
+
+    resp = client.post(
+        "/api/agents/booking/request",
+        json={"message": "book a call", "business_id": business["business_id"]},
+    )
+
+    assert resp.json()["status"] == "not_configured"
+
+
+def test_request_with_business_id_skips_llm_call_when_not_configured(client, business, monkeypatch):
+    fake_chat = _mock_parse(monkeypatch)
+
+    client.post(
+        "/api/agents/booking/request",
+        json={"message": "book a call", "business_id": business["business_id"]},
+    )
+
+    fake_chat.assert_not_awaited()
+
+
+def test_request_with_business_id_uses_tenant_calendar_and_hours(client, business, set_plan, db_session, monkeypatch):
+    from app.core.encryption import encrypt
+    from app.models.business import BusinessSettings
+    from app.models.calendar_connection import CalendarConnection
+
+    set_plan(business["business_id"], "business")
+    db_session.add(
+        CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
+    )
+    biz_settings = (
+        db_session.query(BusinessSettings)
+        .filter(BusinessSettings.business_id == business["business_id"])
+        .first()
+    )
+    monday = _next_monday(date.today())
+    # Tenant is open Mondays 9-17 -- deliberately different from the global
+    # settings.booking_agent_hours_* window this test doesn't touch, so a
+    # slot outside THAT global window still proves the tenant's own hours
+    # were actually used, not a coincidental match.
+    biz_settings.business_hours = {"monday": {"open": "09:00", "close": "17:00"}}
+    db_session.commit()
+
+    fake_provider = MagicMock()
+    fake_provider.get_busy_blocks = AsyncMock(return_value=[])
+    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday))
+
+    resp = client.post(
+        "/api/agents/booking/request",
+        json={"message": "book a call", "business_id": business["business_id"]},
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "needs_selection"
+    assert body["slots"][0]["start"] == f"{monday}T09:00:00+00:00"
+    fake_provider.get_busy_blocks.assert_awaited_once()
+
+
+def test_confirm_with_business_id_not_configured_when_no_connection(client, business, set_plan):
+    set_plan(business["business_id"], "business")
+
+    resp = _confirm(client, business_id=business["business_id"])
+
+    assert resp.json()["status"] == "not_configured"
+
+
+def test_confirm_with_business_id_books_via_tenant_calendar(client, business, set_plan, db_session, monkeypatch):
+    from app.core.encryption import encrypt
+    from app.models.calendar_connection import CalendarConnection
+
+    set_plan(business["business_id"], "business")
+    db_session.add(
+        CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
+    )
+    db_session.commit()
+
+    fake_provider = MagicMock()
+    fake_provider.get_busy_blocks = AsyncMock(return_value=[])
+    fake_provider.create_event = AsyncMock(return_value="tenant-event-id")
+    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    # This business_id's own booking must never reach Mielikkix's demo
+    # calendar -- fail loudly if anything still routes there.
+    monkeypatch.setattr(
+        agents_booking._calendar_provider, "create_event", AsyncMock(side_effect=AssertionError("wrong calendar"))
+    )
+
+    resp = _confirm(client, business_id=business["business_id"])
+
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "booked", "event_id": "tenant-event-id"}
+    fake_provider.create_event.assert_awaited_once()
+
+    booking = db_session.query(Booking).filter(Booking.calendar_event_id == "tenant-event-id").first()
+    assert booking is not None
+
+
+def test_confirm_with_business_id_notifies_the_businesss_own_contact_email(
+    client, business, set_plan, db_session, monkeypatch
+):
+    """A business_id-scoped booking must notify THAT business's own
+    contact_email, never settings.booking_notification_email -- otherwise
+    every real tenant's booking would silently tell Mielikkix about it
+    instead of the tenant itself (confirmed live: exactly this happened
+    before this fix -- Mielikkix's own inbox got a "New booking" email for
+    a booking made through a real tenant's widget)."""
+    from app.core.encryption import encrypt
+    from app.models.business import BusinessSettings
+    from app.models.calendar_connection import CalendarConnection
+
+    set_plan(business["business_id"], "business")
+    db_session.add(
+        CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
+    )
+    biz_settings = (
+        db_session.query(BusinessSettings)
+        .filter(BusinessSettings.business_id == business["business_id"])
+        .first()
+    )
+    biz_settings.contact_email = "owner@littlespaceforit.example"
+    db_session.commit()
+
+    fake_provider = MagicMock()
+    fake_provider.get_busy_blocks = AsyncMock(return_value=[])
+    fake_provider.create_event = AsyncMock(return_value="tenant-event-id")
+    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    fake_notify = AsyncMock()
+    monkeypatch.setattr(agents_booking, "notify_new_booking", fake_notify)
+
+    resp = _confirm(client, business_id=business["business_id"])
+
+    assert resp.status_code == 200
+    fake_notify.assert_awaited_once()
+    assert fake_notify.await_args.args[0] == "owner@littlespaceforit.example"
+    assert fake_notify.await_args.args[0] != settings.booking_notification_email
+
+
+def test_confirm_with_business_id_skips_notification_when_no_contact_email_on_file(
+    client, business, set_plan, db_session, monkeypatch
+):
+    """No contact_email on file means no notification -- must never fall
+    back to Mielikkix's own settings.booking_notification_email either.
+    Registration defaults contact_email to the owner's own login email
+    (see auth_service.register), so explicitly clear it here to exercise
+    the "never got around to setting one" state this test is actually
+    about."""
+    from app.core.encryption import encrypt
+    from app.models.business import BusinessSettings
+    from app.models.calendar_connection import CalendarConnection
+
+    set_plan(business["business_id"], "business")
+    db_session.add(
+        CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
+    )
+    db_session.query(BusinessSettings).filter(
+        BusinessSettings.business_id == business["business_id"]
+    ).update({"contact_email": None})
+    db_session.commit()
+
+    fake_provider = MagicMock()
+    fake_provider.get_busy_blocks = AsyncMock(return_value=[])
+    fake_provider.create_event = AsyncMock(return_value="tenant-event-id")
+    monkeypatch.setattr(agents_booking, "get_calendar_provider", lambda db, business_id: fake_provider)
+    fake_notify = AsyncMock()
+    monkeypatch.setattr(agents_booking, "notify_new_booking", fake_notify)
+
+    resp = _confirm(client, business_id=business["business_id"])
+
+    assert resp.status_code == 200
+    fake_notify.assert_not_awaited()

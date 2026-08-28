@@ -22,6 +22,7 @@ export interface WidgetStrings {
   bookingFindTimes: string
   bookingFinding: string
   bookingNoAvailability: string
+  bookingNotConfigured: string
   bookingNamePlaceholder: string
   bookingEmailPlaceholder: string
   bookingConfirm: string
@@ -52,6 +53,7 @@ const EN: WidgetStrings = {
   bookingFindTimes: 'Find times',
   bookingFinding: 'Finding times…',
   bookingNoAvailability: 'No open times in that window — try a different day or date range.',
+  bookingNotConfigured: "Sorry, booking isn't set up for this business yet.",
   bookingNamePlaceholder: 'Your name',
   bookingEmailPlaceholder: 'Your email',
   bookingConfirm: 'Confirm booking',
@@ -84,6 +86,7 @@ const WIDGET_STRINGS: Record<string, WidgetStrings> = {
     bookingFindTimes: 'Finn tider',
     bookingFinding: 'Finner tider…',
     bookingNoAvailability: 'Ingen ledige tider i den perioden — prøv en annen dag eller periode.',
+    bookingNotConfigured: 'Beklager, booking er ikke satt opp for denne bedriften ennå.',
     bookingNamePlaceholder: 'Navnet ditt',
     bookingEmailPlaceholder: 'E-post',
     bookingConfirm: 'Bekreft booking',

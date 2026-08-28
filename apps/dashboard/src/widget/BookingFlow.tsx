@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { widgetStrings } from './i18n'
 
 interface Slot {
@@ -6,10 +6,30 @@ interface Slot {
   end: string
 }
 
+// Exposed to ChatWindow so a message typed into the MAIN chat box while
+// this panel is open gets routed here instead of restarting a brand-new
+// top-level /api/chat/message turn -- confirmed live: without this, asking
+// "Which date would you like?" then answering in the main box (the
+// natural thing to do, since it's the only input the visitor has been
+// using) reclassified that reply on its own ("monday morning" has no
+// booking keyword -- see rag/pipeline.py's _detect_intent), which could
+// suggest_lead_capture instead and silently replace this whole panel with
+// the lead form.
+export interface BookingFlowHandle {
+  submitMessage: (text: string) => void
+}
+
 interface Props {
   primaryColor?: string
   apiBaseUrl?: string
   lang?: string
+  // Which tenant this booking is for -- forwarded on every /request and
+  // /confirm call so the backend resolves THAT business's own connected
+  // Google Calendar (app/api/agents_booking.py's _resolve_calendar_provider),
+  // never Mielikkix's own demo one. Omitted only by the standalone
+  // Mielikkix demo page (/demo/booking-assistant), which has no real tenant
+  // behind it.
+  businessId?: string
   // The visitor's own chat message that triggered this flow (see
   // chat_service.py's suggest_booking_flow) -- seeds the describe step and
   // fires the first availability search automatically, so the visitor
@@ -46,13 +66,17 @@ function formatSlot(startISO: string): string {
   })
 }
 
-export function BookingFlow({
-  primaryColor = DEFAULT_PRIMARY_COLOR,
-  apiBaseUrl = DEFAULT_API_BASE_URL,
-  lang,
-  initialMessage,
-  onBooked,
-}: Props) {
+export const BookingFlow = forwardRef<BookingFlowHandle, Props>(function BookingFlow(
+  {
+    primaryColor = DEFAULT_PRIMARY_COLOR,
+    apiBaseUrl = DEFAULT_API_BASE_URL,
+    lang,
+    businessId,
+    initialMessage,
+    onBooked,
+  }: Props,
+  ref
+) {
   const strings = widgetStrings(lang)
 
   const [step, setStep] = useState<Step>('describe')
@@ -73,12 +97,16 @@ export function BookingFlow({
       const res = await fetch(`${apiBaseUrl}/api/agents/booking/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, timezone }),
+        body: JSON.stringify({ message: text, timezone, business_id: businessId }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.detail || 'request failed')
 
       setMeetingType(data.meeting_type || 'appointment')
+      if (data.status === 'not_configured') {
+        setError(strings.bookingNotConfigured)
+        return
+      }
       if (data.status === 'clarification_needed') {
         setError(data.clarification_question || strings.bookingGenericError)
         return
@@ -103,6 +131,24 @@ export function BookingFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useImperativeHandle(ref, () => ({
+    submitMessage: (text: string) => {
+      // Only meaningful while still describing/clarifying what to book --
+      // once real slots are showing, the expected next action is clicking
+      // one, not typing more free text, so a message forwarded here past
+      // that point is a no-op rather than restarting the search.
+      if (step !== 'describe') return
+      // Appended to what's already been said (not sent alone) so the LLM
+      // still has the original request's own context ("the demo meeting")
+      // when resolving just a date/time reply ("monday morning") into a
+      // real query -- see _parse_request in agents_booking.py, which reads
+      // only this one message with no separate conversation history.
+      const combined = `${message} ${text}`.trim()
+      setMessage(combined)
+      findTimes(combined)
+    },
+  }))
+
   const pickSlot = (slot: Slot) => {
     setChosenSlot(slot)
     setError('')
@@ -124,11 +170,16 @@ export function BookingFlow({
           end: chosenSlot.end,
           timezone,
           meeting_type: meetingType,
+          business_id: businessId,
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.detail || 'confirm failed')
 
+      if (data.status === 'not_configured') {
+        setError(strings.bookingNotConfigured)
+        return
+      }
       if (data.status === 'conflict') {
         setError(strings.bookingConflict)
         setStep('slots')
@@ -223,4 +274,4 @@ export function BookingFlow({
       )}
     </div>
   )
-}
+})

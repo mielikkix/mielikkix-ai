@@ -38,6 +38,10 @@ class PlanFeatures:
     api_access: bool
     api_access_addon_available: bool
     priority_support: bool
+    # Gates Booking Assistant's per-tenant Google Calendar OAuth connection
+    # (app/api/calendar_oauth.py) and the /request, /confirm routes
+    # (app/api/agents_booking.py) -- see plan_service.require_feature.
+    booking_enabled: bool
 
 
 @dataclass(frozen=True)
@@ -85,6 +89,7 @@ PLANS: dict[str, Plan] = {
             api_access=False,
             api_access_addon_available=False,
             priority_support=False,
+            booking_enabled=False,
         ),
     ),
     "basic": Plan(
@@ -112,6 +117,7 @@ PLANS: dict[str, Plan] = {
             api_access=False,
             api_access_addon_available=False,
             priority_support=False,
+            booking_enabled=False,
         ),
     ),
     "business": Plan(
@@ -139,6 +145,7 @@ PLANS: dict[str, Plan] = {
             api_access=False,
             api_access_addon_available=True,  # +$12/mo add-on
             priority_support=True,
+            booking_enabled=True,
         ),
     ),
     "growth": Plan(
@@ -166,6 +173,7 @@ PLANS: dict[str, Plan] = {
             api_access=True,  # included, no add-on needed
             api_access_addon_available=False,
             priority_support=True,
+            booking_enabled=True,
         ),
     ),
 }

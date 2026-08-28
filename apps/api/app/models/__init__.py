@@ -10,11 +10,12 @@ from .password_reset_token import PasswordResetToken
 from .llm_usage import LLMUsageLog
 from .ticket import Ticket, TicketMessage
 from .booking import Booking
+from .calendar_connection import CalendarConnection
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
     "Document", "DocumentChunk", "Product",
     "Conversation", "Message", "Lead",
     "PasswordResetToken", "LLMUsageLog",
-    "Ticket", "TicketMessage", "Booking",
+    "Ticket", "TicketMessage", "Booking", "CalendarConnection",
 ]

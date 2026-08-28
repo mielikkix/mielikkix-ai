@@ -65,6 +65,38 @@ let chosenSlot = null;
 let visitorName = "";
 let visitorEmail = "";
 
+// This page's whole purpose is booking -- there's no general chat fallback
+// here (unlike the real product's Chat Widget, which mixes booking with
+// normal RAG-grounded Q&A) -- so with no closing-words check, a decline or
+// goodbye typed right after "Want to book something else?" got treated as
+// a fresh (and nonsensical) booking description, immediately re-asking
+// "what would you like to schedule?" again. Confirmed live with "no
+// thanks", "bye", "goodbye" -- and "no its okay", which an earlier
+// exact-match word list missed entirely (natural declines rarely come as
+// just one of a fixed set of exact phrases). Patterns instead of an exact
+// list, same spirit as the backend's own rag/pipeline.py _detect_intent,
+// since this page never calls an LLM for anything except an actual
+// booking description.
+const CLOSING_PATTERNS = [
+  /^no\b/, // "no", "no thanks", "no its okay", "no I'm good", ...
+  /\bnope\b/,
+  /\bnah\b/,
+  /\bi'?m (all )?good\b/,
+  /\ball set\b/,
+  /\bnothing else\b/,
+  /\bthat'?s (all|it)\b/,
+  /\bi'?m done\b/,
+  /\bbye\b/,
+  /\bgoodbye\b/,
+  /\bsee you\b/,
+  /\bcya\b/,
+];
+
+function looksLikeClosing(text) {
+  const normalized = text.trim().toLowerCase();
+  return CLOSING_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
 function showSlots(slots) {
   slotsWrap.innerHTML = "";
   slotsWrap.classList.remove("hidden");
@@ -133,7 +165,8 @@ async function handleConfirm() {
 
   addBubble(
     "ai",
-    `You're booked! ${formatSlot(chosenSlot.start)} — a calendar invite is on its way to ${visitorEmail}.`
+    `You're booked! ${formatSlot(chosenSlot.start)} — a calendar invite is on its way to ${visitorEmail}. ` +
+      "Want to book something else? Just tell me what and when."
   );
   stage = "describe";
   composerInput.placeholder = "e.g. a 30 minute consultation next Tuesday afternoon";
@@ -152,7 +185,9 @@ composerForm.addEventListener("submit", async (e) => {
   composerInput.disabled = true;
   composerSend.disabled = true;
   try {
-    if (stage === "describe") {
+    if (stage === "describe" && looksLikeClosing(text)) {
+      addBubble("ai", "Sounds good — thanks for stopping by! Come back anytime you'd like to book something.");
+    } else if (stage === "describe") {
       await handleDescribe(text);
     } else if (stage === "awaiting_slot") {
       addBubble("ai", "Pick one of the times above, or tell me a different day to check.");

@@ -30,7 +30,13 @@ def register(db: Session, req: RegisterRequest) -> tuple[User, str]:
     db.add(business)
     db.flush()
 
-    biz_settings = BusinessSettings(business_id=business.id)
+    # Defaults to the owner's own login email -- editable later in Settings
+    # (e.g. to a shared team inbox) -- so lead/booking notifications
+    # (notifications/notify_new_lead, notify_new_booking) have somewhere to
+    # go from the moment a business signs up, instead of silently going
+    # nowhere until someone happens to visit Settings and fill this in by
+    # hand.
+    biz_settings = BusinessSettings(business_id=business.id, contact_email=req.email)
     db.add(biz_settings)
 
     user = User(

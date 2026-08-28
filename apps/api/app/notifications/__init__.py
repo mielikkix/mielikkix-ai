@@ -1,9 +1,30 @@
+from datetime import datetime
+
 from .base import NotificationProvider
 from .console_provider import ConsoleNotificationProvider
 from .resend_provider import ResendNotificationProvider
 from ..core.config import settings
 from ..models.lead import Lead
 from ..models.booking import Booking
+
+
+def _format_time_range(start: datetime, end: datetime) -> str:
+    """Human-readable, e.g. "Wednesday, September 2, 2026 · 9:30 AM - 10:00
+    AM UTC" -- Booking.start_at/end_at come back from Postgres in UTC (see
+    models/booking.py), and there's no per-business timezone stored
+    anywhere yet to convert into instead (business_hours is interpreted
+    against whatever timezone the VISITOR's own browser sends at booking
+    time, not a fixed per-business one -- see agents_booking.py's
+    _business_hours_window) -- labeling it UTC explicitly here is honest
+    about that, rather than silently implying it's the business's own
+    local time."""
+    # start.day directly (not %d) avoids a leading zero on the day without
+    # relying on the non-portable %-d/%#d strftime flags (the first works
+    # on Linux/Mac, the second on Windows -- neither works on both).
+    date_part = f"{start.strftime('%A, %B')} {start.day}, {start.year}"
+    start_time = start.strftime("%I:%M %p").lstrip("0")
+    end_time = end.strftime("%I:%M %p").lstrip("0")
+    return f"{date_part} · {start_time} - {end_time} UTC"
 
 
 def get_notification_provider() -> NotificationProvider:
@@ -60,7 +81,7 @@ async def notify_new_booking(contact_email: str, booking: Booking) -> None:
         <p>A new booking was just made through the Mielikkix Booking Assistant.</p>
         <ul>
             <li><strong>What:</strong> {booking.meeting_type}</li>
-            <li><strong>When:</strong> {booking.start_at.isoformat()} - {booking.end_at.isoformat()}</li>
+            <li><strong>When:</strong> {_format_time_range(booking.start_at, booking.end_at)}</li>
             <li><strong>Name:</strong> {booking.name}</li>
             <li><strong>Email:</strong> {booking.email}</li>
             <li><strong>Phone:</strong> {booking.phone or "-"}</li>

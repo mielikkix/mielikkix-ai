@@ -69,12 +69,8 @@ class GoogleCalendarError(Exception):
     calcom_client.py's CalComError before it."""
 
 
-def _build_credentials() -> Credentials:
-    if not (
-        settings.google_calendar_client_id
-        and settings.google_calendar_client_secret
-        and settings.google_calendar_refresh_token
-    ):
+def _build_credentials(client_id: str, client_secret: str, refresh_token: str) -> Credentials:
+    if not (client_id and client_secret and refresh_token):
         raise GoogleCalendarError(
             "Google Calendar isn't connected yet -- run "
             "scripts/connect_google_calendar.py and set the three "
@@ -87,19 +83,21 @@ def _build_credentials() -> Credentials:
     # lazy-refresh behavior any OAuth2 client library gives you.
     return Credentials(
         token=None,
-        refresh_token=settings.google_calendar_refresh_token,
+        refresh_token=refresh_token,
         token_uri="https://oauth2.googleapis.com/token",
-        client_id=settings.google_calendar_client_id,
-        client_secret=settings.google_calendar_client_secret,
+        client_id=client_id,
+        client_secret=client_secret,
         scopes=CALENDAR_SCOPES,
     )
 
 
-def _get_busy_blocks_sync(start: date, end: date, timezone: str) -> list[BusyBlock]:
+def _get_busy_blocks_sync(
+    client_id: str, client_secret: str, refresh_token: str, calendar_id: str, start: date, end: date, timezone: str
+) -> list[BusyBlock]:
     """The actual (synchronous, blocking) Google API call -- see this
     module's docstring for why GoogleCalendarProvider.get_busy_blocks below
     wraps this in asyncio.to_thread instead of calling it directly."""
-    credentials = _build_credentials()
+    credentials = _build_credentials(client_id, client_secret, refresh_token)
     credentials.refresh(Request())
 
     service = build("calendar", "v3", credentials=credentials)
@@ -125,7 +123,7 @@ def _get_busy_blocks_sync(start: date, end: date, timezone: str) -> list[BusyBlo
                     "timeMin": time_min.isoformat(),
                     "timeMax": time_max.isoformat(),
                     "timeZone": timezone,
-                    "items": [{"id": settings.google_calendar_id}],
+                    "items": [{"id": calendar_id}],
                 }
             )
             .execute()
@@ -134,19 +132,28 @@ def _get_busy_blocks_sync(start: date, end: date, timezone: str) -> list[BusyBlo
         raise GoogleCalendarError(f"Google Calendar freebusy query failed: {exc}") from exc
 
     # Response shape: {"calendars": {"<calendarId>": {"busy": [{"start": "...", "end": "..."}, ...]}}}
-    calendar_result = response.get("calendars", {}).get(settings.google_calendar_id, {})
+    calendar_result = response.get("calendars", {}).get(calendar_id, {})
     busy_periods = calendar_result.get("busy", [])
     return [BusyBlock(start=period["start"], end=period["end"]) for period in busy_periods]
 
 
 def _create_event_sync(
-    summary: str, start: datetime, end: datetime, timezone: str, attendee_email: str, description: str
+    client_id: str,
+    client_secret: str,
+    refresh_token: str,
+    calendar_id: str,
+    summary: str,
+    start: datetime,
+    end: datetime,
+    timezone: str,
+    attendee_email: str,
+    description: str,
 ) -> str:
     """The actual (synchronous, blocking) events.insert call -- see this
     module's docstring for why GoogleCalendarProvider.create_event below
     wraps this in asyncio.to_thread instead of calling it directly, same
     reasoning as _get_busy_blocks_sync above."""
-    credentials = _build_credentials()
+    credentials = _build_credentials(client_id, client_secret, refresh_token)
     credentials.refresh(Request())
 
     service = build("calendar", "v3", credentials=credentials)
@@ -158,7 +165,7 @@ def _create_event_sync(
         created = (
             service.events()
             .insert(
-                calendarId=settings.google_calendar_id,
+                calendarId=calendar_id,
                 # sendUpdates="all" is what makes Google email the invite
                 # (and later reminders) to the attendee automatically --
                 # this agent's CLAUDE.md calls this out specifically
@@ -186,15 +193,45 @@ class GoogleCalendarProvider(CalendarProvider):
     """The one CalendarProvider implementation that exists today -- see
     calendar_provider.py's module docstring for why this class exists
     (abstraction, not Google-specific code spread through the app) and
-    get_calendar_provider() for how a route obtains one. Both methods below
-    just delegate to the module-level sync helpers above via
-    asyncio.to_thread -- see this file's own module docstring for why that
-    hand-off to a background thread is necessary (googleapiclient is a
-    synchronous, blocking library).
+    get_calendar_provider() for how a route obtains one.
+
+    Constructed two ways (both via get_calendar_provider(), never directly
+    by a route): with no arguments, for Mielikkix's own demo calendar
+    (reads the global settings.google_calendar_* trio, obtained via
+    scripts/connect_google_calendar.py's Desktop-app flow) -- or with an
+    explicit client_id/secret/refresh_token/calendar_id, for a real
+    business's own connected calendar (obtained via the Web-application
+    OAuth flow in api/calendar_oauth.py, credentials read from that
+    business's CalendarConnection row, refresh token decrypted immediately
+    before use). The client_id/secret differ between these two cases
+    because they're two different Google Cloud OAuth clients (Desktop app
+    vs. Web application) -- a refresh token can only be refreshed with the
+    client_id/secret of whichever OAuth client actually issued it.
     """
 
+    def __init__(
+        self,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        refresh_token: str | None = None,
+        calendar_id: str | None = None,
+    ):
+        self.client_id = client_id or settings.google_calendar_client_id
+        self.client_secret = client_secret or settings.google_calendar_client_secret
+        self.refresh_token = refresh_token or settings.google_calendar_refresh_token
+        self.calendar_id = calendar_id or settings.google_calendar_id
+
     async def get_busy_blocks(self, start: date, end: date, timezone: str = "UTC") -> list[BusyBlock]:
-        return await asyncio.to_thread(_get_busy_blocks_sync, start, end, timezone)
+        return await asyncio.to_thread(
+            _get_busy_blocks_sync,
+            self.client_id,
+            self.client_secret,
+            self.refresh_token,
+            self.calendar_id,
+            start,
+            end,
+            timezone,
+        )
 
     async def create_event(
         self,
@@ -206,5 +243,15 @@ class GoogleCalendarProvider(CalendarProvider):
         description: str = "",
     ) -> str:
         return await asyncio.to_thread(
-            _create_event_sync, summary, start, end, timezone, attendee_email, description
+            _create_event_sync,
+            self.client_id,
+            self.client_secret,
+            self.refresh_token,
+            self.calendar_id,
+            summary,
+            start,
+            end,
+            timezone,
+            attendee_email,
+            description,
         )

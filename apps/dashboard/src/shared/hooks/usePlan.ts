@@ -29,6 +29,7 @@ export interface PlanFeatures {
   api_access: boolean
   api_access_addon_available: boolean
   priority_support: boolean
+  booking_enabled: boolean
 }
 
 export interface PlanStatus {

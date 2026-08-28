@@ -62,6 +62,25 @@ class Settings(BaseSettings):
             )
         return v
 
+    # Encrypts per-business OAuth refresh tokens at rest (see
+    # core/encryption.py) -- unlike secret_key (signs tokens, never needs to
+    # be reversed) this key must actually decrypt what it encrypts, so a
+    # missing/placeholder value is caught the same fail-fast way, but there
+    # is no "insecure known value" set to check against (a Fernet key IS
+    # its own randomness) -- just require that something was actually set.
+    token_encryption_key: str = ""
+
+    @field_validator("token_encryption_key")
+    @classmethod
+    def _reject_missing_token_encryption_key(cls, v: str) -> str:
+        if not v or v == "change-me-generate-a-real-fernet-key":
+            raise ValueError(
+                "TOKEN_ENCRYPTION_KEY is missing or a placeholder. Generate a real one with "
+                "`python -c \"from cryptography.fernet import Fernet; "
+                "print(Fernet.generate_key().decode())\"` and set it in your .env."
+            )
+        return v
+
     upload_dir: str = "./uploads"
     max_upload_size_mb: int = 10
 
@@ -158,13 +177,33 @@ class Settings(BaseSettings):
     # scripts/connect_google_calendar.py once locally (opens a browser for
     # you to sign in, then prints the values below to paste into .env).
     #
-    # google_calendar_client_id/secret identify OUR APP to Google, not any
-    # one tenant -- created once in Google Cloud Console (Phase 0: a new
-    # project, Calendar API enabled, an OAuth 2.0 Client ID of type "Web
-    # application"). The SAME client_id/secret is reused for every tenant's
-    # OAuth connection later; only the refresh token differs per tenant.
+    # google_calendar_client_id/secret identify OUR APP to Google for the
+    # Phase 1 Desktop-app flow (scripts/connect_google_calendar.py) that set
+    # up Mielikkix's own demo calendar -- a "Desktop app" OAuth Client ID in
+    # Google Cloud Console, per that script's own docstring. NOT reused for
+    # real per-tenant connections below -- a refresh token can only be
+    # refreshed with the client_id/secret of whichever OAuth client actually
+    # issued it, and a Desktop-app client can't be used for the server-side
+    # redirect flow real tenants need (see google_calendar_oauth_client_id
+    # below for that one).
     google_calendar_client_id: str = ""
     google_calendar_client_secret: str = ""
+    # The real per-tenant OAuth client (Phase 5) -- a SEPARATE "Web
+    # application" OAuth Client ID in the same (or a different) Google
+    # Cloud project, with this app's own callback route
+    # (api/calendar_oauth.py) registered as an authorized redirect URI. The
+    # SAME client_id/secret is reused for every tenant's connection; only
+    # the resulting refresh token (stored encrypted per business, see
+    # models/calendar_connection.py) differs per tenant.
+    google_calendar_oauth_client_id: str = ""
+    google_calendar_oauth_client_secret: str = ""
+    # This app's own public URL, used to build the redirect_uri Google sends
+    # the tenant back to after consent (api/calendar_oauth.py) -- same idiom
+    # as voice_agent_public_base_url above. Must exactly match an Authorized
+    # redirect URI configured on the Web application client above (Google
+    # rejects the whole exchange otherwise); the callback route itself is
+    # always at /api/businesses/me/calendar/callback.
+    api_public_base_url: str = "http://localhost:8000"
     # The one test calendar's long-lived refresh token (Phase 1 only -- a
     # real per-tenant one replaces this in Phase 5). Python note: unlike an
     # API key, this alone can't authenticate a request -- app/integrations/

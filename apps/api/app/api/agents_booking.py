@@ -35,10 +35,12 @@ from mielikkix_agent_core import LLMClient
 from ..core.config import settings
 from ..core.database import get_db
 from ..core.limiter import limiter
-from ..integrations.calendar_provider import BusyBlock, get_calendar_provider
+from ..integrations.calendar_provider import BusyBlock, CalendarProvider, get_calendar_provider
 from ..integrations.google_calendar_client import GoogleCalendarError
 from ..models.booking import Booking
+from ..models.business import Business, BusinessSettings
 from ..notifications import notify_new_booking
+from ..services import plan_service
 
 router = APIRouter(prefix="/api/agents/booking", tags=["booking-assistant"])
 
@@ -50,6 +52,56 @@ _llm_client = LLMClient()
 # monkeypatch this instance's methods, same way they already monkeypatch
 # _llm_client.chat.
 _calendar_provider = get_calendar_provider()
+
+# Weekday index (date.weekday(): Monday=0 ... Sunday=6) -> the key it maps
+# to in BusinessSettings.business_hours (see schemas/business.py's
+# BusinessHours) -- a day absent from the dict, or explicitly null, means
+# closed that day.
+_WEEKDAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+
+def _resolve_calendar_provider(db: Session, business_id: str | None) -> CalendarProvider | None:
+    """No business_id (the standalone demo page, /dev/busy, admin view):
+    always the module-level Mielikkix demo provider above, unchanged from
+    Phase 1-3.
+
+    A real business_id (the live chat widget, once a tenant has gone
+    through Booking Assistant's OAuth setup -- see api/calendar_oauth.py):
+    resolves via the tenant-aware factory instead. Returns None if that
+    business doesn't exist, isn't entitled (plan_service.require_feature,
+    "booking_enabled"), or has no CalendarConnection yet -- callers turn
+    that into a "not_configured" response rather than ever falling back to
+    _calendar_provider, which would silently book onto Mielikkix's OWN
+    calendar on that business's behalf (exactly the cross-tenant mistake
+    this whole per-tenant design exists to prevent).
+    """
+    if business_id is None:
+        return _calendar_provider
+
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if business is None:
+        return None
+    try:
+        plan_service.require_feature(business, "booking_enabled")
+    except HTTPException:
+        return None
+
+    return get_calendar_provider(db, business_id)
+
+
+def _resolve_business_hours(db: Session, business_id: str | None) -> dict | None:
+    """The real per-tenant, per-weekday hours for a business_id-scoped
+    /request call -- None (business_id is None, OR the business hasn't set
+    any hours yet) tells _business_hours_window to fall back to the global
+    settings.booking_agent_hours_start/_end Mon-Fri window, which is only
+    ever correct for Mielikkix's own demo calendar, never a real tenant's.
+    request_booking() below treats "None AND business_id was given" as
+    not_configured, same reasoning as an unconnected calendar."""
+    if business_id is None:
+        return None
+    biz_settings = db.query(BusinessSettings).filter(BusinessSettings.business_id == business_id).first()
+    return biz_settings.business_hours if biz_settings else None
+
 
 # How many open slots to hand back at once -- an unbounded list would be
 # both a huge LLM-adjacent response and a bad picker UI. 8 is plenty for a
@@ -101,7 +153,11 @@ _PARSE_SYSTEM_PROMPT_TEMPLATE = (
     'with no timeframe at all -- false otherwise, including for '
     'resolvable relative dates like \'next Tuesday\'>, '
     '"clarification_question": "<a short question to ask back, ONLY if '
-    'clarification_needed is true -- otherwise empty string>"}}'
+    'clarification_needed is true, otherwise empty string -- ALWAYS end it '
+    "with a quick example of an acceptable answer in parentheses, e.g. "
+    "'Which date would you like to come in? (e.g. tomorrow afternoon, or "
+    "next Tuesday)', so the visitor knows exactly what kind of reply to "
+    'type back rather than guessing the format>"}}'
 )
 
 # LLM output is untrusted input from this app's own perspective (same as
@@ -122,13 +178,36 @@ async def _parse_request(message: str) -> _ParsedRequest:
     system_prompt = _PARSE_SYSTEM_PROMPT_TEMPLATE.format(
         today=today.isoformat(), weekday=today.strftime("%A")
     )
-    result = await _llm_client.chat(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": message},
-        ],
-        json_mode=True,
-    )
+    try:
+        result = await _llm_client.chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message},
+            ],
+            json_mode=True,
+            # LLMClient's own default (512) is too tight for this call --
+            # confirmed live (a real groq.BadRequestError: "max completion
+            # tokens reached before generating a valid document"): the
+            # configured model (settings.groq_model, an OSS reasoning
+            # model) can spend a chunk of its completion budget on
+            # internal reasoning before ever emitting the actual JSON, so
+            # a short, plain-looking message can still hit the cap
+            # mid-object. This tiny JSON shape itself needs nowhere near
+            # this many tokens; the headroom is entirely for that
+            # reasoning overhead.
+            max_tokens=1536,
+        )
+    except Exception as exc:
+        # Any LLM-call-level failure (a real live example: groq.BadRequestError
+        # when the model's completion budget ran out before finishing valid
+        # JSON) used to propagate straight past this function as a raw 500 --
+        # only a malformed-but-received response was ever caught below. This
+        # degrades exactly like a malformed response does: a clarifying
+        # question instead of a broken request, same "never leave the visitor
+        # stuck" convention this route's own docstring already claims for the
+        # JSON-parsing case.
+        raise _ParseError(f"LLM call failed while parsing booking request: {exc}") from exc
+
     try:
         return _ParsedRequest(**json.loads(result.text))
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
@@ -157,18 +236,35 @@ def _resolve_date_range(parsed: _ParsedRequest) -> tuple[date, date]:
     return earliest, latest
 
 
-def _business_hours_window(day: date, tz: ZoneInfo) -> tuple[datetime, datetime] | None:
+def _business_hours_window(
+    day: date, tz: ZoneInfo, business_hours: dict | None = None
+) -> tuple[datetime, datetime] | None:
     """The open/closed window for one calendar day, or None if the
-    business is closed that day. Phase-1-style hardcoded Mon-Fri
-    settings.booking_agent_hours_start/_end (see config.py's comment on
-    those two) -- weekends are always closed until Phase 5 replaces this
-    with a real per-tenant, per-weekday BusinessSettings.business_hours
-    lookup.
+    business is closed that day.
+
+    business_hours=None (the standalone demo page, /dev/busy, admin view,
+    or a business_id-scoped call with hours already confirmed present by
+    the caller -- see _resolve_business_hours): Phase-1-style hardcoded
+    Mon-Fri settings.booking_agent_hours_start/_end, weekends always
+    closed -- Mielikkix's own demo calendar only.
+
+    A real business_hours dict (schemas/business.py's BusinessHours shape,
+    e.g. {"monday": {"open": "09:00", "close": "17:00"}, ..., "sunday":
+    null}): looks up that day's own hours instead, closed if the key is
+    missing or null.
     """
-    if day.weekday() >= 5:  # Python note: Monday=0 ... Sunday=6, so 5/6 = Sat/Sun
-        return None
-    start_hour, start_minute = (int(part) for part in settings.booking_agent_hours_start.split(":"))
-    end_hour, end_minute = (int(part) for part in settings.booking_agent_hours_end.split(":"))
+    if business_hours is not None:
+        day_hours = business_hours.get(_WEEKDAY_KEYS[day.weekday()])
+        if not day_hours:
+            return None
+        start_hour, start_minute = (int(part) for part in day_hours["open"].split(":"))
+        end_hour, end_minute = (int(part) for part in day_hours["close"].split(":"))
+    else:
+        if day.weekday() >= 5:  # Python note: Monday=0 ... Sunday=6, so 5/6 = Sat/Sun
+            return None
+        start_hour, start_minute = (int(part) for part in settings.booking_agent_hours_start.split(":"))
+        end_hour, end_minute = (int(part) for part in settings.booking_agent_hours_end.split(":"))
+
     open_at = datetime(day.year, day.month, day.day, start_hour, start_minute, tzinfo=tz)
     close_at = datetime(day.year, day.month, day.day, end_hour, end_minute, tzinfo=tz)
     return open_at, close_at
@@ -223,7 +319,12 @@ def _slots_within(
 
 
 def _available_slots_for_range(
-    busy_blocks: list[BusyBlock], earliest: date, latest: date, duration_minutes: int, tz_name: str
+    busy_blocks: list[BusyBlock],
+    earliest: date,
+    latest: date,
+    duration_minutes: int,
+    tz_name: str,
+    business_hours: dict | None = None,
 ) -> list[tuple[datetime, datetime]]:
     """Phase 2's core: business hours minus busy blocks, sliced into
     duration_minutes slots, across every day from earliest to latest
@@ -238,7 +339,7 @@ def _available_slots_for_range(
 
     day = earliest
     while day <= latest:
-        window = _business_hours_window(day, tz)
+        window = _business_hours_window(day, tz, business_hours)
         if window is not None:
             free_ranges = _subtract_busy(window, busy_blocks)
             slots.extend(_slots_within(free_ranges, duration))
@@ -306,10 +407,17 @@ class _RequestBookingBody(BaseModel):
     # mean asking a clarifying question on nearly every request. The client
     # already knows this precisely; just send it.
     timezone: str = "UTC"
+    # Which tenant this booking is for -- omitted (None) by /dev/busy-style
+    # internal callers and the standalone Mielikkix demo page, which always
+    # mean Mielikkix's own demo calendar (see _resolve_calendar_provider).
+    # The live chat widget (apps/dashboard's ChatWindow/BookingFlow) always
+    # sends its own business_id, since a real tenant's booking must resolve
+    # to THAT business's own connected calendar, never Mielikkix's.
+    business_id: str | None = None
 
 
 class _RequestBookingResponse(BaseModel):
-    status: str  # "needs_selection" | "no_availability" | "clarification_needed"
+    status: str  # "needs_selection" | "no_availability" | "clarification_needed" | "not_configured"
     slots: list[_SlotOut] = []
     clarification_question: str | None = None
     meeting_type: str | None = None
@@ -324,7 +432,7 @@ _GENERIC_CLARIFICATION = (
 
 @router.post("/request", response_model=_RequestBookingResponse)
 @limiter.limit("10/minute")
-async def request_booking(request: Request, body: _RequestBookingBody):
+async def request_booking(request: Request, body: _RequestBookingBody, db: Session = Depends(get_db)):
     """Phase 2: turns a free-text request into real open slots. Public
     (not DEBUG-gated) -- unlike Phase 1's /dev/busy, this is what the real
     live demo (chat widget + /demo/booking-assistant) calls, so it needs to
@@ -333,15 +441,15 @@ async def request_booking(request: Request, body: _RequestBookingBody):
     Calendar read, both with a cost, reachable by anyone once it's not
     hidden behind DEBUG.
 
-    CORS note: this relies on the standard, origin-restricted
-    CORSMiddleware (app/main.py), NOT PublicRouteCORSMiddleware (app/core/
-    cors.py) -- same reasoning as agents_support.py's own chat/message
-    route. That second one exists specifically for routes embedded on
-    arbitrary THIRD-PARTY tenant websites (the product's own chat widget);
-    Booking Assistant has no per-tenant calendar yet (Phase 5), so it only
-    ever runs against Mielikkix's own demo calendar from Mielikkix's own
-    sites (website/, apps/dashboard) -- it should stay locked to
-    settings.cors_origins_list, not opened to any origin.
+    CORS note: this goes through PublicRouteCORSMiddleware (app/core/cors.py),
+    same as agents_support.py's own chat/message route -- a real tenant's
+    booking flow (body.business_id set) runs from THEIR OWN chat widget,
+    embedded on their own third-party website, so it must accept any
+    origin. Safe to open the same way those other public routes are: no
+    cookies/credentials, business_id-scoped (never touches another
+    business's calendar, see _resolve_calendar_provider), and rate-limited.
+    Only a business_id=None call (the standalone Mielikkix demo page,
+    Mielikkix's own sites) ever touches the demo calendar.
 
     Two-step error handling worth noting for a reader new to Python's
     `try`/`except`: _ParseError covers both "the LLM's JSON didn't parse"
@@ -351,6 +459,16 @@ async def request_booking(request: Request, body: _RequestBookingBody):
     stuck" convention agents_support.py's chat_message() uses for its own
     LLM-failure fallback.
     """
+    provider = _resolve_calendar_provider(db, body.business_id)
+    business_hours = _resolve_business_hours(db, body.business_id)
+    # A business_id was given, but there's no working Booking Assistant
+    # setup for it yet (no connected calendar, no hours configured, plan
+    # doesn't include it, or the business_id itself is bogus) -- checked
+    # before spending an LLM call parsing body.message, since there'd be
+    # nothing useful to do with the result either way.
+    if provider is None or (body.business_id is not None and not business_hours):
+        return _RequestBookingResponse(status="not_configured")
+
     try:
         parsed = await _parse_request(body.message)
     except _ParseError:
@@ -374,11 +492,13 @@ async def request_booking(request: Request, body: _RequestBookingBody):
     duration_minutes = max(_MIN_DURATION_MINUTES, min(_MAX_DURATION_MINUTES, parsed.duration_minutes))
 
     try:
-        busy_blocks = await _calendar_provider.get_busy_blocks(earliest, latest, body.timezone)
+        busy_blocks = await provider.get_busy_blocks(earliest, latest, body.timezone)
     except GoogleCalendarError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    slots = _available_slots_for_range(busy_blocks, earliest, latest, duration_minutes, body.timezone)
+    slots = _available_slots_for_range(
+        busy_blocks, earliest, latest, duration_minutes, body.timezone, business_hours
+    )
 
     if not slots:
         return _RequestBookingResponse(
@@ -409,10 +529,15 @@ class _ConfirmBookingBody(BaseModel):
     # triggered it, if this came from the chat-widget handoff rather than
     # the standalone demo page -- see models/booking.py's session_id.
     session_id: str | None = None
+    # Same tenant-scoping field as _RequestBookingBody.business_id -- must
+    # be the same value the visitor's /request call used, or confirm_booking
+    # below resolves a different (or no) calendar than the slot was actually
+    # offered against.
+    business_id: str | None = None
 
 
 class _ConfirmBookingResponse(BaseModel):
-    status: str  # "booked" | "conflict"
+    status: str  # "booked" | "conflict" | "not_configured"
     event_id: str | None = None
 
 
@@ -440,6 +565,10 @@ async def confirm_booking(
     mirroring exactly how api/leads.py's create_lead notifies a business of
     a new lead via notify_new_lead after committing the Lead row.
     """
+    provider = _resolve_calendar_provider(db, body.business_id)
+    if provider is None:
+        return _ConfirmBookingResponse(status="not_configured")
+
     try:
         start = datetime.fromisoformat(body.start)
         end = datetime.fromisoformat(body.end)
@@ -455,7 +584,7 @@ async def confirm_booking(
         return _ConfirmBookingResponse(status="conflict")
 
     try:
-        busy_blocks = await _calendar_provider.get_busy_blocks(start.date(), end.date(), body.timezone)
+        busy_blocks = await provider.get_busy_blocks(start.date(), end.date(), body.timezone)
     except GoogleCalendarError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -466,7 +595,7 @@ async def confirm_booking(
             return _ConfirmBookingResponse(status="conflict")
 
     try:
-        event_id = await _calendar_provider.create_event(
+        event_id = await provider.create_event(
             summary=f"{body.meeting_type} with {body.name}",
             start=start,
             end=end,
@@ -491,7 +620,20 @@ async def confirm_booking(
     db.commit()
     db.refresh(booking)
 
-    if settings.booking_notification_email:
-        background_tasks.add_task(notify_new_booking, settings.booking_notification_email, booking)
+    # A business_id-scoped booking notifies THAT business's own contact
+    # email, never Mielikkix's own settings.booking_notification_email --
+    # otherwise every real tenant's booking would silently tell Mielikkix
+    # about it instead of the tenant, the same cross-tenant mistake this
+    # whole per-tenant design exists to prevent, just for notifications
+    # instead of the calendar itself. No contact_email on file means no
+    # notification goes out (never falls back to Mielikkix's own address).
+    if body.business_id is not None:
+        biz_settings = db.query(BusinessSettings).filter(BusinessSettings.business_id == body.business_id).first()
+        notify_email = biz_settings.contact_email if biz_settings else None
+    else:
+        notify_email = settings.booking_notification_email
+
+    if notify_email:
+        background_tasks.add_task(notify_new_booking, notify_email, booking)
 
     return _ConfirmBookingResponse(status="booked", event_id=event_id)

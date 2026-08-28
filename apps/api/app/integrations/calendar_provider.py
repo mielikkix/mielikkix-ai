@@ -28,6 +28,11 @@ a real need, in whichever concrete provider actually implements it then.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+from ..core.config import settings
 
 
 @dataclass
@@ -84,13 +89,43 @@ class CalendarProvider(ABC):
         )
 
 
-def get_calendar_provider() -> CalendarProvider:
+def get_calendar_provider(db: Optional[Session] = None, business_id: Optional[str] = None) -> CalendarProvider:
     """Only one implementation exists today (Google) -- this factory is the
     seam a future provider (Outlook, per the instructions doc's Section 5
     diagram) plugs into without agents_booking.py's routes changing at all,
     the same role get_llm_provider() plays in rag/providers/__init__.py for
     swapping Groq/Gemini/Ollama.
+
+    Also the seam between Mielikkix's own demo calendar and a real
+    business's own connected one: with no business_id (or no `db`), always
+    returns a provider for the global settings.google_calendar_* demo
+    calendar -- unchanged from Phase 1-3. With a business_id that has a
+    real CalendarConnection row (app/models/calendar_connection.py, created
+    via the OAuth flow in app/api/calendar_oauth.py), returns a provider
+    scoped to THAT business's own calendar instead, with its refresh token
+    decrypted immediately before use (see core/encryption.py) and never
+    held decrypted anywhere else.
+
+    Deliberately does NOT fall back to the demo calendar when a business_id
+    is given but has no connection -- returning None signals "not
+    configured for this business" so the caller (agents_booking.py) can
+    say so honestly, rather than silently booking onto Mielikkix's own
+    calendar on that business's behalf.
     """
     from .google_calendar_client import GoogleCalendarProvider
+
+    if db is not None and business_id is not None:
+        from ..models.calendar_connection import CalendarConnection
+        from ..core.encryption import decrypt
+
+        connection = db.query(CalendarConnection).filter(CalendarConnection.business_id == business_id).first()
+        if connection is None:
+            return None
+        return GoogleCalendarProvider(
+            client_id=settings.google_calendar_oauth_client_id,
+            client_secret=settings.google_calendar_oauth_client_secret,
+            refresh_token=decrypt(connection.refresh_token_encrypted),
+            calendar_id=connection.calendar_id,
+        )
 
     return GoogleCalendarProvider()

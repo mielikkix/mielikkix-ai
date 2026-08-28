@@ -5,6 +5,11 @@ alembic==1.13.1
 psycopg2-binary==2.9.12
 pgvector==0.2.5
 python-jose[cryptography]==3.3.0
+# Direct dependency (not just python-jose's transitive one) -- used
+# directly for Fernet symmetric encryption of per-business OAuth refresh
+# tokens at rest (core/encryption.py). Pinned to the version already
+# resolved transitively so this doesn't change what's actually installed.
+cryptography==50.0.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.9

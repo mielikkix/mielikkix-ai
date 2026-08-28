@@ -19,8 +19,8 @@ import { useCurrency } from '../../shared/hooks/useCurrency'
 const API_ADDON_USD = 12
 
 // max_languages: null means no numeric cap, but the widget only ever offers the curated
-// codes in AVAILABLE_LANGUAGES (SettingsPage.tsx) -- keep this count in sync with that list
-// so plan copy doesn't promise more languages than a business can actually pick.
+// codes in AVAILABLE_LANGUAGES (dashboard/pages/settings/types.ts) -- keep this count in
+// sync with that list so plan copy doesn't promise more languages than a business can pick.
 const SUPPORTED_LANGUAGE_COUNT = 10
 
 // WhatsApp/Instagram are real plan features but have no backend integration

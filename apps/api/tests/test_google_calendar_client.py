@@ -19,11 +19,6 @@ import pytest
 from app.integrations import google_calendar_client
 from app.integrations.google_calendar_client import GoogleCalendarError, GoogleCalendarProvider
 
-# One shared, stateless instance -- GoogleCalendarProvider carries no state
-# of its own (every call reads settings.* fresh), so instantiating it once
-# per test file is equivalent to once per test.
-provider = GoogleCalendarProvider()
-
 
 class _FakeFreebusy:
     def __init__(self, response: dict):
@@ -63,7 +58,13 @@ class _FakeService:
         return self._events
 
 
-def _configure_credentials(monkeypatch):
+def _configure_credentials(monkeypatch) -> GoogleCalendarProvider:
+    """Returns a fresh GoogleCalendarProvider constructed AFTER patching
+    settings -- __init__ now captures client_id/secret/refresh_token/
+    calendar_id at construction time (so a real per-business connection's
+    credentials aren't re-read on every call), which means a provider must
+    be built fresh per test rather than shared at module scope, unlike
+    before this class took constructor arguments."""
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_client_id", "test-client-id")
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_client_secret", "test-client-secret")
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_refresh_token", "test-refresh-token")
@@ -72,6 +73,7 @@ def _configure_credentials(monkeypatch):
     # token endpoint -- nothing here asserts on the resulting access token,
     # only on what get_busy_blocks does with the (mocked) API response.
     monkeypatch.setattr(google_calendar_client.Credentials, "refresh", lambda self, request: None)
+    return GoogleCalendarProvider()
 
 
 def _patch_service(monkeypatch, response: dict) -> _FakeService:
@@ -82,7 +84,7 @@ def _patch_service(monkeypatch, response: dict) -> _FakeService:
 
 @pytest.mark.asyncio
 async def test_get_busy_blocks_parses_response(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
     _patch_service(
         monkeypatch,
         {
@@ -107,7 +109,7 @@ async def test_get_busy_blocks_parses_response(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_busy_blocks_sends_correct_query_body(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
     fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
 
     await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14), timezone="America/New_York")
@@ -124,7 +126,7 @@ async def test_get_busy_blocks_sends_correct_query_body(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_busy_blocks_returns_empty_list_when_calendar_has_no_busy_key(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
     _patch_service(monkeypatch, {"calendars": {"primary": {}}})
 
     blocks = await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
@@ -137,6 +139,7 @@ async def test_get_busy_blocks_raises_when_not_configured(monkeypatch):
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_client_id", "")
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_client_secret", "")
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_refresh_token", "")
+    provider = GoogleCalendarProvider()
 
     with pytest.raises(GoogleCalendarError, match="isn't connected yet"):
         await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
@@ -144,7 +147,7 @@ async def test_get_busy_blocks_raises_when_not_configured(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_busy_blocks_raises_google_calendar_error_on_api_error(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
 
     class _FailingFreebusy:
         def query(self, body):
@@ -174,7 +177,7 @@ async def test_get_busy_blocks_raises_google_calendar_error_on_api_error(monkeyp
 
 @pytest.mark.asyncio
 async def test_create_event_returns_the_new_event_id(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
     fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
     fake_service._events = _FakeEvents({"id": "real-event-id-123"})
 
@@ -192,7 +195,7 @@ async def test_create_event_returns_the_new_event_id(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_event_sends_attendee_and_sends_updates(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
     fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
 
     await provider.create_event(
@@ -218,8 +221,34 @@ async def test_create_event_sends_attendee_and_sends_updates(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_provider_uses_explicit_credentials_over_global_settings(monkeypatch):
+    """A per-business connection (see calendar_provider.get_calendar_provider)
+    passes its own client_id/secret/refresh_token/calendar_id explicitly --
+    confirms those win over whatever's in global settings, which is what
+    makes per-tenant calendars actually isolated from Mielikkix's own demo
+    one and from each other."""
+    monkeypatch.setattr(google_calendar_client.settings, "google_calendar_client_id", "global-client-id")
+    monkeypatch.setattr(google_calendar_client.settings, "google_calendar_client_secret", "global-secret")
+    monkeypatch.setattr(google_calendar_client.settings, "google_calendar_refresh_token", "global-refresh-token")
+    monkeypatch.setattr(google_calendar_client.settings, "google_calendar_id", "primary")
+    monkeypatch.setattr(google_calendar_client.Credentials, "refresh", lambda self, request: None)
+    fake_service = _patch_service(monkeypatch, {"calendars": {"tenant-calendar@example.com": {"busy": []}}})
+
+    provider = GoogleCalendarProvider(
+        client_id="tenant-client-id",
+        client_secret="tenant-secret",
+        refresh_token="tenant-refresh-token",
+        calendar_id="tenant-calendar@example.com",
+    )
+    await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+
+    sent_body = fake_service.freebusy().last_query_body
+    assert sent_body["items"] == [{"id": "tenant-calendar@example.com"}]
+
+
+@pytest.mark.asyncio
 async def test_create_event_raises_google_calendar_error_on_api_error(monkeypatch):
-    _configure_credentials(monkeypatch)
+    provider = _configure_credentials(monkeypatch)
 
     class _FailingEvents:
         def insert(self, **kwargs):

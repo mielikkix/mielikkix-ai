@@ -3,11 +3,13 @@ import Layout from "../layouts/Layout.astro";
 import PageHero from "../components/PageHero.astro";
 
 // Status is deliberately honest per-agent, not uniform marketing copy --
-// only Voice Receptionist has a working preview right now (see
-// apps/agents/voice-receptionist/CLAUDE.md). The other 9 are real, planned
-// products (see apps/agents/_template/CLAUDE.md's roster + each flagship's
-// own CLAUDE.md) but nothing to click through to yet -- claiming otherwise
-// would be worse than not having this page at all.
+// Voice Receptionist and Booking Assistant both have a working preview
+// right now (see their own CLAUDE.md files); Booking Assistant's demo
+// books against one shared test calendar (Phase 1-3), not a real
+// business's own OAuth-connected one yet (Phase 5). The other 8 are real,
+// planned products (see apps/agents/_template/CLAUDE.md's roster + each
+// flagship's own CLAUDE.md) but nothing to click through to yet --
+// claiming otherwise would be worse than not having this page at all.
 const agents = [
   {
     name: "Voice Receptionist",
@@ -19,7 +21,8 @@ const agents = [
   {
     name: "Booking Assistant",
     tagline: "Self-serve scheduling, with reminders sent automatically.",
-    status: "soon",
+    status: "preview",
+    href: "/demo/booking-assistant",
     icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008Z",
   },
   {
@@ -81,7 +84,7 @@ const agents = [
   <PageHero
     line1="Meet the"
     line2="Force Crew"
-    subheading="10 AI agents for small businesses. One is live for preview today -- the rest are on the way."
+    subheading="10 AI agents for small businesses. Two are live for preview today -- the rest are on the way."
   />
 
   <section class="mx-auto max-w-[1440px] px-6 py-16">

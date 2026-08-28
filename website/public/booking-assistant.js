@@ -1,44 +1,47 @@
-// The /demo/booking-assistant page's step-through logic. External file
-// (not an inline <script>) for the same Content-Security-Policy reason
-// voice-receptionist.js is -- see that file's own comment on this.
+// The /demo/booking-assistant page's conversation logic. Presented as an
+// actual chat (not a form wizard) -- see that page's own comment on why.
+// External file (not an inline <script>) for the same
+// Content-Security-Policy reason voice-receptionist.js is -- see that
+// file's own comment on this.
 const { apiUrl } = document.currentScript.dataset;
 
-const stepDescribe = document.getElementById("step-describe");
-const stepSlots = document.getElementById("step-slots");
-const stepDetails = document.getElementById("step-details");
-const stepDone = document.getElementById("step-done");
+const transcriptEl = document.getElementById("transcript");
+const slotsWrap = document.getElementById("slotsWrap");
+const composerForm = document.getElementById("composerForm");
+const composerInput = document.getElementById("composerInput");
+const composerSend = document.getElementById("composerSend");
 
-const requestInput = document.getElementById("requestInput");
-const findTimesBtn = document.getElementById("findTimesBtn");
-const describeError = document.getElementById("describeError");
-
-const slotsIntro = document.getElementById("slotsIntro");
-const slotsList = document.getElementById("slotsList");
-const backToDescribeBtn = document.getElementById("backToDescribeBtn");
-
-const chosenSlotLabel = document.getElementById("chosenSlotLabel");
-const nameInput = document.getElementById("nameInput");
-const emailInput = document.getElementById("emailInput");
-const confirmBtn = document.getElementById("confirmBtn");
-const detailsError = document.getElementById("detailsError");
-const backToSlotsBtn = document.getElementById("backToSlotsBtn");
-
-const doneDetail = document.getElementById("doneDetail");
-const bookAnotherBtn = document.getElementById("bookAnotherBtn");
-
-// The browser already knows the visitor's real timezone precisely --
-// sent straight to the server rather than asked of the LLM (see
+// The browser already knows the visitor's real timezone precisely -- sent
+// straight to the server rather than asked of the LLM (see
 // agents_booking.py's _RequestBookingBody comment on why parsing a
 // timezone out of free text is a bad idea).
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-let chosenSlot = null; // { start, end } ISO strings, exactly as offered
-let meetingType = "appointment";
-
-function showStep(step) {
-  for (const el of [stepDescribe, stepSlots, stepDetails, stepDone]) {
-    el.classList.toggle("hidden", el !== step);
+// Same bubble shape /demo/voice-receptionist's transcript uses, for a
+// consistent feel across both live demos. "visitor"/"ai" here, not
+// "caller"/"agent" -- same idea, different words for a text chat.
+function addBubble(who, text) {
+  const p = document.createElement("p");
+  const base = "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-snug";
+  if (who === "visitor") {
+    p.className = base + " brand-gradient self-end rounded-br-md text-white";
+  } else {
+    p.className = base + " self-start rounded-bl-md bg-slate-100 text-slate-800";
   }
+  p.textContent = text;
+  transcriptEl.appendChild(p);
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  return p;
+}
+
+function formatSlot(startISO) {
+  return new Date(startISO).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 async function postJSON(path, body) {
@@ -52,124 +55,124 @@ async function postJSON(path, body) {
   return data;
 }
 
-function formatSlot(startISO) {
-  const start = new Date(startISO);
-  return start.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+// Small conversation state machine -- which chat turn the NEXT typed
+// message answers. Slot selection happens via the buttons in slotsWrap,
+// not the composer; everything else (the initial request, name, email)
+// flows through it as normal chat turns.
+let stage = "describe"; // "describe" | "awaiting_slot" | "awaiting_name" | "awaiting_email"
+let meetingType = "appointment";
+let chosenSlot = null;
+let visitorName = "";
+let visitorEmail = "";
 
-function renderSlots(slots) {
-  slotsList.innerHTML = "";
+function showSlots(slots) {
+  slotsWrap.innerHTML = "";
+  slotsWrap.classList.remove("hidden");
+  slotsWrap.classList.add("flex");
   for (const slot of slots) {
     const btn = document.createElement("button");
     btn.className =
-      "w-full rounded-2xl border border-slate-200 p-3 text-left text-sm font-medium text-slate-700 transition-colors hover:border-violet-400 hover:bg-violet-50";
+      "w-full rounded-xl border border-slate-200 px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:border-violet-400 hover:bg-violet-50";
     btn.textContent = formatSlot(slot.start);
-    btn.addEventListener("click", () => {
-      chosenSlot = slot;
-      chosenSlotLabel.textContent = formatSlot(slot.start);
-      detailsError.classList.add("hidden");
-      showStep(stepDetails);
-    });
-    slotsList.appendChild(btn);
+    btn.addEventListener("click", () => pickSlot(slot));
+    slotsWrap.appendChild(btn);
   }
 }
 
-async function findTimes() {
-  const message = requestInput.value.trim();
-  describeError.classList.add("hidden");
-  if (!message) {
-    describeError.textContent = "Tell us what you'd like to book first.";
-    describeError.classList.remove("hidden");
+function hideSlots() {
+  slotsWrap.classList.add("hidden");
+  slotsWrap.classList.remove("flex");
+  slotsWrap.innerHTML = "";
+}
+
+function pickSlot(slot) {
+  chosenSlot = slot;
+  hideSlots();
+  addBubble("visitor", formatSlot(slot.start));
+  addBubble("ai", "Great — what's your name?");
+  stage = "awaiting_name";
+  composerInput.placeholder = "Your name";
+}
+
+async function handleDescribe(text) {
+  addBubble("ai", "Let me check what's open…");
+  const result = await postJSON("/api/agents/booking/request", { message: text, timezone });
+  meetingType = result.meeting_type || "appointment";
+
+  if (result.status === "clarification_needed") {
+    addBubble("ai", result.clarification_question);
+    return;
+  }
+  if (result.status === "no_availability") {
+    addBubble("ai", "No open times in that window — try a different day or date range.");
+    return;
+  }
+  addBubble("ai", `Here's what's open for a ${result.duration_minutes}-minute ${meetingType}:`);
+  showSlots(result.slots);
+  stage = "awaiting_slot";
+}
+
+async function handleConfirm() {
+  addBubble("ai", "Booking that in…");
+  const result = await postJSON("/api/agents/booking/confirm", {
+    name: visitorName,
+    email: visitorEmail,
+    start: chosenSlot.start,
+    end: chosenSlot.end,
+    timezone,
+    meeting_type: meetingType,
+  });
+
+  if (result.status === "conflict") {
+    addBubble("ai", "Sorry, that time was just taken. Let's find you another — what would you like to book?");
+    stage = "describe";
+    composerInput.placeholder = "e.g. a 30 minute consultation next Tuesday afternoon";
+    chosenSlot = null;
     return;
   }
 
-  findTimesBtn.disabled = true;
-  findTimesBtn.textContent = "Finding times...";
-  try {
-    const result = await postJSON("/api/agents/booking/request", { message, timezone });
-    meetingType = result.meeting_type || "appointment";
-
-    if (result.status === "clarification_needed") {
-      describeError.textContent = result.clarification_question;
-      describeError.classList.remove("hidden");
-      return;
-    }
-    if (result.status === "no_availability") {
-      describeError.textContent = "No open times in that window -- try a different day or date range.";
-      describeError.classList.remove("hidden");
-      return;
-    }
-
-    slotsIntro.textContent = `Here's what's open for a ${result.duration_minutes}-minute ${meetingType}:`;
-    renderSlots(result.slots);
-    showStep(stepSlots);
-  } catch (err) {
-    console.error("Failed to find times:", err);
-    describeError.textContent = "Sorry, something went wrong reaching the server. Please try again.";
-    describeError.classList.remove("hidden");
-  } finally {
-    findTimesBtn.disabled = false;
-    findTimesBtn.textContent = "Find times";
-  }
-}
-
-async function confirmBooking() {
-  const name = nameInput.value.trim();
-  const email = emailInput.value.trim();
-  detailsError.classList.add("hidden");
-  if (!name || !email) {
-    detailsError.textContent = "Please enter your name and email.";
-    detailsError.classList.remove("hidden");
-    return;
-  }
-
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = "Booking...";
-  try {
-    const result = await postJSON("/api/agents/booking/confirm", {
-      name,
-      email,
-      start: chosenSlot.start,
-      end: chosenSlot.end,
-      timezone,
-      meeting_type: meetingType,
-    });
-
-    if (result.status === "conflict") {
-      detailsError.textContent = "Sorry, that time was just taken. Please pick another.";
-      detailsError.classList.remove("hidden");
-      showStep(stepSlots);
-      return;
-    }
-
-    doneDetail.textContent = `${formatSlot(chosenSlot.start)} -- a calendar invite is on its way to ${email}.`;
-    showStep(stepDone);
-  } catch (err) {
-    console.error("Failed to confirm booking:", err);
-    detailsError.textContent = "Sorry, something went wrong reaching the server. Please try again.";
-    detailsError.classList.remove("hidden");
-  } finally {
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = "Confirm booking";
-  }
-}
-
-function resetToStart() {
-  requestInput.value = "";
-  nameInput.value = "";
-  emailInput.value = "";
+  addBubble(
+    "ai",
+    `You're booked! ${formatSlot(chosenSlot.start)} — a calendar invite is on its way to ${visitorEmail}.`
+  );
+  stage = "describe";
+  composerInput.placeholder = "e.g. a 30 minute consultation next Tuesday afternoon";
   chosenSlot = null;
-  showStep(stepDescribe);
+  visitorName = "";
+  visitorEmail = "";
 }
 
-findTimesBtn.addEventListener("click", findTimes);
-backToDescribeBtn.addEventListener("click", () => showStep(stepDescribe));
-backToSlotsBtn.addEventListener("click", () => showStep(stepSlots));
-confirmBtn.addEventListener("click", confirmBooking);
-bookAnotherBtn.addEventListener("click", resetToStart);
+composerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = composerInput.value.trim();
+  if (!text) return;
+  composerInput.value = "";
+  addBubble("visitor", text);
+
+  composerInput.disabled = true;
+  composerSend.disabled = true;
+  try {
+    if (stage === "describe") {
+      await handleDescribe(text);
+    } else if (stage === "awaiting_slot") {
+      addBubble("ai", "Pick one of the times above, or tell me a different day to check.");
+    } else if (stage === "awaiting_name") {
+      visitorName = text;
+      addBubble("ai", "And what's the best email for the calendar invite?");
+      stage = "awaiting_email";
+      composerInput.placeholder = "you@example.com";
+    } else if (stage === "awaiting_email") {
+      visitorEmail = text;
+      await handleConfirm();
+    }
+  } catch (err) {
+    console.error("Booking demo error:", err);
+    addBubble("ai", "Sorry, something went wrong reaching the server. Please try again.");
+  } finally {
+    composerInput.disabled = false;
+    composerSend.disabled = false;
+    composerInput.focus();
+  }
+});
+
+addBubble("ai", "Hi! What would you like to book?");

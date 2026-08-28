@@ -92,7 +92,7 @@ async function findTimes() {
   findTimesBtn.disabled = true;
   findTimesBtn.textContent = "Finding times...";
   try {
-    const result = await postJSON("/api/agents/booking/dev/request", { message, timezone });
+    const result = await postJSON("/api/agents/booking/request", { message, timezone });
     meetingType = result.meeting_type || "appointment";
 
     if (result.status === "clarification_needed") {
@@ -132,7 +132,7 @@ async function confirmBooking() {
   confirmBtn.disabled = true;
   confirmBtn.textContent = "Booking...";
   try {
-    const result = await postJSON("/api/agents/booking/dev/confirm", {
+    const result = await postJSON("/api/agents/booking/confirm", {
       name,
       email,
       start: chosenSlot.start,

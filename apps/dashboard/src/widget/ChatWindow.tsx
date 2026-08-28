@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send } from 'lucide-react'
 import { LeadForm } from './LeadForm'
+import { BookingFlow } from './BookingFlow'
 import { MarkdownText } from './MarkdownText'
 import { widgetStrings } from './i18n'
 
@@ -42,6 +43,10 @@ export function ChatWindow({
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
+  // The message that triggered the booking flow (see BookingFlow's Props
+  // doc) -- null means "not showing", same on/off role showLeadForm plays,
+  // just also carrying the seed text BookingFlow needs.
+  const [bookingSeedMessage, setBookingSeedMessage] = useState<string | null>(null)
   const [inputFocused, setInputFocused] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -57,6 +62,7 @@ export function ChatWindow({
     // on each new question; the reply re-shows it if that reply still suggests
     // capturing a lead.
     setShowLeadForm(false)
+    setBookingSeedMessage(null)
     setLoading(true)
     try {
       const res = await fetch(`${apiBaseUrl}/api/chat/message`, {
@@ -73,6 +79,7 @@ export function ChatWindow({
       if (data.lang) setLang(data.lang)
       setMessages((m) => [...m, { sender: 'ai', content: data.reply }])
       if (data.suggest_lead_capture) setShowLeadForm(true)
+      if (data.suggest_booking_flow) setBookingSeedMessage(msg)
     } catch {
       setMessages((m) => [...m, { sender: 'ai', content: strings.chatError }])
     } finally {
@@ -123,6 +130,18 @@ export function ChatWindow({
               }}
             />
           </div>
+        )}
+        {bookingSeedMessage !== null && (
+          <BookingFlow
+            primaryColor={primaryColor}
+            apiBaseUrl={apiBaseUrl}
+            lang={lang}
+            initialMessage={bookingSeedMessage}
+            onBooked={(confirmationText) => {
+              setBookingSeedMessage(null)
+              setMessages((m) => [...m, { sender: 'ai', content: confirmationText }])
+            }}
+          />
         )}
         <div ref={bottomRef} />
       </div>

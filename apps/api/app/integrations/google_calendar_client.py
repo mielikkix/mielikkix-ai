@@ -31,7 +31,6 @@ refresh/API-call mechanics below don't change.
 """
 
 import asyncio
-from dataclasses import dataclass
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
@@ -41,6 +40,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from ..core.config import settings
+from .calendar_provider import BusyBlock, CalendarProvider
 
 # Two narrow scopes, not the broad "calendar" (full read/write on
 # everything) or "calendar.readonly" (would block booking) scopes:
@@ -59,17 +59,6 @@ CALENDAR_SCOPES = [
     "https://www.googleapis.com/auth/calendar.freebusy",
     "https://www.googleapis.com/auth/calendar.events",
 ]
-
-
-@dataclass
-class BusyBlock:
-    # Both ISO 8601 datetime strings in UTC, exactly as Google's freebusy
-    # API returns them -- kept as raw strings rather than parsed into
-    # Python datetimes for the same reason calcom_client.py's AvailableSlot
-    # did: nothing here needs date arithmetic on them yet (Phase 1 scope),
-    # parse at whichever call site actually needs to compare them.
-    start: str
-    end: str
 
 
 class GoogleCalendarError(Exception):
@@ -108,8 +97,8 @@ def _build_credentials() -> Credentials:
 
 def _get_busy_blocks_sync(start: date, end: date, timezone: str) -> list[BusyBlock]:
     """The actual (synchronous, blocking) Google API call -- see this
-    module's docstring for why get_busy_blocks() below wraps this in
-    asyncio.to_thread instead of calling it directly."""
+    module's docstring for why GoogleCalendarProvider.get_busy_blocks below
+    wraps this in asyncio.to_thread instead of calling it directly."""
     credentials = _build_credentials()
     credentials.refresh(Request())
 
@@ -150,26 +139,13 @@ def _get_busy_blocks_sync(start: date, end: date, timezone: str) -> list[BusyBlo
     return [BusyBlock(start=period["start"], end=period["end"]) for period in busy_periods]
 
 
-async def get_busy_blocks(start: date, end: date, timezone: str = "UTC") -> list[BusyBlock]:
-    """The busy blocks on settings.google_calendar_id between start and end
-    (inclusive), in the given IANA timezone -- Phase 1 scope only: this
-    returns what's BUSY, not what's available. Turning "busy blocks" into
-    "open slots the business would actually offer" means subtracting these
-    from BusinessSettings.business_hours, which is Phase 2+ work (this
-    agent's CLAUDE.md) once an LLM-parsed request exists to check
-    availability for -- Phase 1 just proves this app can really talk to a
-    real Google Calendar.
-    """
-    return await asyncio.to_thread(_get_busy_blocks_sync, start, end, timezone)
-
-
 def _create_event_sync(
     summary: str, start: datetime, end: datetime, timezone: str, attendee_email: str, description: str
 ) -> str:
     """The actual (synchronous, blocking) events.insert call -- see this
-    module's docstring for why create_event() below wraps this in
-    asyncio.to_thread instead of calling it directly, same reasoning as
-    _get_busy_blocks_sync above."""
+    module's docstring for why GoogleCalendarProvider.create_event below
+    wraps this in asyncio.to_thread instead of calling it directly, same
+    reasoning as _get_busy_blocks_sync above."""
     credentials = _build_credentials()
     credentials.refresh(Request())
 
@@ -206,17 +182,29 @@ def _create_event_sync(
     return created["id"]
 
 
-async def create_event(
-    summary: str, start: datetime, end: datetime, timezone: str, attendee_email: str, description: str = ""
-) -> str:
-    """Creates a real event on settings.google_calendar_id and returns its
-    Google Calendar event ID. Phase 3 (booking creation) -- unlike
-    get_busy_blocks (read-only), this actually writes to the connected
-    calendar, so callers must have already re-confirmed the slot is still
-    free immediately before calling this (see app/api/agents_booking.py's
-    dev_confirm_booking, which does exactly that) -- this function itself
-    does not re-check freebusy, to keep "check" and "write" as two
-    separate, individually-testable steps rather than one that silently
-    does both.
+class GoogleCalendarProvider(CalendarProvider):
+    """The one CalendarProvider implementation that exists today -- see
+    calendar_provider.py's module docstring for why this class exists
+    (abstraction, not Google-specific code spread through the app) and
+    get_calendar_provider() for how a route obtains one. Both methods below
+    just delegate to the module-level sync helpers above via
+    asyncio.to_thread -- see this file's own module docstring for why that
+    hand-off to a background thread is necessary (googleapiclient is a
+    synchronous, blocking library).
     """
-    return await asyncio.to_thread(_create_event_sync, summary, start, end, timezone, attendee_email, description)
+
+    async def get_busy_blocks(self, start: date, end: date, timezone: str = "UTC") -> list[BusyBlock]:
+        return await asyncio.to_thread(_get_busy_blocks_sync, start, end, timezone)
+
+    async def create_event(
+        self,
+        summary: str,
+        start: datetime,
+        end: datetime,
+        timezone: str,
+        attendee_email: str,
+        description: str = "",
+    ) -> str:
+        return await asyncio.to_thread(
+            _create_event_sync, summary, start, end, timezone, attendee_email, description
+        )

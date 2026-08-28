@@ -19,6 +19,7 @@ from app.main import app
 from app.core.config import settings
 from app.api import agents_booking
 from app.integrations.google_calendar_client import BusyBlock, GoogleCalendarError
+from app.models.booking import Booking
 from mielikkix_agent_core import LLMResult
 
 client = TestClient(app)
@@ -52,7 +53,7 @@ def test_returns_busy_blocks_from_calendar(monkeypatch):
             BusyBlock(start="2026-09-01T14:00:00+00:00", end="2026-09-01T15:00:00+00:00"),
         ]
     )
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", fake_get_busy_blocks)
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", fake_get_busy_blocks)
 
     resp = _get(start="2026-09-01", end="2026-09-02")
 
@@ -67,7 +68,7 @@ def test_returns_busy_blocks_from_calendar(monkeypatch):
 
 
 def test_no_busy_blocks_returns_empty_list(monkeypatch):
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", AsyncMock(return_value=[]))
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(return_value=[]))
 
     resp = _get(start="2026-09-01", end="2026-09-02")
 
@@ -81,7 +82,7 @@ def test_calendar_error_surfaces_as_bad_gateway(monkeypatch):
     upstream dependency is what failed (see agents_booking.py's comment on
     this exact choice)."""
     monkeypatch.setattr(
-        agents_booking,
+        agents_booking._calendar_provider,
         "get_busy_blocks",
         AsyncMock(side_effect=GoogleCalendarError("Google Calendar isn't connected yet")),
     )
@@ -94,7 +95,7 @@ def test_calendar_error_surfaces_as_bad_gateway(monkeypatch):
 
 def test_missing_required_query_params_is_unprocessable(monkeypatch):
     fake_get_busy_blocks = AsyncMock(return_value=[])
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", fake_get_busy_blocks)
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", fake_get_busy_blocks)
 
     resp = client.get("/api/agents/booking/dev/busy")
 
@@ -104,7 +105,7 @@ def test_missing_required_query_params_is_unprocessable(monkeypatch):
 
 def test_timezone_defaults_to_utc_when_not_given(monkeypatch):
     fake_get_busy_blocks = AsyncMock(return_value=[])
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", fake_get_busy_blocks)
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", fake_get_busy_blocks)
 
     _get(start="2026-09-01", end="2026-09-02")
 
@@ -113,7 +114,7 @@ def test_timezone_defaults_to_utc_when_not_given(monkeypatch):
 
 def test_custom_timezone_is_passed_through(monkeypatch):
     fake_get_busy_blocks = AsyncMock(return_value=[])
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", fake_get_busy_blocks)
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", fake_get_busy_blocks)
 
     _get(start="2026-09-01", end="2026-09-02", timezone="America/New_York")
 
@@ -187,7 +188,7 @@ class TestAvailableSlotsForRange:
 
 
 # ---------------------------------------------------------------------------
-# Phase 2: POST /dev/request -- free text in, open slots (or a clarifying
+# Phase 2: POST /request -- free text in, open slots (or a clarifying
 # question) out. The LLM call is always mocked, same convention
 # test_agents_support.py uses for its own classification call.
 # ---------------------------------------------------------------------------
@@ -213,13 +214,13 @@ def _mock_parse(monkeypatch, **overrides):
 
 
 def _request(message="I'd like a 30 minute consultation"):
-    return client.post("/api/agents/booking/dev/request", json={"message": message})
+    return client.post("/api/agents/booking/request", json={"message": message})
 
 
 def test_request_returns_open_slots_when_available(monkeypatch):
     monday = _next_monday(date.today())
     _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday))
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", AsyncMock(return_value=[]))
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(return_value=[]))
 
     resp = _request()
 
@@ -236,7 +237,7 @@ def test_request_reports_no_availability_for_a_fully_booked_range(monkeypatch):
     monday = _next_monday(date.today())
     _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday))
     monkeypatch.setattr(
-        agents_booking,
+        agents_booking._calendar_provider,
         "get_busy_blocks",
         AsyncMock(return_value=[BusyBlock(start=f"{monday}T09:00:00+00:00", end=f"{monday}T17:00:00+00:00")]),
     )
@@ -283,7 +284,7 @@ def test_request_surfaces_calendar_error_as_bad_gateway(monkeypatch):
     monday = _next_monday(date.today())
     _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday))
     monkeypatch.setattr(
-        agents_booking, "get_busy_blocks", AsyncMock(side_effect=GoogleCalendarError("boom"))
+        agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(side_effect=GoogleCalendarError("boom"))
     )
 
     resp = _request()
@@ -291,22 +292,33 @@ def test_request_surfaces_calendar_error_as_bad_gateway(monkeypatch):
     assert resp.status_code == 502
 
 
-def test_request_404s_outside_debug_mode(monkeypatch):
+def test_request_works_outside_debug_mode(monkeypatch):
+    """Unlike /dev/busy, /request is public -- it's what the real chat
+    widget and /demo/booking-assistant call in production, where DEBUG is
+    off (see request_booking's own docstring on this)."""
     monkeypatch.setattr(settings, "debug", False)
+    monday = _next_monday(date.today())
+    _mock_parse(monkeypatch, earliest_date=str(monday), latest_date=str(monday))
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(return_value=[]))
 
     resp = _request()
 
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "needs_selection"
 
 
 # ---------------------------------------------------------------------------
-# Phase 3: POST /dev/confirm -- books one previously-offered slot, after
-# re-checking it's still free. get_busy_blocks and create_event are always
-# mocked here -- no test creates a real Google Calendar event.
+# Phase 3: POST /confirm -- books one previously-offered slot, after
+# re-checking it's still free, then persists a Booking row and fires a
+# notification. get_busy_blocks/create_event are always mocked (no test
+# creates a real Google Calendar event); confirm tests use the isolated
+# `client`/`db_session` fixtures from conftest.py (unlike the plain
+# module-level `client` above) since this route now writes to the database
+# -- same reason test_agents_support.py uses those fixtures for Ticket rows.
 # ---------------------------------------------------------------------------
 
 
-def _confirm(**overrides):
+def _confirm(client, **overrides):
     monday = _next_monday(date.today())
     body = {
         "name": "Jane Doe",
@@ -318,15 +330,17 @@ def _confirm(**overrides):
         "meeting_type": "consultation",
     }
     body.update(overrides)
-    return client.post("/api/agents/booking/dev/confirm", json=body)
+    return client.post("/api/agents/booking/confirm", json=body)
 
 
-def test_confirm_books_when_slot_is_still_free(monkeypatch):
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", AsyncMock(return_value=[]))
+def test_confirm_books_when_slot_is_still_free(client, db_session, monkeypatch):
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(return_value=[]))
     fake_create_event = AsyncMock(return_value="event-abc-123")
-    monkeypatch.setattr(agents_booking, "create_event", fake_create_event)
+    monkeypatch.setattr(agents_booking._calendar_provider, "create_event", fake_create_event)
+    fake_notify = AsyncMock()
+    monkeypatch.setattr(agents_booking, "notify_new_booking", fake_notify)
 
-    resp = _confirm()
+    resp = _confirm(client)
 
     assert resp.status_code == 200
     assert resp.json() == {"status": "booked", "event_id": "event-abc-123"}
@@ -335,52 +349,76 @@ def test_confirm_books_when_slot_is_still_free(monkeypatch):
     assert kwargs["attendee_email"] == "jane@example.com"
     assert "Jane Doe" in kwargs["summary"]
 
+    # Persisted (see agents_booking.confirm_booking's db.add/commit), not
+    # just returned in the response -- this is what a future dashboard
+    # "Bookings" view or Phase 4 handoff would read back.
+    booking = db_session.query(Booking).filter(Booking.calendar_event_id == "event-abc-123").first()
+    assert booking is not None
+    assert booking.name == "Jane Doe"
+    assert booking.email == "jane@example.com"
+    assert booking.status == "confirmed"
 
-def test_confirm_reports_conflict_when_slot_was_taken_in_the_meantime(monkeypatch):
+    # The business gets notified too (Google's own invite already told the
+    # customer) -- TestClient runs BackgroundTasks synchronously before
+    # returning, so this has already fired by the time the response comes
+    # back.
+    fake_notify.assert_awaited_once()
+    assert fake_notify.await_args.args[0] == settings.booking_notification_email
+    assert fake_notify.await_args.args[1].calendar_event_id == "event-abc-123"
+
+
+def test_confirm_reports_conflict_when_slot_was_taken_in_the_meantime(client, db_session, monkeypatch):
     monday = _next_monday(date.today())
     monkeypatch.setattr(
-        agents_booking,
+        agents_booking._calendar_provider,
         "get_busy_blocks",
         AsyncMock(return_value=[BusyBlock(start=f"{monday}T09:30:00+00:00", end=f"{monday}T10:15:00+00:00")]),
     )
     fake_create_event = AsyncMock()
-    monkeypatch.setattr(agents_booking, "create_event", fake_create_event)
+    monkeypatch.setattr(agents_booking._calendar_provider, "create_event", fake_create_event)
 
-    resp = _confirm()
+    resp = _confirm(client)
 
     assert resp.json() == {"status": "conflict", "event_id": None}
     fake_create_event.assert_not_awaited()
+    assert db_session.query(Booking).count() == 0
 
 
-def test_confirm_rejects_a_slot_already_in_the_past(monkeypatch):
+def test_confirm_rejects_a_slot_already_in_the_past(client, db_session, monkeypatch):
     fake_get_busy_blocks = AsyncMock(return_value=[])
-    monkeypatch.setattr(agents_booking, "get_busy_blocks", fake_get_busy_blocks)
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", fake_get_busy_blocks)
 
-    resp = _confirm(start="2020-01-01T10:00:00+00:00", end="2020-01-01T10:30:00+00:00")
+    resp = _confirm(client, start="2020-01-01T10:00:00+00:00", end="2020-01-01T10:30:00+00:00")
 
     assert resp.json()["status"] == "conflict"
     fake_get_busy_blocks.assert_not_awaited()
 
 
-def test_confirm_rejects_unparsable_datetimes():
-    resp = _confirm(start="not-a-date", end="also-not-a-date")
+def test_confirm_rejects_unparsable_datetimes(client):
+    resp = _confirm(client, start="not-a-date", end="also-not-a-date")
 
     assert resp.status_code == 422
 
 
-def test_confirm_surfaces_calendar_error_as_bad_gateway(monkeypatch):
+def test_confirm_surfaces_calendar_error_as_bad_gateway(client, monkeypatch):
     monkeypatch.setattr(
-        agents_booking, "get_busy_blocks", AsyncMock(side_effect=GoogleCalendarError("boom"))
+        agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(side_effect=GoogleCalendarError("boom"))
     )
 
-    resp = _confirm()
+    resp = _confirm(client)
 
     assert resp.status_code == 502
 
 
-def test_confirm_404s_outside_debug_mode(monkeypatch):
+def test_confirm_works_outside_debug_mode(client, db_session, monkeypatch):
+    """Unlike /dev/busy, /confirm is public -- see confirm_booking's own
+    docstring on why (it's what the real chat widget/demo page call)."""
     monkeypatch.setattr(settings, "debug", False)
+    monkeypatch.setattr(agents_booking._calendar_provider, "get_busy_blocks", AsyncMock(return_value=[]))
+    monkeypatch.setattr(agents_booking._calendar_provider, "create_event", AsyncMock(return_value="evt-1"))
+    monkeypatch.setattr(agents_booking, "notify_new_booking", AsyncMock())
 
-    resp = _confirm()
+    resp = _confirm(client)
 
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "booked"

@@ -26,22 +26,30 @@ import json
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from mielikkix_agent_core import LLMClient
 
 from ..core.config import settings
-from ..integrations.google_calendar_client import (
-    BusyBlock,
-    GoogleCalendarError,
-    create_event,
-    get_busy_blocks,
-)
+from ..core.database import get_db
+from ..core.limiter import limiter
+from ..integrations.calendar_provider import BusyBlock, get_calendar_provider
+from ..integrations.google_calendar_client import GoogleCalendarError
+from ..models.booking import Booking
+from ..notifications import notify_new_booking
 
 router = APIRouter(prefix="/api/agents/booking", tags=["booking-assistant"])
 
 _llm_client = LLMClient()
+# Module-level instance, same convention as _llm_client above -- resolved
+# once via the CalendarProvider factory (see calendar_provider.py) rather
+# than importing Google-specific functions directly, so this file has no
+# knowledge of which calendar provider is actually behind it. Tests
+# monkeypatch this instance's methods, same way they already monkeypatch
+# _llm_client.chat.
+_calendar_provider = get_calendar_provider()
 
 # How many open slots to hand back at once -- an unbounded list would be
 # both a huge LLM-adjacent response and a bad picker UI. 8 is plenty for a
@@ -240,11 +248,11 @@ def _available_slots_for_range(
 
 
 def _require_debug() -> None:
-    """Same pattern as agents_voice.py's _require_debug: this route talks to
-    a real Google Calendar and (once Phase 3 adds booking creation) will be
-    able to create real events on it, so it stays behind DEBUG until a
-    phase actually needs it public -- 404, not 403, so it gives no hint to
-    an outsider that the route exists at all while it's off."""
+    """Same pattern as agents_voice.py's _require_debug -- gates the one
+    remaining raw debugging route below (/dev/busy). /request and /confirm
+    used to be debug-gated too during Phase 1-3 development, but are now
+    the real routes the live chat widget/demo page call, so they're public
+    (rate-limited instead, see request_booking/confirm_booking)."""
     if not settings.debug:
         raise HTTPException(status_code=404, detail="Not found")
 
@@ -271,7 +279,7 @@ async def dev_list_busy_blocks(
     layer existing yet.
     """
     try:
-        busy_blocks = await get_busy_blocks(start, end, timezone)
+        busy_blocks = await _calendar_provider.get_busy_blocks(start, end, timezone)
     except GoogleCalendarError as exc:
         # 502 (Bad Gateway), not 500: this app is fine, the upstream Google
         # Calendar API is the one that failed/misbehaved (or credentials
@@ -314,19 +322,34 @@ _GENERIC_CLARIFICATION = (
 )
 
 
-@router.post(
-    "/dev/request",
-    response_model=_RequestBookingResponse,
-    dependencies=[Depends(_require_debug)],
-)
-async def dev_request_booking(body: _RequestBookingBody):
-    """Phase 2: turns a free-text request into real open slots. Two-step
-    error handling worth noting for a reader new to Python's `try`/`except`:
-    _ParseError covers both "the LLM's JSON didn't parse" AND "the dates
-    inside it didn't make sense" (see _parse_request/_resolve_date_range) --
-    either one degrades to a clarifying question rather than a 500, same
-    "never leave the visitor stuck" convention agents_support.py's
-    chat_message() uses for its own LLM-failure fallback.
+@router.post("/request", response_model=_RequestBookingResponse)
+@limiter.limit("10/minute")
+async def request_booking(request: Request, body: _RequestBookingBody):
+    """Phase 2: turns a free-text request into real open slots. Public
+    (not DEBUG-gated) -- unlike Phase 1's /dev/busy, this is what the real
+    live demo (chat widget + /demo/booking-assistant) calls, so it needs to
+    work in production. Rate-limited for the same reason leads.py's
+    create_lead is: each call is a real LLM call plus a real Google
+    Calendar read, both with a cost, reachable by anyone once it's not
+    hidden behind DEBUG.
+
+    CORS note: this relies on the standard, origin-restricted
+    CORSMiddleware (app/main.py), NOT PublicRouteCORSMiddleware (app/core/
+    cors.py) -- same reasoning as agents_support.py's own chat/message
+    route. That second one exists specifically for routes embedded on
+    arbitrary THIRD-PARTY tenant websites (the product's own chat widget);
+    Booking Assistant has no per-tenant calendar yet (Phase 5), so it only
+    ever runs against Mielikkix's own demo calendar from Mielikkix's own
+    sites (website/, apps/dashboard) -- it should stay locked to
+    settings.cors_origins_list, not opened to any origin.
+
+    Two-step error handling worth noting for a reader new to Python's
+    `try`/`except`: _ParseError covers both "the LLM's JSON didn't parse"
+    AND "the dates inside it didn't make sense" (see
+    _parse_request/_resolve_date_range) -- either one degrades to a
+    clarifying question rather than a 500, same "never leave the visitor
+    stuck" convention agents_support.py's chat_message() uses for its own
+    LLM-failure fallback.
     """
     try:
         parsed = await _parse_request(body.message)
@@ -351,7 +374,7 @@ async def dev_request_booking(body: _RequestBookingBody):
     duration_minutes = max(_MIN_DURATION_MINUTES, min(_MAX_DURATION_MINUTES, parsed.duration_minutes))
 
     try:
-        busy_blocks = await get_busy_blocks(earliest, latest, body.timezone)
+        busy_blocks = await _calendar_provider.get_busy_blocks(earliest, latest, body.timezone)
     except GoogleCalendarError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -374,14 +397,18 @@ class _ConfirmBookingBody(BaseModel):
     name: str
     email: str
     phone: str | None = None
-    # Exactly one of the {start, end} pairs /dev/request returned in
-    # `slots` -- this route re-validates it's still free rather than
-    # trusting that (see dev_confirm_booking()'s docstring), but it isn't
-    # re-derived from scratch here.
+    # Exactly one of the {start, end} pairs /request returned in `slots` --
+    # this route re-validates it's still free rather than trusting that
+    # (see confirm_booking()'s docstring), but it isn't re-derived from
+    # scratch here.
     start: str
     end: str
     timezone: str = "UTC"
     meeting_type: str = "appointment"
+    # Ties the resulting Booking row back to the chat session that
+    # triggered it, if this came from the chat-widget handoff rather than
+    # the standalone demo page -- see models/booking.py's session_id.
+    session_id: str | None = None
 
 
 class _ConfirmBookingResponse(BaseModel):
@@ -389,19 +416,29 @@ class _ConfirmBookingResponse(BaseModel):
     event_id: str | None = None
 
 
-@router.post(
-    "/dev/confirm",
-    response_model=_ConfirmBookingResponse,
-    dependencies=[Depends(_require_debug)],
-)
-async def dev_confirm_booking(body: _ConfirmBookingBody):
-    """Phase 3: books the slot the visitor picked from /dev/request's list
-    -- but re-checks freebusy first rather than trusting that response,
-    which may be stale by the time the visitor actually clicks "Confirm"
-    (someone else could have booked the same slot in the meantime, or the
-    server could have restarted between the two calls). This is the same
-    "never trust a snapshot at confirmation time" rule this agent's
-    CLAUDE.md calls out explicitly for exactly this reason.
+@router.post("/confirm", response_model=_ConfirmBookingResponse)
+@limiter.limit("10/minute")
+async def confirm_booking(
+    request: Request,
+    body: _ConfirmBookingBody,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Phase 3: books the slot the visitor picked from /request's list --
+    but re-checks freebusy first rather than trusting that response, which
+    may be stale by the time the visitor actually clicks "Confirm" (someone
+    else could have booked the same slot in the meantime, or the server
+    could have restarted between the two calls). This is the same "never
+    trust a snapshot at confirmation time" rule this agent's CLAUDE.md calls
+    out explicitly for exactly this reason. Public (not DEBUG-gated) and
+    rate-limited, same reasoning as request_booking above.
+
+    On success: persists a Booking row and fires a background notification
+    to the business (see notifications.notify_new_booking) -- Google's own
+    calendar invite (create_event's sendUpdates="all") already tells the
+    CUSTOMER; this is the separate "the business found out too" step,
+    mirroring exactly how api/leads.py's create_lead notifies a business of
+    a new lead via notify_new_lead after committing the Lead row.
     """
     try:
         start = datetime.fromisoformat(body.start)
@@ -418,7 +455,7 @@ async def dev_confirm_booking(body: _ConfirmBookingBody):
         return _ConfirmBookingResponse(status="conflict")
 
     try:
-        busy_blocks = await get_busy_blocks(start.date(), end.date(), body.timezone)
+        busy_blocks = await _calendar_provider.get_busy_blocks(start.date(), end.date(), body.timezone)
     except GoogleCalendarError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -429,7 +466,7 @@ async def dev_confirm_booking(body: _ConfirmBookingBody):
             return _ConfirmBookingResponse(status="conflict")
 
     try:
-        event_id = await create_event(
+        event_id = await _calendar_provider.create_event(
             summary=f"{body.meeting_type} with {body.name}",
             start=start,
             end=end,
@@ -439,5 +476,22 @@ async def dev_confirm_booking(body: _ConfirmBookingBody):
         )
     except GoogleCalendarError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    booking = Booking(
+        session_id=body.session_id,
+        name=body.name,
+        email=body.email,
+        phone=body.phone,
+        meeting_type=body.meeting_type,
+        start_at=start,
+        end_at=end,
+        calendar_event_id=event_id,
+    )
+    db.add(booking)
+    db.commit()
+    db.refresh(booking)
+
+    if settings.booking_notification_email:
+        background_tasks.add_task(notify_new_booking, settings.booking_notification_email, booking)
 
     return _ConfirmBookingResponse(status="booked", event_id=event_id)

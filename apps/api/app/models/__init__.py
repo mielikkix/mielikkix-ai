@@ -9,11 +9,12 @@ from .lead import Lead
 from .password_reset_token import PasswordResetToken
 from .llm_usage import LLMUsageLog
 from .ticket import Ticket, TicketMessage
+from .booking import Booking
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
     "Document", "DocumentChunk", "Product",
     "Conversation", "Message", "Lead",
     "PasswordResetToken", "LLMUsageLog",
-    "Ticket", "TicketMessage",
+    "Ticket", "TicketMessage", "Booking",
 ]

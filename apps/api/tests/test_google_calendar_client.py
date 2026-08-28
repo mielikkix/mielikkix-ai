@@ -17,7 +17,12 @@ from datetime import date, datetime, timezone
 import pytest
 
 from app.integrations import google_calendar_client
-from app.integrations.google_calendar_client import GoogleCalendarError, create_event, get_busy_blocks
+from app.integrations.google_calendar_client import GoogleCalendarError, GoogleCalendarProvider
+
+# One shared, stateless instance -- GoogleCalendarProvider carries no state
+# of its own (every call reads settings.* fresh), so instantiating it once
+# per test file is equivalent to once per test.
+provider = GoogleCalendarProvider()
 
 
 class _FakeFreebusy:
@@ -92,7 +97,7 @@ async def test_get_busy_blocks_parses_response(monkeypatch):
         },
     )
 
-    blocks = await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+    blocks = await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
 
     assert [(b.start, b.end) for b in blocks] == [
         ("2024-08-13T09:00:00Z", "2024-08-13T10:00:00Z"),
@@ -105,7 +110,7 @@ async def test_get_busy_blocks_sends_correct_query_body(monkeypatch):
     _configure_credentials(monkeypatch)
     fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
 
-    await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14), timezone="America/New_York")
+    await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14), timezone="America/New_York")
 
     sent_body = fake_service.freebusy().last_query_body
     # Must carry a real UTC offset, not a bare timestamp -- Google's API
@@ -122,7 +127,7 @@ async def test_get_busy_blocks_returns_empty_list_when_calendar_has_no_busy_key(
     _configure_credentials(monkeypatch)
     _patch_service(monkeypatch, {"calendars": {"primary": {}}})
 
-    blocks = await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+    blocks = await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
 
     assert blocks == []
 
@@ -134,7 +139,7 @@ async def test_get_busy_blocks_raises_when_not_configured(monkeypatch):
     monkeypatch.setattr(google_calendar_client.settings, "google_calendar_refresh_token", "")
 
     with pytest.raises(GoogleCalendarError, match="isn't connected yet"):
-        await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+        await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
 
 
 @pytest.mark.asyncio
@@ -164,7 +169,7 @@ async def test_get_busy_blocks_raises_google_calendar_error_on_api_error(monkeyp
     monkeypatch.setattr(google_calendar_client, "build", lambda *args, **kwargs: _FailingService())
 
     with pytest.raises(GoogleCalendarError, match="freebusy query failed"):
-        await get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+        await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
 
 
 @pytest.mark.asyncio
@@ -173,7 +178,7 @@ async def test_create_event_returns_the_new_event_id(monkeypatch):
     fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
     fake_service._events = _FakeEvents({"id": "real-event-id-123"})
 
-    event_id = await create_event(
+    event_id = await provider.create_event(
         summary="Consultation with Jane Doe",
         start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
         end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),
@@ -190,7 +195,7 @@ async def test_create_event_sends_attendee_and_sends_updates(monkeypatch):
     _configure_credentials(monkeypatch)
     fake_service = _patch_service(monkeypatch, {"calendars": {"primary": {"busy": []}}})
 
-    await create_event(
+    await provider.create_event(
         summary="Consultation with Jane Doe",
         start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
         end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),
@@ -234,7 +239,7 @@ async def test_create_event_raises_google_calendar_error_on_api_error(monkeypatc
     monkeypatch.setattr(google_calendar_client, "build", lambda *args, **kwargs: _FailingService())
 
     with pytest.raises(GoogleCalendarError, match="event creation failed"):
-        await create_event(
+        await provider.create_event(
             summary="x",
             start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
             end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),

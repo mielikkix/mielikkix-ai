@@ -187,6 +187,13 @@ class Settings(BaseSettings):
     # until Phase 5 replaces this with the real per-tenant lookup.
     booking_agent_hours_start: str = "09:00"
     booking_agent_hours_end: str = "17:00"
+    # Who gets emailed when a new booking is confirmed (see
+    # notifications/notify_new_booking) -- Google's own calendar invite
+    # already tells the CUSTOMER; this is the separate "the business got
+    # notified" step. Defaults to Mielikkix's own real business inbox since
+    # this demo has no per-tenant BusinessSettings.contact_email to read yet
+    # (see models/booking.py's comment on why Booking has no business_id).
+    booking_notification_email: str = "post@mielikkix.no"
 
     # Support Triage agent (apps/agents/support-triage) -- unlike every
     # other agent, this one's "tenant" is the platform itself: it powers

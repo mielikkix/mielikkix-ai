@@ -19,6 +19,7 @@ import { AdminOverviewPage } from './dashboard/pages/admin/AdminOverviewPage'
 import { AdminBusinessesPage } from './dashboard/pages/admin/AdminBusinessesPage'
 import { AdminBusinessDetailPage } from './dashboard/pages/admin/AdminBusinessDetailPage'
 import { AdminUsagePage } from './dashboard/pages/admin/AdminUsagePage'
+import { AdminBookingsPage } from './dashboard/pages/admin/AdminBookingsPage'
 import { useAuthStore } from './shared/store/authStore'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -173,6 +174,14 @@ export function App() {
         element={
           <RequireAdmin>
             <AdminLayout><AdminUsagePage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/bookings"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminBookingsPage /></AdminLayout>
           </RequireAdmin>
         }
       />

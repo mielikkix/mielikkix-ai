@@ -19,6 +19,7 @@ from ..models.lead import Lead
 from ..models.document import Document
 from ..models.conversation import Conversation
 from ..models.llm_usage import LLMUsageLog
+from ..models.booking import Booking
 from . import plan_service
 
 
@@ -274,3 +275,39 @@ def get_llm_usage(db: Session, business_id: Optional[str] = None, days: int = 30
         "by_day": by_day,
         "by_business": by_business,
     }
+
+
+def list_bookings(db: Session, page: int = 1, page_size: int = 20) -> dict:
+    """Booking Assistant's bookings have no business_id yet (see
+    models/booking.py's own comment -- these are all Mielikkix's own demo
+    calendar, not per-tenant data), so unlike list_businesses above there's
+    no per-tenant dashboard this could live in instead -- platform admin is
+    the only place that makes sense today. Ordered by created_at desc (most
+    recently made booking first) -- this is an activity view for an
+    operator, not a scheduling tool.
+    """
+    query = db.query(Booking)
+    total = query.count()
+    bookings = (
+        query.order_by(Booking.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    items = [
+        {
+            "id": booking.id,
+            "name": booking.name,
+            "email": booking.email,
+            "phone": booking.phone,
+            "meeting_type": booking.meeting_type,
+            "start_at": booking.start_at,
+            "end_at": booking.end_at,
+            "status": booking.status,
+            "created_at": booking.created_at,
+        }
+        for booking in bookings
+    ]
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}

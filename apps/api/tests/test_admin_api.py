@@ -1,6 +1,9 @@
 """API-level tests for the platform-admin endpoints in app/api/admin.py."""
+from datetime import datetime, timedelta, timezone
+
 from app.core.config import settings
 from app.models.llm_usage import LLMUsageLog
+from app.models.booking import Booking
 
 
 def _make_admin(monkeypatch, email: str):
@@ -208,3 +211,64 @@ def test_admin_llm_usage_aggregates_logged_calls(client, business, monkeypatch, 
     assert body["totals"]["requests"] == 1
     assert body["totals"]["total_tokens"] == 150
     assert body["by_business"][0]["business_id"] == business["business_id"]
+
+
+def _make_booking(db_session, **overrides) -> Booking:
+    now = datetime.now(timezone.utc)
+    fields = {
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "meeting_type": "consultation",
+        "start_at": now + timedelta(days=1),
+        "end_at": now + timedelta(days=1, minutes=30),
+        "calendar_event_id": "fake-event-id",
+    }
+    fields.update(overrides)
+    booking = Booking(**fields)
+    db_session.add(booking)
+    db_session.commit()
+    return booking
+
+
+def test_non_admin_cannot_list_bookings(client, business):
+    resp = client.get("/api/admin/bookings", headers=business["headers"])
+    assert resp.status_code == 403
+
+
+def test_admin_can_list_bookings(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_booking(db_session, name="Jane Doe", email="jane@example.com")
+
+    resp = client.get("/api/admin/bookings", headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["name"] == "Jane Doe"
+    assert body["items"][0]["email"] == "jane@example.com"
+    assert body["items"][0]["status"] == "confirmed"
+
+
+def test_admin_bookings_most_recent_first(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_booking(db_session, name="Booked First", email="first@example.com")
+    _make_booking(db_session, name="Booked Second", email="second@example.com")
+
+    resp = client.get("/api/admin/bookings", headers=business["headers"])
+
+    names = [item["name"] for item in resp.json()["items"]]
+    assert names == ["Booked Second", "Booked First"]
+
+
+def test_admin_bookings_pagination(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    for i in range(3):
+        _make_booking(db_session, name=f"Booking {i}", email=f"booking{i}@example.com")
+
+    resp = client.get("/api/admin/bookings", params={"page": 1, "page_size": 2}, headers=business["headers"])
+    body = resp.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 2
+
+    resp2 = client.get("/api/admin/bookings", params={"page": 2, "page_size": 2}, headers=business["headers"])
+    assert len(resp2.json()["items"]) == 1

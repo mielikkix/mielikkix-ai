@@ -11,6 +11,7 @@ from ..schemas.admin import (
     AdminBusinessPlanUpdate,
     AdminOverviewOut,
     AdminLLMUsageOut,
+    AdminBookingListOut,
 )
 from ..services import admin_service
 
@@ -68,3 +69,12 @@ def get_llm_usage(
     db: Session = Depends(get_db),
 ):
     return admin_service.get_llm_usage(db, business_id=business_id, days=days)
+
+
+@router.get("/bookings", response_model=AdminBookingListOut)
+def list_bookings(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    return admin_service.list_bookings(db, page=page, page_size=page_size)

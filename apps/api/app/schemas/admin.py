@@ -124,3 +124,22 @@ class AdminLLMUsageOut(BaseModel):
     totals: AdminLLMUsageSummary
     by_day: List[AdminLLMUsageByDay]
     by_business: List[AdminLLMUsageByBusiness]
+
+
+class AdminBookingListItem(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    phone: Optional[str]
+    meeting_type: str
+    start_at: datetime
+    end_at: datetime
+    status: str
+    created_at: datetime
+
+
+class AdminBookingListOut(BaseModel):
+    items: List[AdminBookingListItem]
+    total: int
+    page: int
+    page_size: int

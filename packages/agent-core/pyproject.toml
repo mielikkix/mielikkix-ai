@@ -5,6 +5,8 @@ description = "Shared LLM client, prompt/tool-calling framework, and memory/RAG 
 requires-python = ">=3.12"
 dependencies = [
     "groq==0.8.0",
+    "openai==1.109.1",
+    "anthropic==0.125.0",
     "pydantic-settings==2.2.1",
 ]
 

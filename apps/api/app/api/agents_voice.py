@@ -479,13 +479,25 @@ def _evict_stale_calls() -> None:
         _forget_call(sid)
 
 
+# Voice Receptionist's model tier: OpenAI (settings.openai_model, default
+# gpt-4o) -- standard chat-completions-with-tools, the same turn-based
+# Gather/Say flow this module already runs, NOT OpenAI's separate Realtime
+# (audio-streaming) API. Real-time voice would mean replacing Twilio's
+# <Gather>/<Say> webhook round-trip with Twilio Media Streams + a
+# persistent WebSocket audio session end to end -- a genuinely different
+# architecture, not a provider swap, and deliberately out of scope here so
+# a live product path isn't rearchitected unattended; this swap only gets
+# Voice Receptionist off Groq (which was rate-limiting badly enough to
+# stall live calls -- see llm_client.py's own retry-fix comment) to a
+# provider with real capacity for the SAME text-turn flow.
+#
 # A tighter per-call timeout than LLMClient's own 15s default: a single
 # turn can now chain up to _MAX_TOOL_ROUNDS+1 LLM calls plus a real Google
 # Calendar call (inside check_availability), and Twilio's own webhook
 # response budget is itself only ~15s total for the whole turn -- verify
 # both numbers against real measured latency via /dev/voice-test rather
 # than trusting this guess.
-_llm_client = LLMClient(timeout_seconds=8.0)
+_llm_client = LLMClient(provider="openai", timeout_seconds=8.0)
 
 # Fire-and-forget booking-notification tasks (see _fire_booking_notification)
 # need a kept reference or asyncio can garbage-collect a running task mid-

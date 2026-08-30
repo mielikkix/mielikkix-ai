@@ -36,7 +36,18 @@ from ..models.business import Business, BusinessSettings
 from ..services import plan_service
 from fastapi import HTTPException
 
-_llm_client = LLMClient()
+# Booking Agent's model tier: Anthropic (settings.anthropic_model, default
+# claude-sonnet-5) -- this is the SHARED "parse a free-text request into a
+# structured date range" call every entry point funnels through (Voice
+# Receptionist's tool executor AND the standalone Booking Assistant chat
+# widget/demo page both call resolve_booking_request(), which calls
+# _parse_request(), which uses this client -- see this module's own
+# docstring). Deliberately the higher-reasoning tier: getting a caller's
+# vague "sometime next week, afternoons work best" into a correct date
+# range and duration is exactly the "strong multi-turn reasoning,
+# structured tool use" case Claude Sonnet is assigned to, not the
+# lower-stakes cheap tier.
+_llm_client = LLMClient(provider="anthropic")
 # Module-level instance, resolved once via the CalendarProvider factory (see
 # calendar_provider.py) rather than importing Google-specific functions
 # directly, so this module has no knowledge of which calendar provider is

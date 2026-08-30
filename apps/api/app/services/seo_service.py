@@ -17,12 +17,18 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from mielikkix_agent_core import LLMClient
+from mielikkix_agent_core.config import get_settings as get_agent_core_settings
 
 from ..models.product import Product, product_embedding_text
 from ..models.seo_draft import SeoDraft
 from ..rag.embeddings import embed_query
 
-_llm_client = LLMClient()
+# SEO Copywriter's model tier: OpenAI's cheap/fast tier
+# (settings.openai_mini_model, default gpt-4o-mini) -- routine, low-stakes
+# content generation from a product's own existing name/category/
+# description, not multi-step reasoning, so it doesn't need a
+# higher-reasoning tier's cost.
+_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model)
 
 _SYSTEM_PROMPT = (
     "You write product copy that actually targets real search intent -- "

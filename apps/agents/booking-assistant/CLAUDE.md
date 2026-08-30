@@ -135,9 +135,15 @@ project:
 - **Calendar**: Google Calendar API v3, via `google-api-python-client` +
   `google-auth-oauthlib` (official Google client libraries — do not hand-roll
   the OAuth token refresh dance) in this agent's own `integrations/` module.
-- **LLM**: `packages/agent-core`'s client — parses free-text requests into a
-  structured query (`duration_minutes`, `earliest_date`, `latest_date`,
-  `timezone`, `meeting_type`).
+- **LLM**: `packages/agent-core`'s client, on Anthropic Claude Sonnet
+  (`LLMClient(provider="anthropic")`, per `apps/agents/CLAUDE.md`'s tier
+  assignment) — parses free-text requests into a structured query
+  (`duration_minutes`, `earliest_date`, `latest_date`, `timezone`,
+  `meeting_type`). This one call is shared infrastructure: both the
+  standalone Booking Assistant entry points (chat widget, `/demo/
+  booking-assistant`) AND Voice Receptionist's tool-calling loop funnel
+  through it via `booking_service.resolve_booking_request()` — there is no
+  separate "voice's own parsing" vs. "chat's own parsing."
 - **Reminders**: Google Calendar auto-emails invites/reminders to attendees
   by default — satisfies "reminders sent automatically" with no extra work.
   Only fall back to `apps/api/app/notifications` (Resend) for a branded

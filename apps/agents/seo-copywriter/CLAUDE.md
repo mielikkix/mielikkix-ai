@@ -13,10 +13,13 @@ after the 3 flagships (see root `CLAUDE.md`'s "Current status").
 
 ## Integrations needed
 
-Nothing beyond `packages/agent-core`'s LLM client — this agent reads an
-existing `Product` row and writes a draft back; no third-party API, no
-external account setup. One of the faster agents to build for exactly this
-reason.
+Nothing beyond `packages/agent-core`'s LLM client, on OpenAI's cheap/fast
+tier (`LLMClient(provider="openai", model=settings.openai_mini_model)`, per
+`apps/agents/CLAUDE.md`'s tier assignment — routine content generation
+from a product's own existing fields, not multi-step reasoning) — this
+agent reads an existing `Product` row and writes a draft back; no
+third-party API, no external account setup. One of the faster agents to
+build for exactly this reason.
 
 ## Data this agent stores
 

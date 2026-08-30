@@ -21,8 +21,10 @@ mielikkix.ai itself.
 
 ## Integrations needed
 
-- **LLM**: `packages/agent-core`'s client — classification (category,
-  priority, confidence) and reply drafting.
+- **LLM**: `packages/agent-core`'s client, on Anthropic Claude Sonnet
+  (`LLMClient(provider="anthropic")`, per `apps/agents/CLAUDE.md`'s tier
+  assignment) — classification (category, priority, confidence) and reply
+  drafting.
 - **Database**: `packages/db` — tickets, messages, escalation state
   (tenant-scoped like everything else; here the "tenant" is the platform
   itself, since this widget serves mielikkix.ai's own visitors).

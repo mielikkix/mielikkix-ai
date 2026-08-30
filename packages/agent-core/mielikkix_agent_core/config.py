@@ -29,6 +29,20 @@ class AgentCoreSettings(BaseSettings):
     default_llm_provider: str = "groq"
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
+    # Per-tier model assignment across the Force agents (see root CLAUDE.md
+    # and each agent's own _llm_client construction for which tier it's
+    # on): Voice Receptionist and "simple" agents default to OpenAI,
+    # Booking Assistant and other "complex" agents default to Anthropic
+    # Claude Sonnet, with Claude Opus available for a future genuinely
+    # "very complex" workflow. Empty api keys are fine at import time --
+    # LLMClient only fails if a call actually reaches a provider with no
+    # key configured, same as groq_api_key already behaves.
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+    openai_mini_model: str = "gpt-4o-mini"
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-5"
+    anthropic_opus_model: str = "claude-opus-5"
 
     class Config:
         env_file = str(_find_root_env_file())

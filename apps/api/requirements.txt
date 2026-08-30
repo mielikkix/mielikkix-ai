@@ -40,6 +40,15 @@ pytest-asyncio==0.23.6
 httpx==0.27.0
 slowapi==0.1.9
 groq==0.8.0
+# Multi-provider LLMClient (packages/agent-core/mielikkix_agent_core/llm_client.py)
+# -- Voice Receptionist/"simple" agents on OpenAI, Booking Assistant/
+# "complex" agents on Anthropic Claude Sonnet, Claude Opus available for a
+# future very-complex workflow. Duplicated here (not just declared in
+# agent-core's own pyproject.toml) for the same reason groq== above already
+# is: apps/api's requirements.txt pins the exact version this app actually
+# deploys with.
+openai==1.109.1
+anthropic==0.125.0
 google-generativeai==0.5.4
 # Booking Assistant's Google Calendar integration (apps/agents/booking-assistant).
 # Only actually needed for scripts/connect_google_calendar.py's one-time local

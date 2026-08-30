@@ -24,7 +24,11 @@ from ..notifications import notify_support_escalation
 from ..rag.embeddings import embed_query
 from ..rag.pipeline import retrieve_chunks, retrieve_faqs, retrieve_products, _detect_intent
 
-_llm_client = LLMClient()
+# Support Triage's model tier: Anthropic (settings.anthropic_model, default
+# claude-sonnet-5) -- a "complex agent" per Mielikkix's tier assignment
+# (classification + confidence-gated answering + booking-intent handoff,
+# see this module's own phased plan), not the cheap/fast tier.
+_llm_client = LLMClient(provider="anthropic")
 
 # Python note: a triple-quoted string built with .format()-style {json braces
 # escaped as {{ }} would get messy fast -- this is plain string

@@ -236,7 +236,7 @@ def test_dev_start_returns_greeting_as_json():
     resp = client.post("/api/agents/voice/dev/start", json={"call_sid": "CAdevtest1"})
 
     assert resp.status_code == 200
-    assert resp.json() == {"reply": agents_voice._GREETING, "ended": False, "heard_as": None}
+    assert resp.json() == {"reply": agents_voice._GREETING, "ended": False, "heard_as": None, "language": "en"}
 
 
 def test_dev_routes_404_outside_debug_mode(monkeypatch):
@@ -312,7 +312,12 @@ def test_dev_gather_uses_same_turn_logic_as_real_gather(monkeypatch):
     )
 
     assert resp.status_code == 200
-    assert resp.json() == {"reply": "We're open every day 9 to 6.", "ended": False, "heard_as": None}
+    assert resp.json() == {
+        "reply": "We're open every day 9 to 6.",
+        "ended": False,
+        "heard_as": None,
+        "language": "en",
+    }
 
 
 def test_display_correction_rewrites_known_mishearings():
@@ -1073,3 +1078,149 @@ def test_gather_create_support_ticket_tool_requires_name_and_issue(monkeypatch):
 
     assert resp.status_code == 200
     fake_create_ticket.assert_not_awaited()
+
+
+# --- Norwegian language support -----------------------------------------
+
+
+def test_incoming_call_always_gathers_in_english(monkeypatch):
+    """A brand-new call has no language history yet -- the very first
+    <Gather> must always request English recognition, never Norwegian,
+    regardless of what a previous call on the same process did."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    resp = client.post("/api/agents/voice/incoming", data={"CallSid": "CAtest-freshcall"})
+
+    assert resp.status_code == 200
+    assert 'language="en-US"' in resp.text
+
+
+def test_gather_latches_to_norwegian_and_switches_recognition_language(monkeypatch):
+    """A caller who replies in Norwegian flips this call's language to
+    "no" -- both the LLM's reply-language instruction (checked indirectly
+    via the system prompt below) and, critically, the NEXT <Gather>'s own
+    Twilio recognition language, so a real follow-up sentence actually
+    gets transcribed correctly instead of staying stuck on English."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-norwegian-latch"
+    agents_voice._forget_call(call_sid)
+
+    fake_chat = AsyncMock(return_value=_tool_call_result("Hei! Hvordan kan jeg hjelpe deg?"))
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "Hei, jeg vil gjerne bestille en time, takk"},
+    )
+
+    assert resp.status_code == 200
+    assert 'language="nb-NO"' in resp.text
+    assert agents_voice._call_language[call_sid] == "no"
+    system_message = fake_chat.call_args.args[0][0]["content"]
+    assert "reply ONLY in Norwegian" in system_message
+
+
+def test_gather_norwegian_stays_latched_on_an_ambiguous_later_turn(monkeypatch):
+    """Once switched, the call must not flip back to English mid-call just
+    because a later turn's speech happens to score ambiguously (e.g. a
+    short reply with no strong signal either way) -- that would whiplash
+    the caller. The latch is one-directional."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-norwegian-sticky"
+    agents_voice._forget_call(call_sid)
+    agents_voice._call_language[call_sid] = "no"
+    agents_voice._call_history[call_sid] = []
+
+    fake_chat = AsyncMock(return_value=_tool_call_result("..."))
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "12"},
+    )
+
+    assert resp.status_code == 200
+    assert agents_voice._call_language[call_sid] == "no"
+    assert 'language="nb-NO"' in resp.text
+
+
+def test_gather_norwegian_goodbye_phrase_ends_call_in_norwegian(monkeypatch):
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    call_sid = "CAtest-norwegian-bye"
+    agents_voice._forget_call(call_sid)
+    agents_voice._call_language[call_sid] = "no"
+    agents_voice._call_history[call_sid] = []
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "Nei takk, det var alt. Ha det!"},
+    )
+
+    assert resp.status_code == 200
+    assert agents_voice._CLOSING_LINE_NO in resp.text
+    assert "<Hangup" in resp.text
+    assert call_sid not in agents_voice._call_language
+
+
+def test_gather_norwegian_confirmation_books_and_replies_in_norwegian(monkeypatch):
+    """The deterministic finalize-booking fast path must also recognize a
+    Norwegian "yes" (e.g. "ja, det stemmer") -- the English-only
+    _CONFIRMATION_PATTERN would otherwise silently strand a Norwegian
+    caller one turn away from ever completing a real booking."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    call_sid = "CAtest-norwegian-confirm"
+    agents_voice._forget_call(call_sid)
+    agents_voice._call_language[call_sid] = "no"
+    agents_voice._call_history[call_sid] = []
+    agents_voice._call_turn_counts[call_sid] = 1
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    slot = booking_service.SlotOption(start=monday.replace(hour=14, minute=0), end=monday.replace(hour=14, minute=30))
+    agents_voice._call_pending_slots[call_sid] = [slot]
+    agents_voice._call_pending_meeting_type[call_sid] = "call"
+    agents_voice._call_pending_confirmation[call_sid] = {
+        "turn": 1,
+        "slot_index": 1,
+        "name": "Kari",
+        "email": "kari@example.com",
+        "phone": None,
+    }
+
+    fake_booking = type("FakeBooking", (), {"calendar_event_id": "evt-no-1"})()
+    fake_confirm_result = booking_service.ConfirmBookingResult(
+        status="booked", event_id="evt-no-1", booking=fake_booking, notify_email="owner@example.com"
+    )
+    monkeypatch.setattr(booking_service, "confirm_booking_slot", AsyncMock(return_value=fake_confirm_result))
+    monkeypatch.setattr(agents_voice, "notify_new_booking", AsyncMock())
+    # No LLMResult queued -- the Norwegian confirmation fast path must skip
+    # the LLM entirely, same as the English one.
+    monkeypatch.setattr(agents_voice._llm_client, "chat", AsyncMock())
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "ja, det stemmer"},
+    )
+
+    assert resp.status_code == 200
+    assert "Da er du booket" in resp.text
+    assert agents_voice._format_slot_for_speech(slot.start, "no") in resp.text
+
+
+def test_dev_gather_reports_current_language_for_the_browser_demo(monkeypatch):
+    """The browser demo has no server-side Gather/Say to configure -- it
+    reads this field back to switch its own Web Speech API recognizer and
+    voice once a call latches onto Norwegian."""
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAdevtest-norwegian"
+    agents_voice._forget_call(call_sid)
+
+    fake_chat = AsyncMock(return_value=_tool_call_result("Hei! Hvordan kan jeg hjelpe deg?"))
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/dev/gather",
+        json={"call_sid": call_sid, "speech": "Hei, jeg har et spørsmål, takk"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["language"] == "no"

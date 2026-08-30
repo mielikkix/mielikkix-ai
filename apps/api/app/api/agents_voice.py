@@ -41,6 +41,7 @@ from ..core.limiter import limiter
 from ..integrations.google_calendar_client import GoogleCalendarError
 from ..notifications import notify_new_booking
 from ..rag.embeddings import embed_query
+from ..rag.language_detect import detect_message_language
 from ..rag.pipeline import retrieve_chunks, retrieve_faqs, retrieve_products
 from ..services import booking_service, support_service
 
@@ -48,10 +49,22 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/agents/voice", tags=["voice-receptionist"])
 
-_GREETING = "Hello, thanks for calling Mielikkix. How can I help you today?"
+# English is always the FIRST language of a new call -- there's no way to know
+# a caller's language before they've said anything (see the language-latch
+# comment in _handle_turn) -- so the greeting stays English, with one short
+# added line letting a Norwegian speaker know they can just go ahead in
+# Norwegian instead of forcing a bilingual (and TTS-mispronounced) greeting.
+_GREETING = "Hello, thanks for calling Mielikkix. How can I help you today? You can also speak with me in Norwegian."
 _CLOSING_LINE = "Thanks for calling Mielikkix. Have a great day, goodbye!"
+_CLOSING_LINE_NO = "Takk for at du ringte Mielikkix. Ha en fin dag, ha det bra!"
 _SILENCE_CLOSING_LINE = "I haven't heard anything for a bit, so I'll let you go -- feel free to call back anytime. Goodbye!"
+_SILENCE_CLOSING_LINE_NO = "Jeg har ikke hørt noe på en stund, så jeg lar deg gå -- ring gjerne tilbake når som helst. Ha det!"
 _TURN_CAP_CLOSING_LINE = "We've covered a lot today -- I'll have someone from the team follow up on anything else. Thanks for calling Mielikkix, goodbye!"
+_TURN_CAP_CLOSING_LINE_NO = "Vi har vært gjennom mye i dag -- jeg lar noen fra teamet følge opp resten. Takk for at du ringte Mielikkix, ha det!"
+_NO_SPEECH_RETRY = "Sorry, I didn't catch that. Could you say that again?"
+_NO_SPEECH_RETRY_NO = "Beklager, jeg fikk ikke med meg det. Kan du si det igjen?"
+_LLM_ERROR_FALLBACK = "Sorry, I'm having trouble understanding right now. Could you try again in a moment?"
+_LLM_ERROR_FALLBACK_NO = "Beklager, jeg har litt problemer med å forstå akkurat nå. Kan du prøve igjen om litt?"
 
 _SYSTEM_PROMPT_BASE = (
     "You are a warm, professional voice receptionist answering a phone call "
@@ -99,14 +112,45 @@ _BOOKING_SYSTEM_PROMPT_ADDENDUM = (
     "already have it. Tell them a member of the team will be in touch."
 )
 
+# Appended once _call_language has latched onto "no" for this call (see
+# _handle_turn) -- everything else in the system prompt stays in English
+# (LLMs follow English instructions about a non-English OUTPUT language
+# just fine; translating the instructions themselves would be extra work
+# for no behavioral benefit). Deterministic, non-LLM lines (greeting,
+# closings, the propose_booking confirmation text, etc.) are switched
+# separately -- see the _NO-suffixed constants throughout this file.
+_LANGUAGE_INSTRUCTION_NO = (
+    "\n\nIMPORTANT: The caller is speaking Norwegian. From this point on, "
+    "reply ONLY in Norwegian (Bokmål) -- never switch back to English mid-"
+    "call, even though these instructions themselves are in English."
+)
 
-def _format_slot_for_speech(slot_start: datetime) -> str:
-    """"Tuesday at 2 PM" style, in the fixed voice-booking timezone (see
-    _VOICE_BOOKING_TIMEZONE below) -- the LLM reads this exact string aloud
-    rather than being handed a raw ISO/UTC timestamp to convert and speak
-    itself, which would risk it mis-converting the timezone or misreading
-    digits."""
+
+_WEEKDAYS_NO = {
+    "Monday": "mandag",
+    "Tuesday": "tirsdag",
+    "Wednesday": "onsdag",
+    "Thursday": "torsdag",
+    "Friday": "fredag",
+    "Saturday": "lørdag",
+    "Sunday": "søndag",
+}
+
+
+def _format_slot_for_speech(slot_start: datetime, language: str = "en") -> str:
+    """"Tuesday at 2 PM" style (or, for language="no", "tirsdag klokken
+    14:00" -- Norwegian convention is a 24-hour clock, not AM/PM), in the
+    fixed voice-booking timezone (see _VOICE_BOOKING_TIMEZONE below) -- the
+    LLM reads this exact string aloud rather than being handed a raw
+    ISO/UTC timestamp to convert and speak itself, which would risk it
+    mis-converting the timezone or misreading digits. `strftime("%A")`
+    itself is locale-independent (always English) regardless of Python's
+    process-wide locale, so the Norwegian day name is a plain lookup here
+    rather than a global locale switch, which isn't thread-safe."""
     local = slot_start.astimezone(ZoneInfo(_VOICE_BOOKING_TIMEZONE))
+    if language == "no":
+        day = _WEEKDAYS_NO[local.strftime("%A")]
+        return f"{day} klokken {local.strftime('%H:%M')}"
     day = local.strftime("%A")
     time_part = (
         local.strftime("%I %p").lstrip("0")
@@ -258,9 +302,15 @@ _MAX_SPOKEN_SLOTS = 3
 # for the same reason rag/pipeline.py's _matches_any is: a plain substring
 # check on "bye" would misfire on "goodbye" being fine but also on
 # unrelated words containing "bye"-like fragments in a longer sentence.
+# Norwegian alternatives included in the SAME pattern (not a separate
+# per-language regex) since this is checked against the caller's raw
+# speech, before/independent of the language-latch logic in _handle_turn --
+# a caller who has just switched to Norwegian saying "ha det" must still
+# end the call correctly.
 _GOODBYE_PATTERN = re.compile(
     r"\b(bye|goodbye|good bye|that'?s all|nothing else|no thanks|no that'?s it|"
-    r"hang up|end the call|that'?s it for now)\b",
+    r"hang up|end the call|that'?s it for now|"
+    r"ha det|hade|adjø|farvel|det var alt|ingenting mer|legg på)\b",
     re.IGNORECASE,
 )
 
@@ -277,9 +327,13 @@ _GOODBYE_PATTERN = re.compile(
 # ORIGINAL turn, making an already-confirmed booking look same-turn and get
 # wrongly refused. Checking the caller's own words for the turn right after
 # propose_booking's readback avoids that fragility entirely.
+# Norwegian alternatives included in the same pattern, same reasoning as
+# _GOODBYE_PATTERN above -- a Norwegian-speaking caller confirming a
+# booking says "ja"/"stemmer"/"bestill", not "yes"/"confirm".
 _CONFIRMATION_PATTERN = re.compile(
     r"\b(yes|yeah|yep|yup|sure|go ahead|book it|please book|confirm|"
-    r"that works|sounds good|correct|do it|book that|please do)\b",
+    r"that works|sounds good|correct|do it|book that|please do|"
+    r"ja|jepp|jada|korrekt|riktig|stemmer|bestill|det stemmer)\b",
     re.IGNORECASE,
 )
 
@@ -390,7 +444,7 @@ def _retrieve_context(db: Session, query: str) -> str:
     return "\n\n".join(text for text, score in matches if score >= _RAG_MINIMUM_SCORE)
 
 
-def _build_system_prompt(context: str) -> str:
+def _build_system_prompt(context: str, language: str = "en") -> str:
     if context:
         base = (
             f"{_SYSTEM_PROMPT_BASE}\n\nUse the following real information about "
@@ -404,7 +458,10 @@ def _build_system_prompt(context: str) -> str:
             f"business information for this question, so say so plainly and offer "
             f"to have someone follow up, rather than guessing."
         )
-    return base + _BOOKING_SYSTEM_PROMPT_ADDENDUM
+    base += _BOOKING_SYSTEM_PROMPT_ADDENDUM
+    if language == "no":
+        base += _LANGUAGE_INSTRUCTION_NO
+    return base
 
 # Python note: a plain module-level dict, not a database table. This is
 # Phase 1 scope only -- "just a friendly echo/conversation," per this
@@ -422,6 +479,12 @@ _call_history: dict[str, list[dict]] = {}
 # touched in _CALL_STATE_TTL_SECONDS is swept on the next turn.
 _CALL_STATE_TTL_SECONDS = 30 * 60
 _call_last_seen: dict[str, float] = {}
+
+# Which language this call is currently running in -- "en" (the implicit
+# default, never actually stored until switched) or "no", set by the
+# language-latch logic in _handle_turn. Swept by the same TTL/forget
+# mechanism as the rest of this call's state.
+_call_language: dict[str, str] = {}
 
 # Booking's own per-call state, swept by the same TTL/forget mechanism as
 # the conversation state above.
@@ -451,6 +514,7 @@ def _forget_call(call_sid: str) -> None:
     _call_history.pop(call_sid, None)
     _call_silence_counts.pop(call_sid, None)
     _call_turn_counts.pop(call_sid, None)
+    _call_language.pop(call_sid, None)
     _call_pending_slots.pop(call_sid, None)
     _call_pending_meeting_type.pop(call_sid, None)
     _call_pending_confirmation.pop(call_sid, None)
@@ -500,7 +564,9 @@ def _fire_booking_notification(result: booking_service.ConfirmBookingResult) -> 
     task.add_done_callback(_pending_notification_tasks.discard)
 
 
-async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str, tool_call: ToolCall) -> str:
+async def _execute_tool(
+    db: Session, call_sid: str, turn_count: int, speech: str, tool_call: ToolCall, language: str
+) -> str:
     """Runs one tool the LLM asked for and returns its result as a JSON
     string -- the shape `role: "tool"` messages need (see _handle_turn).
     Never raises: GoogleCalendarError becomes a plain {"status":
@@ -552,7 +618,7 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
                 "meeting_type": result.meeting_type,
                 "duration_minutes": result.duration_minutes,
                 "slots": [
-                    {"index": i + 1, "spoken": _format_slot_for_speech(slot.start)}
+                    {"index": i + 1, "spoken": _format_slot_for_speech(slot.start, language)}
                     for i, slot in enumerate(spoken_slots)
                 ],
             }
@@ -618,10 +684,16 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
         # is the caller's chance to catch a well-formed-but-wrong one
         # (right shape, wrong person -- e.g. a misheard digit inside a
         # plausible-looking address).
-        confirmation_text = (
-            f"Just to confirm: {_format_slot_for_speech(chosen.start)} for {name}, "
-            f"and I have your email as {email}. Is that correct? Shall I book it?"
-        )
+        if language == "no":
+            confirmation_text = (
+                f"Bare for å bekrefte: {_format_slot_for_speech(chosen.start, language)} for {name}, "
+                f"og jeg har e-posten din som {email}. Stemmer det? Skal jeg booke den?"
+            )
+        else:
+            confirmation_text = (
+                f"Just to confirm: {_format_slot_for_speech(chosen.start)} for {name}, "
+                f"and I have your email as {email}. Is that correct? Shall I book it?"
+            )
         logger.info("call=%s turn=%s propose_booking -> awaiting_confirmation slot=%s email=%s", call_sid, turn_count, slot_index, email)
         return json.dumps({"status": "awaiting_confirmation", "say": confirmation_text})
 
@@ -649,7 +721,7 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
     return json.dumps({"status": "unknown_tool"})
 
 
-async def _finalize_booking(db: Session, call_sid: str, turn_count: int, pending: dict) -> str:
+async def _finalize_booking(db: Session, call_sid: str, turn_count: int, pending: dict, language: str) -> str:
     """Actually creates the booking staged by propose_booking, once
     _handle_turn has confirmed the caller's very next turn said yes.
     Deliberately does NOT go back through the LLM for slot_index/name/email
@@ -668,6 +740,8 @@ async def _finalize_booking(db: Session, call_sid: str, turn_count: int, pending
         # for something else between propose_booking and now, which
         # replaced the list propose_booking's slot_index pointed into.
         logger.info("call=%s turn=%s finalize_booking stale_slot_index=%s (have %d slots)", call_sid, turn_count, slot_index, len(slots))
+        if language == "no":
+            return "Beklager, den timen er ikke tilgjengelig lenger -- kan du si hva du vil booke på nytt?"
         return "Sorry, that slot isn't available anymore -- could you tell me what you'd like to book again?"
 
     chosen = slots[slot_index - 1]
@@ -686,6 +760,8 @@ async def _finalize_booking(db: Session, call_sid: str, turn_count: int, pending
         )
     except GoogleCalendarError:
         logger.info("call=%s turn=%s finalize_booking calendar_error", call_sid, turn_count)
+        if language == "no":
+            return "Beklager, jeg fikk ikke kontakt med kalenderen akkurat nå -- kan vi prøve igjen om litt?"
         return "Sorry, I couldn't reach the calendar just now -- could we try that again in a moment?"
 
     logger.info("call=%s turn=%s finalize_booking -> status=%s", call_sid, turn_count, result.status)
@@ -694,12 +770,21 @@ async def _finalize_booking(db: Session, call_sid: str, turn_count: int, pending
         _fire_booking_notification(result)
         _call_pending_slots.pop(call_sid, None)
         _call_pending_meeting_type.pop(call_sid, None)
+        if language == "no":
+            return (
+                f"Da er du booket -- jeg har booket {_format_slot_for_speech(chosen.start, language)}. "
+                f"En kalenderinvitasjon er på vei til {pending['email']}."
+            )
         return (
             f"You're all set -- I've booked {_format_slot_for_speech(chosen.start)}. "
             f"A calendar invite is on its way to {pending['email']}."
         )
     if result.status == "conflict":
+        if language == "no":
+            return "Beklager, den timen ble akkurat tatt av noen andre -- vil du at jeg skal sjekke ledige tider igjen?"
         return "Sorry, that slot was just taken by someone else -- would you like me to check availability again?"
+    if language == "no":
+        return "Beklager, noe gikk galt med bookingen -- kan vi prøve igjen om litt?"
     return "Sorry, something went wrong booking that -- could we try again in a moment?"
 
 
@@ -746,25 +831,47 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     speech = speech.strip()
     history = _call_history.setdefault(call_sid, [])
 
+    # One-directional latch: once a turn's speech scores as Norwegian, the
+    # call stays in Norwegian for everything after -- never auto-flips back
+    # to English on a later turn that happens to score ambiguously (a bare
+    # "ja" doesn't score as English either), which would whiplash the
+    # caller mid-conversation. Reuses the exact same heuristic
+    # rag/language_detect.py already uses for the Chat Widget, rather than
+    # a second, separate detector for voice.
+    #
+    # Known limitation: turn 1's <Gather> is still running English speech
+    # recognition (see _gather's language param, chosen from _call_language
+    # BEFORE this function ever runs on that turn) -- a caller who launches
+    # straight into a full Norwegian sentence may get a badly mis-
+    # transcribed first turn, so the switch often only catches reliably
+    # once the caller says something short and clearly Norwegian ("hei",
+    # "ja", the word "norsk" itself). From turn 2 onward, once switched,
+    # Gather's own recognition language is nb-NO too, so full Norwegian
+    # sentences transcribe properly.
+    if speech and _call_language.get(call_sid) != "no":
+        if detect_message_language(speech, ["en", "no"], default="en") == "no":
+            _call_language[call_sid] = "no"
+    language = _call_language.get(call_sid, "en")
+
     if not speech:
         silence_count = _call_silence_counts.get(call_sid, 0) + 1
         _call_silence_counts[call_sid] = silence_count
         if silence_count >= _MAX_CONSECUTIVE_SILENCES:
             _forget_call(call_sid)
-            return _SILENCE_CLOSING_LINE, True
-        return "Sorry, I didn't catch that. Could you say that again?", False
+            return (_SILENCE_CLOSING_LINE_NO if language == "no" else _SILENCE_CLOSING_LINE), True
+        return (_NO_SPEECH_RETRY_NO if language == "no" else _NO_SPEECH_RETRY), False
 
     _call_silence_counts[call_sid] = 0  # any real speech resets the count
 
     if _GOODBYE_PATTERN.search(speech):
         _forget_call(call_sid)
-        return _CLOSING_LINE, True
+        return (_CLOSING_LINE_NO if language == "no" else _CLOSING_LINE), True
 
     turn_count = _call_turn_counts.get(call_sid, 0) + 1
     _call_turn_counts[call_sid] = turn_count
     if turn_count > _MAX_TURNS_PER_CALL:
         _forget_call(call_sid)
-        return _TURN_CAP_CLOSING_LINE, True
+        return (_TURN_CAP_CLOSING_LINE_NO if language == "no" else _TURN_CAP_CLOSING_LINE), True
 
     history.append({"role": "user", "content": speech})
 
@@ -785,13 +892,13 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     if pending and pending["turn"] == turn_count - 1:
         _call_pending_confirmation.pop(call_sid, None)
         if _CONFIRMATION_PATTERN.search(speech):
-            reply = await _finalize_booking(db, call_sid, turn_count, pending)
+            reply = await _finalize_booking(db, call_sid, turn_count, pending, language)
             history.append({"role": "assistant", "content": reply})
             return reply, False
 
     try:
         context = _retrieve_context(db, _anchor_query_for_retrieval(speech))
-        messages = [{"role": "system", "content": _build_system_prompt(context)}, *history]
+        messages = [{"role": "system", "content": _build_system_prompt(context, language)}, *history]
 
         # Python note for a reader new to Python coming from TS/Angular:
         # this loop's `else` clause (way below, at the same indent as
@@ -835,7 +942,7 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
                 }
             )
             for tool_call in result.tool_calls:
-                tool_output = await _execute_tool(db, call_sid, turn_count, speech, tool_call)
+                tool_output = await _execute_tool(db, call_sid, turn_count, speech, tool_call, language)
                 messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": tool_output})
                 # propose_booking's result is spoken verbatim, never handed
                 # back to the model for another round -- see _execute_tool's
@@ -851,12 +958,12 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
                         history.append({"role": "assistant", "content": reply})
                         return reply, False
         else:
-            return _TOOL_LOOP_FALLBACK, False
+            return (_TOOL_LOOP_FALLBACK_NO if language == "no" else _TOOL_LOOP_FALLBACK), False
     except Exception:
         # Never leave the caller in dead air if the LLM call fails/times
         # out mid-call (see this agent's CLAUDE.md testing checklist) --
         # apologize and keep the call alive rather than hanging up on them.
-        return "Sorry, I'm having trouble understanding right now. Could you try again in a moment?", False
+        return (_LLM_ERROR_FALLBACK_NO if language == "no" else _LLM_ERROR_FALLBACK), False
 
     history.append({"role": "assistant", "content": result.text})
     return result.text, False
@@ -874,13 +981,21 @@ def _start_call(call_sid: str) -> str:
     _call_history[call_sid] = []
     _call_silence_counts.pop(call_sid, None)
     _call_turn_counts.pop(call_sid, None)
+    _call_language.pop(call_sid, None)
     _call_pending_slots.pop(call_sid, None)
     _call_pending_meeting_type.pop(call_sid, None)
     _call_pending_confirmation.pop(call_sid, None)
     return _GREETING
 
 
-def _gather(response: VoiceResponse) -> None:
+# Twilio's own BCP-47 codes for its speech recognition (<Gather>) and
+# built-in TTS (<Say>) -- both support "nb-NO" (Norwegian Bokmål) directly,
+# so switching is a language-code change, not a different API/provider.
+def _twilio_lang_code(language: str) -> str:
+    return "nb-NO" if language == "no" else "en-US"
+
+
+def _gather(response: VoiceResponse, language: str = "en") -> None:
     """Appends a <Gather> that listens for speech and posts it to /gather.
     Shared by /incoming (start of call) and /gather (continuing the loop)
     so the listening behavior can't drift between the two call sites.
@@ -888,13 +1003,21 @@ def _gather(response: VoiceResponse) -> None:
     `hints` biases Twilio's speech recognition toward these phrases without
     forbidding anything else -- doesn't fix every mishearing of "Mielikkix"
     (see the system prompt's own handling of that), but reduces how often
-    it happens in the first place on a real call.
+    it happens in the first place on a real call. Kept English-only even
+    for a Norwegian-language Gather -- "Mielikkix" and "booking" are the
+    same invented/loan words either way, and Twilio's `hints` don't take a
+    per-language list.
+
+    `language` selects Twilio's actual recognition language for this
+    listen -- see _call_language/the language-latch comment in
+    _handle_turn for how it's chosen.
     """
     gather = Gather(
         input="speech",
         action="/api/agents/voice/gather",
         method="POST",
         speech_timeout="auto",
+        language=_twilio_lang_code(language),
         hints="Mielikkix, voice receptionist, booking, pricing",
     )
     response.append(gather)
@@ -915,8 +1038,11 @@ async def voice_incoming(request: Request):
     _call_caller_number[call_sid] = form.get("From", "")
 
     response = VoiceResponse()
-    response.say(_start_call(call_sid))
-    _gather(response)
+    # New call: language always starts English (see _handle_turn's latch
+    # comment -- there's no way to know yet), so the greeting and the very
+    # first <Gather> both use the English Twilio voice/recognition.
+    response.say(_start_call(call_sid), language=_twilio_lang_code("en"))
+    _gather(response, "en")
     return Response(content=str(response), media_type="application/xml")
 
 
@@ -935,14 +1061,18 @@ async def voice_gather(request: Request, db: Session = Depends(get_db)):
     form = dict(await request.form())
     _assert_valid_twilio_request(request, form)
 
-    reply, ended = await _handle_turn(db, form.get("CallSid", ""), form.get("SpeechResult", ""))
+    call_sid = form.get("CallSid", "")
+    reply, ended = await _handle_turn(db, call_sid, form.get("SpeechResult", ""))
+    # Read AFTER _handle_turn -- it's the one that may have just latched
+    # this call onto Norwegian for this very turn's reply.
+    language = _call_language.get(call_sid, "en")
 
     response = VoiceResponse()
-    response.say(reply)
+    response.say(reply, language=_twilio_lang_code(language))
     if ended:
         response.hangup()
     else:
-        _gather(response)
+        _gather(response, language)
     return Response(content=str(response), media_type="application/xml")
 
 
@@ -1023,6 +1153,12 @@ class _DevReply(BaseModel):
     # deliberately decoupled from whether the agent actually understood
     # the question (it always does, via _anchor_query_for_retrieval).
     heard_as: str | None = None
+    # "en" or "no" -- this call's CURRENT language after this turn (see
+    # _call_language/_handle_turn's language-latch). The browser demo has
+    # no Twilio Gather/Say to configure server-side, so it reads this back
+    # to switch its own Web Speech API recognizer.lang and pick a Norwegian
+    # voice for speechSynthesis once this flips to "no".
+    language: str = "en"
 
 
 @router.post("/dev/start", response_model=_DevReply, dependencies=[Depends(_require_demo_access)])
@@ -1042,7 +1178,8 @@ async def dev_voice_gather(request: Request, body: _DevTurnRequest, db: Session 
     # intended" by a public demo visitor (voice_agent_public_demo mode).
     _reject_twilio_shaped_call_sid(body.call_sid)
     reply, ended = await _handle_turn(db, body.call_sid, body.speech)
-    return _DevReply(reply=reply, ended=ended, heard_as=_display_correction(body.speech))
+    language = _call_language.get(body.call_sid, "en")
+    return _DevReply(reply=reply, ended=ended, heard_as=_display_correction(body.speech), language=language)
 
 
 _DEV_VOICE_TEST_HTML_PATH = Path(__file__).resolve().parent.parent / "dev_tools" / "voice_test.html"

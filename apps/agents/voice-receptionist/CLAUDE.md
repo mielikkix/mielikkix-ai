@@ -70,6 +70,29 @@ persistent connection open.
 - **SMS/email summary**: `apps/api/app/notifications` (Resend provider) —
   do not stand up a second notification system.
 
+## Language support
+
+English and Norwegian (Bokmål) today, English-only originally. A call
+starts English (there's no way to know a caller's language before they've
+said anything); `_handle_turn` in `agents_voice.py` latches to Norwegian,
+one-directionally, the first time a turn's speech scores as Norwegian via
+`rag/language_detect.py`'s `detect_message_language` — the same heuristic
+the Chat Widget already uses, not a second detector. Once latched, the
+LLM is instructed to reply only in Norwegian, Twilio's own `<Gather>`/
+`<Say>` switch to `nb-NO` recognition/voice, the deterministic (non-LLM)
+spoken lines (greeting close, silence/turn-cap closings, the
+`propose_booking` confirmation readback, `_finalize_booking`'s outcomes)
+have Norwegian equivalents, and the goodbye/booking-confirmation phrase
+regexes recognize Norwegian words too (`ha det`, `ja`, `stemmer`, ...) so
+a Norwegian-speaking caller can actually end the call or confirm a
+booking. Known limitation: turn 1's `<Gather>` is still English
+recognition (the language isn't known yet), so a caller who launches
+straight into a full Norwegian sentence may get a mis-transcribed first
+turn — reliable from turn 2 onward, once switched. The browser demo
+(`voice-receptionist.js`) mirrors this via the Web Speech API's own
+`recognizer.lang`/`speechSynthesis` voice, driven by the `language` field
+`/dev/gather` now returns each turn.
+
 ## Data this agent stores
 
 - Call log (caller number if available, duration, transcript, outcome).

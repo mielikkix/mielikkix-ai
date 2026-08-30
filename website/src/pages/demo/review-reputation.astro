@@ -1,0 +1,81 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+// Not linked from the header nav (see Header.astro), same as the other
+// three live-preview demo pages -- reachable via agents.astro's "Talk to
+// it now" card.
+//
+// Unlike Voice Receptionist/Booking Assistant/Support Triage, this agent
+// is a business's OWN back-office tool (analyzing THEIR reviews), not
+// something a customer talks to -- there's no natural "have a
+// conversation with it" demo the way the other three have. Instead this
+// page is "paste a review, see what the agent would do with it,"
+// talking to a dedicated PUBLIC, unauthenticated, never-persisted route
+// (POST /api/agents/reviews/demo, see agents_reviews.py's own docstring
+// on it) rather than the real (login-required) /api/agents/reviews/*
+// routes the dashboard uses -- a website visitor has no business account
+// to authenticate as.
+---
+
+<Layout
+  title="Try Our Review & Reputation Agent"
+  description="An early preview of Mielikkix's AI Review & Reputation agent -- paste a review and see it analyzed, prioritized, and answered."
+  path="/demo/review-reputation"
+>
+  <PageHero
+    line1="Meet Mielikkix's"
+    line2="Review & Reputation Agent"
+    subheading="An early preview -- paste a real (or made-up) review below and see how it gets analyzed and answered."
+  />
+
+  <section class="mx-auto max-w-2xl px-6 py-16">
+    <div class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+      <label for="reviewInput" class="text-sm font-semibold text-slate-700">The review</label>
+      <textarea
+        id="reviewInput"
+        rows={4}
+        placeholder="e.g. The food was excellent and the staff were very friendly, but we had to wait almost an hour for our order."
+        class="mt-2 w-full rounded-2xl border border-slate-200 p-3.5 text-sm outline-none focus:border-violet-400"
+      ></textarea>
+
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        {[
+          "It was fine, nothing special.",
+          "Absolutely fantastic -- the team went above and beyond!",
+          "I was overcharged and when I complained a staff member was rude to me. Considering leaving this everywhere.",
+        ].map((example) => (
+          <button type="button" class="example-btn rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:border-violet-400 hover:text-violet-600" data-text={example}>
+            Try: "{example.slice(0, 28)}..."
+          </button>
+        ))}
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <select id="toneSelect" class="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600">
+          {["professional", "friendly", "warm", "luxury", "casual", "concise", "empathetic"].map((t) => (
+            <option value={t} selected={t === "professional"}>{t} tone</option>
+          ))}
+        </select>
+        <button
+          id="analyzeBtn"
+          type="button"
+          class="brand-gradient rounded-full px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Analyze &amp; draft a response
+        </button>
+      </div>
+    </div>
+
+    <div id="resultWrap" class="mt-6 hidden space-y-4"></div>
+
+    <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
+      This runs the exact same analysis and response engine the real dashboard tool uses -- but nothing here is
+      saved anywhere, and it isn't analyzing a real business's own reviews (see our
+      <a href="/features" class="underline">features page</a> for how the real per-business product tracks reviews
+      over time). Connect your own business to keep a real reputation history and approve responses before they go out.
+    </p>
+  </section>
+
+  <script src="/review-reputation.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+</Layout>

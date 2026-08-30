@@ -5,12 +5,13 @@ that service, the same split app/api/agents_seo.py uses for app/services/
 seo_service.py.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
+from ..core.limiter import limiter
 from ..models.business import Business
 from ..models.user import User
 from ..services import plan_service, review_service
@@ -310,3 +311,53 @@ async def chat(
     _require_enabled(business)
     reply = await review_service.handle_chat_message(db, str(current_user.business_id), body.message)
     return _ChatResponse(reply=reply)
+
+
+class _DemoRequest(BaseModel):
+    review_text: str
+    tone: str | None = None
+
+
+class _DemoResponseOut(BaseModel):
+    sentiment: str
+    sentiment_score: float
+    topics: list[str]
+    positive_points: list[str]
+    negative_points: list[str]
+    primary_issue: str | None
+    priority: str
+    requires_human_review: bool
+    escalation_reason: str | None
+    response_text: str
+    response_tone: str
+
+
+@router.post("/demo", response_model=_DemoResponseOut)
+@limiter.limit("10/minute")
+async def demo(request: Request, body: _DemoRequest):
+    """Public, unauthenticated, never persisted -- powers the
+    /demo/review-reputation marketing page (website/). Every other route
+    in this file requires a real logged-in business (this is a tenant's
+    OWN back-office tool, not a customer-facing widget) -- this route
+    exists specifically so a website VISITOR can see how the agent would
+    analyze/respond to a review of THEIR OWN business, without needing an
+    account first. Rate-limited for the same reason every other public,
+    unauthenticated LLM-calling route in this app is (agents_booking.py's
+    /request, agents_voice.py's /dev/*): a real Groq/OpenAI cost per call,
+    reachable by anyone who finds the URL.
+    """
+    result = await review_service.run_public_demo(body.review_text, tone_override=body.tone)
+    analysis = result.analysis
+    return _DemoResponseOut(
+        sentiment=analysis.sentiment,
+        sentiment_score=analysis.sentiment_score,
+        topics=analysis.topics,
+        positive_points=analysis.positive_points,
+        negative_points=analysis.negative_points,
+        primary_issue=analysis.primary_issue,
+        priority=analysis.priority,
+        requires_human_review=analysis.requires_human_review,
+        escalation_reason=analysis.escalation_reason,
+        response_text=result.response_text,
+        response_tone=result.response_tone,
+    )

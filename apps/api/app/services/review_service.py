@@ -13,6 +13,7 @@ instead of hand-written.
 
 import json
 import logging
+from types import SimpleNamespace
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -316,33 +317,30 @@ def _resolve_language_instruction(review_language: Optional[str], business: Busi
     return f"the business's own primary language (language code: {languages[0]})"
 
 
-async def generate_response(
-    db: Session, business_id: str, review_id: str, tone_override: Optional[str] = None
-) -> Review:
-    """Always generates a fresh draft (this IS the "regenerate" action too
-    -- there's no separate regenerate function, since generating again with
-    a possibly-different tone_override is the exact same operation). Never
-    auto-approves or auto-publishes -- see this agent's CLAUDE.md "Human
-    approval": response_status only ever becomes "draft" here.
+async def _generate_response_text(
+    business, review_text: str, review_language: Optional[str], analysis: AnalysisResult, tone_override: Optional[str]
+) -> tuple[str, str]:
+    """The actual (LLM-calling) response draft, independent of any stored
+    Review row -- shared by generate_response() below (which persists onto
+    a real Review) and run_public_demo()'s stateless "paste a review, see
+    a drafted response" flow, which has no Review row at all. `business`
+    only needs `.name`/`.industry` (and, optionally, `.settings.tone`/
+    `.settings.languages` via _resolve_tone/_resolve_language_instruction)
+    -- a real Business ORM row for a persisted call, or a plain
+    SimpleNamespace stand-in for the public demo (see run_public_demo).
+    Returns (response_text, tone_actually_used).
     """
-    review = db.query(Review).filter(Review.id == review_id, Review.business_id == business_id).first()
-    if review is None:
-        raise ValueError("Review not found")
-    if review.analyzed_at is None:
-        await analyze_review(db, business_id, review_id)
-
-    business = db.query(Business).filter(Business.id == business_id).first()
     tone = _resolve_tone(business, tone_override)
-    language_instruction = _resolve_language_instruction(review.review_language, business)
+    language_instruction = _resolve_language_instruction(review_language, business)
     industry_clause = f", a {business.industry} business" if business.industry and business.industry != "other" else ""
 
     analysis_summary = json.dumps(
         {
-            "sentiment": review.sentiment,
-            "topics": review.topics,
-            "positive_points": review.positive_points,
-            "negative_points": review.negative_points,
-            "primary_issue": review.primary_issue,
+            "sentiment": analysis.sentiment,
+            "topics": analysis.topics,
+            "positive_points": analysis.positive_points,
+            "negative_points": analysis.negative_points,
+            "primary_issue": analysis.primary_issue,
         }
     )
 
@@ -359,19 +357,95 @@ async def generate_response(
             },
             {
                 "role": "user",
-                "content": f"<review>\n{review.review_text}\n</review>\n\nAnalysis: {analysis_summary}",
+                "content": f"<review>\n{review_text}\n</review>\n\nAnalysis: {analysis_summary}",
             },
         ],
         max_tokens=300,
     )
+    return result.text.strip(), tone
 
-    review.ai_response = result.text.strip()
+
+def _analysis_result_from_review(review: Review) -> AnalysisResult:
+    return AnalysisResult(
+        sentiment=review.sentiment,
+        sentiment_score=review.sentiment_score or 0.0,
+        topics=review.topics or [],
+        positive_points=review.positive_points or [],
+        negative_points=review.negative_points or [],
+        primary_issue=review.primary_issue,
+        priority=review.priority,
+        requires_response=review.requires_response,
+        requires_human_review=review.requires_human_review,
+        escalation_reason=review.escalation_reason,
+        review_language=review.review_language,
+    )
+
+
+async def generate_response(
+    db: Session, business_id: str, review_id: str, tone_override: Optional[str] = None
+) -> Review:
+    """Always generates a fresh draft (this IS the "regenerate" action too
+    -- there's no separate regenerate function, since generating again with
+    a possibly-different tone_override is the exact same operation). Never
+    auto-approves or auto-publishes -- see this agent's CLAUDE.md "Human
+    approval": response_status only ever becomes "draft" here.
+    """
+    review = db.query(Review).filter(Review.id == review_id, Review.business_id == business_id).first()
+    if review is None:
+        raise ValueError("Review not found")
+    if review.analyzed_at is None:
+        await analyze_review(db, business_id, review_id)
+
+    business = db.query(Business).filter(Business.id == business_id).first()
+    response_text, tone = await _generate_response_text(
+        business, review.review_text, review.review_language, _analysis_result_from_review(review), tone_override
+    )
+
+    review.ai_response = response_text
     review.response_tone = tone
     review.response_status = "draft"
     db.commit()
 
     logger.info("review_response_generated review_id=%s tone=%s", review_id, tone)
     return review
+
+
+# A neutral, generic stand-in "business" for the public marketing-site demo
+# (see agents_reviews.py's /demo route) -- deliberately NOT a real Business
+# row, and NOT Mielikkix itself: the point is showing a website visitor how
+# this agent would handle THEIR OWN business's reviews, not analyzing
+# reviews of Mielikkix the way the Voice Receptionist/Support Triage demos
+# reasonably do (those really are Mielikkix answering questions about
+# itself). Only `.name`/`.industry` are read by _build_analysis_system_prompt
+# and _generate_response_text -- `getattr(business, "settings", None)` in
+# _resolve_tone/_resolve_language_instruction safely returns None for a
+# SimpleNamespace with no `.settings`, falling through to the caller's own
+# tone_override / the review's own detected language.
+_DEMO_BUSINESS = SimpleNamespace(name="Your Business", industry="other")
+
+
+@dataclass
+class DemoResult:
+    analysis: AnalysisResult
+    response_text: str
+    response_tone: str
+
+
+async def run_public_demo(review_text: str, tone_override: Optional[str] = None) -> DemoResult:
+    """Public, unauthenticated, and never persisted -- powers the
+    /demo/review-reputation marketing page (see agents_reviews.py's own
+    /demo route for the rate-limiting/CORS reasoning, same as
+    agents_support.py's chat/message route: only ever called from
+    website/'s own demo page, never a third-party tenant integration, so
+    standard origin-restricted CORS is correct here, unlike agents_booking.
+    py's /request which also serves real tenant widgets on arbitrary
+    third-party sites).
+    """
+    analysis = await _run_analysis(_DEMO_BUSINESS, review_text)
+    response_text, tone = await _generate_response_text(
+        _DEMO_BUSINESS, review_text, analysis.review_language, analysis, tone_override
+    )
+    return DemoResult(analysis=analysis, response_text=response_text, response_tone=tone)
 
 
 def edit_response(db: Session, business_id: str, review_id: str, new_text: str) -> Review:

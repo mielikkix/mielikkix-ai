@@ -492,3 +492,59 @@ def test_chat_insights_intent_never_fabricates_with_no_data(client, business, se
 
     assert resp.status_code == 200
     assert "not enough" in resp.json()["reply"].lower()
+
+
+# --- Public demo endpoint (website/'s /demo/review-reputation page) ---
+
+
+def _mock_analysis_then_response(monkeypatch, analysis_overrides=None, response_text="A drafted response."):
+    fake_chat = AsyncMock(
+        side_effect=[
+            _fake_llm_response(_analysis_json(**(analysis_overrides or {}))),
+            _fake_llm_response(response_text),
+        ]
+    )
+    monkeypatch.setattr(review_service._llm_client, "chat", fake_chat)
+    return fake_chat
+
+
+def test_demo_endpoint_requires_no_auth(client, monkeypatch):
+    _mock_analysis_then_response(
+        monkeypatch,
+        {"sentiment": "negative", "priority": "high"},
+        "We're sorry to hear that -- we'd like to make this right.",
+    )
+
+    resp = client.post("/api/agents/reviews/demo", json={"review_text": "Waited far too long, quite disappointed."})
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["sentiment"] == "negative"
+    assert "sorry" in body["response_text"].lower()
+
+
+def test_demo_endpoint_never_persists_a_review(client, db_session, monkeypatch):
+    _mock_analysis_then_response(monkeypatch)
+    before = db_session.query(Review).count()
+
+    client.post("/api/agents/reviews/demo", json={"review_text": "Some review text."})
+
+    after = db_session.query(Review).count()
+    assert after == before
+
+
+def test_demo_endpoint_respects_tone_override(client, monkeypatch):
+    fake_chat = _mock_analysis_then_response(monkeypatch, {"sentiment": "positive", "priority": "low"})
+
+    resp = client.post(
+        "/api/agents/reviews/demo", json={"review_text": "Loved it!", "tone": "luxury"}
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["response_tone"] == "luxury"
+    sent_system_prompt = fake_chat.call_args.args[0][0]["content"]
+    assert "luxury" in sent_system_prompt
+    # Uses the generic placeholder business, not a real tenant or Mielikkix
+    # itself -- the demo is showing a visitor how THEIR OWN business would
+    # be represented.
+    assert "Your Business" in sent_system_prompt

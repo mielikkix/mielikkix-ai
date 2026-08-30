@@ -10,6 +10,7 @@ import { FAQsPage } from './dashboard/pages/FAQsPage'
 import { DocumentsPage } from './dashboard/pages/DocumentsPage'
 import { ProductsPage } from './dashboard/pages/ProductsPage'
 import { SeoPage } from './dashboard/pages/SeoPage'
+import { ReviewsPage } from './dashboard/pages/ReviewsPage'
 import { LeadsPage } from './dashboard/pages/LeadsPage'
 import { ConversationsPage } from './dashboard/pages/ConversationsPage'
 import { SettingsPage } from './dashboard/pages/SettingsPage'
@@ -120,6 +121,14 @@ export function App() {
         element={
           <RequireAuth>
             <DashboardLayout><SeoPage /></DashboardLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard/reviews"
+        element={
+          <RequireAuth>
+            <DashboardLayout><ReviewsPage /></DashboardLayout>
           </RequireAuth>
         }
       />

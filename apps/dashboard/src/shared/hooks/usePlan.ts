@@ -31,6 +31,7 @@ export interface PlanFeatures {
   priority_support: boolean
   booking_enabled: boolean
   seo_copywriter_enabled: boolean
+  review_reputation_enabled: boolean
 }
 
 export interface PlanStatus {

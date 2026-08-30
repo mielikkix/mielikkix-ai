@@ -12,6 +12,7 @@ from .ticket import Ticket, TicketMessage
 from .booking import Booking
 from .calendar_connection import CalendarConnection
 from .seo_draft import SeoDraft
+from .review import Review
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
@@ -19,5 +20,5 @@ __all__ = [
     "Conversation", "Message", "Lead",
     "PasswordResetToken", "LLMUsageLog",
     "Ticket", "TicketMessage", "Booking", "CalendarConnection",
-    "SeoDraft",
+    "SeoDraft", "Review",
 ]

@@ -45,6 +45,9 @@ class PlanFeatures:
     # Gates SEO Copywriter's bulk-generate/approve routes
     # (app/api/agents_seo.py) -- see plan_service.require_feature.
     seo_copywriter_enabled: bool
+    # Gates Review & Reputation's analyze/respond/import routes
+    # (app/api/agents_reviews.py) -- see plan_service.require_feature.
+    review_reputation_enabled: bool
 
 
 @dataclass(frozen=True)
@@ -94,6 +97,7 @@ PLANS: dict[str, Plan] = {
             priority_support=False,
             booking_enabled=False,
             seo_copywriter_enabled=False,
+            review_reputation_enabled=False,
         ),
     ),
     "basic": Plan(
@@ -123,6 +127,7 @@ PLANS: dict[str, Plan] = {
             priority_support=False,
             booking_enabled=False,
             seo_copywriter_enabled=False,
+            review_reputation_enabled=False,
         ),
     ),
     "business": Plan(
@@ -152,6 +157,7 @@ PLANS: dict[str, Plan] = {
             priority_support=True,
             booking_enabled=True,
             seo_copywriter_enabled=True,
+            review_reputation_enabled=True,
         ),
     ),
     "growth": Plan(
@@ -181,6 +187,7 @@ PLANS: dict[str, Plan] = {
             priority_support=True,
             booking_enabled=True,
             seo_copywriter_enabled=True,
+            review_reputation_enabled=True,
         ),
     ),
 }

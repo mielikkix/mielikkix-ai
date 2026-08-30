@@ -23,8 +23,9 @@ differently in each one.
   turns for a minute-plus under real load — see `llm_client.py`'s own
   comments): each agent picks its own provider explicitly at construction
   (`LLMClient(provider="openai"|"anthropic"|"groq", ...)`), by tier —
-    - **Voice Receptionist, SEO Copywriter** (low-latency / cheap, routine
-      generation) → **OpenAI** (`settings.openai_model`/`openai_mini_model`).
+    - **Voice Receptionist, SEO Copywriter, Review & Reputation** (low-latency /
+      cheap, routine generation) → **OpenAI**
+      (`settings.openai_model`/`openai_mini_model`).
     - **Booking Assistant, Support Triage** (multi-turn reasoning,
       structured tool use) → **Anthropic Claude Sonnet**
       (`settings.anthropic_model`).

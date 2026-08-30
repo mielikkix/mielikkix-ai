@@ -31,16 +31,33 @@ refresh/API-call mechanics below don't change.
 """
 
 import asyncio
+import socket
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
+import requests
+import urllib3.util.connection as _urllib3_connection
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
 from ..core.config import settings
 from .calendar_provider import BusyBlock, CalendarProvider
+
+# Confirmed live on this dev machine: googleapis.com resolves an AAAA
+# (IPv6) record, and this machine's IPv6 route to it is entirely dead (100%
+# packet loss on a raw ping) -- but IPv4 works fine. `requests`/urllib3
+# tries whichever address family DNS/getaddrinfo hands it first and only
+# falls back after that connection attempt's own OS-level timeout (~20s on
+# Windows), rather than racing both like curl effectively does -- so every
+# single Google API call here was paying a ~20s tax before ever reaching a
+# working address. Forcing IPv4-only resolution sidesteps the dead route
+# entirely instead of just waiting it out faster. This mutates a shared
+# urllib3 global, so it's process-wide, not scoped to this module's own
+# calls -- safe regardless, since curl already proved IPv4 reaches every
+# host this app talks to, and this module is the only one that actually
+# routes through `requests`/urllib3 today (LLM calls go through httpx,
+# which has its own separate transport and isn't affected either way).
+_urllib3_connection.allowed_gai_family = lambda: socket.AF_INET
 
 # Two narrow scopes, not the broad "calendar" (full read/write on
 # everything) or "calendar.readonly" (would block booking) scopes:
@@ -91,6 +108,22 @@ def _build_credentials(client_id: str, client_secret: str, refresh_token: str) -
     )
 
 
+# Talks to the Calendar REST API directly via `requests`, rather than
+# through googleapiclient.discovery.build()'s default httplib2 transport --
+# confirmed live on this dev machine that httplib2 cannot complete a TCP
+# connection to googleapis.com at all (a bare `httplib2.Http(timeout=10)`
+# GET times out every time), while `requests` (used just below for the
+# OAuth token refresh, and by curl) reaches the exact same host in well
+# under a second. httplib2 doesn't do IPv4/IPv6 Happy-Eyeballs fallback the
+# way `requests`/urllib3 and curl do, so on a host with a broken/unreachable
+# IPv6 route it can pick the dead address and hang -- `requests` avoiding
+# that dependency entirely sidesteps the problem rather than working around
+# it. Same two endpoints googleapiclient's calendar v3 service would have
+# called (freeBusy.query, events.insert); response error handling collapses
+# onto the same GoogleCalendarError callers already expect.
+_REQUEST_TIMEOUT_SECONDS = 10
+
+
 def _get_busy_blocks_sync(
     client_id: str, client_secret: str, refresh_token: str, calendar_id: str, start: date, end: date, timezone: str
 ) -> list[BusyBlock]:
@@ -100,39 +133,38 @@ def _get_busy_blocks_sync(
     credentials = _build_credentials(client_id, client_secret, refresh_token)
     credentials.refresh(Request())
 
-    service = build("calendar", "v3", credentials=credentials)
-    try:
-        # Google's freebusy API requires timeMin/timeMax to be full RFC3339
-        # datetimes WITH a UTC offset -- a bare "2026-08-27T00:00:00" (no
-        # offset) is invalid and Google rejects it with a plain, unhelpful
-        # "400 Bad Request" (confirmed live, not just from the docs). The
-        # "timeZone" field alone doesn't fix that -- it's the offset on
-        # each timestamp itself Google actually validates. zoneinfo (Python
-        # stdlib, no extra dependency) resolves the IANA zone name into a
-        # real UTC offset for these two specific moments -- necessary, not
-        # a fixed offset, because the same zone's offset can differ across
-        # the range being queried (daylight saving time changes).
-        tz = ZoneInfo(timezone)
-        time_min = datetime.combine(start, time.min, tzinfo=tz)
-        time_max = datetime.combine(end, time(23, 59, 59), tzinfo=tz)
+    # Google's freebusy API requires timeMin/timeMax to be full RFC3339
+    # datetimes WITH a UTC offset -- a bare "2026-08-27T00:00:00" (no
+    # offset) is invalid and Google rejects it with a plain, unhelpful
+    # "400 Bad Request" (confirmed live, not just from the docs). The
+    # "timeZone" field alone doesn't fix that -- it's the offset on
+    # each timestamp itself Google actually validates. zoneinfo (Python
+    # stdlib, no extra dependency) resolves the IANA zone name into a
+    # real UTC offset for these two specific moments -- necessary, not
+    # a fixed offset, because the same zone's offset can differ across
+    # the range being queried (daylight saving time changes).
+    tz = ZoneInfo(timezone)
+    time_min = datetime.combine(start, time.min, tzinfo=tz)
+    time_max = datetime.combine(end, time(23, 59, 59), tzinfo=tz)
 
-        response = (
-            service.freebusy()
-            .query(
-                body={
-                    "timeMin": time_min.isoformat(),
-                    "timeMax": time_max.isoformat(),
-                    "timeZone": timezone,
-                    "items": [{"id": calendar_id}],
-                }
-            )
-            .execute()
+    try:
+        http_response = requests.post(
+            "https://www.googleapis.com/calendar/v3/freeBusy",
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            json={
+                "timeMin": time_min.isoformat(),
+                "timeMax": time_max.isoformat(),
+                "timeZone": timezone,
+                "items": [{"id": calendar_id}],
+            },
+            timeout=_REQUEST_TIMEOUT_SECONDS,
         )
-    except HttpError as exc:
+        http_response.raise_for_status()
+    except requests.RequestException as exc:
         raise GoogleCalendarError(f"Google Calendar freebusy query failed: {exc}") from exc
 
     # Response shape: {"calendars": {"<calendarId>": {"busy": [{"start": "...", "end": "..."}, ...]}}}
-    calendar_result = response.get("calendars", {}).get(calendar_id, {})
+    calendar_result = http_response.json().get("calendars", {}).get(calendar_id, {})
     busy_periods = calendar_result.get("busy", [])
     return [BusyBlock(start=period["start"], end=period["end"]) for period in busy_periods]
 
@@ -156,37 +188,53 @@ def _create_event_sync(
     credentials = _build_credentials(client_id, client_secret, refresh_token)
     credentials.refresh(Request())
 
-    service = build("calendar", "v3", credentials=credentials)
     try:
-        # .execute() both makes the real API call AND returns the created
-        # event resource (a dict) -- captured here as `created` so its "id"
-        # field can be returned below, the same way any REST client
-        # returns the response body of a POST that creates something.
-        created = (
-            service.events()
-            .insert(
-                calendarId=calendar_id,
-                # sendUpdates="all" is what makes Google email the invite
-                # (and later reminders) to the attendee automatically --
-                # this agent's CLAUDE.md calls this out specifically
-                # ("reminders sent automatically... no extra work") as the
-                # reason this agent talks to Google Calendar directly
-                # rather than building its own reminder system.
-                sendUpdates="all",
-                body={
-                    "summary": summary,
-                    "description": description,
-                    "start": {"dateTime": start.isoformat(), "timeZone": timezone},
-                    "end": {"dateTime": end.isoformat(), "timeZone": timezone},
-                    "attendees": [{"email": attendee_email}],
-                },
-            )
-            .execute()
+        http_response = requests.post(
+            f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events",
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            # sendUpdates=all is what makes Google email the invite (and
+            # later reminders) to the attendee automatically -- this
+            # agent's CLAUDE.md calls this out specifically ("reminders
+            # sent automatically... no extra work") as the reason this
+            # agent talks to Google Calendar directly rather than building
+            # its own reminder system.
+            params={"sendUpdates": "all"},
+            json={
+                "summary": summary,
+                "description": description,
+                "start": {"dateTime": start.isoformat(), "timeZone": timezone},
+                "end": {"dateTime": end.isoformat(), "timeZone": timezone},
+                "attendees": [{"email": attendee_email}],
+            },
+            timeout=_REQUEST_TIMEOUT_SECONDS,
         )
-    except HttpError as exc:
+        http_response.raise_for_status()
+    except requests.RequestException as exc:
         raise GoogleCalendarError(f"Google Calendar event creation failed: {exc}") from exc
 
-    return created["id"]
+    return http_response.json()["id"]
+
+
+# credentials.refresh() (google-auth's own `requests` transport) has no
+# timeout of its own -- confirmed live on this dev machine's flaky DNS, a
+# token refresh alone once took 22s. _get_busy_blocks_sync/_create_event_sync
+# now bound their own API call via requests' own `timeout=` (see
+# _REQUEST_TIMEOUT_SECONDS above), but that leaves the refresh() step
+# itself unbounded -- this outer bound catches that case too, so either
+# step being slow still fails fast with a clear GoogleCalendarError (both
+# callers already turn that into a proper 502 / "let me try that again"
+# instead of a bare 500 or an indefinitely stuck voice turn) rather than
+# hanging indefinitely.
+_CALENDAR_CALL_TIMEOUT_SECONDS = 30
+
+
+async def _bounded(func, *args):
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(func, *args), timeout=_CALENDAR_CALL_TIMEOUT_SECONDS)
+    except TimeoutError as exc:
+        raise GoogleCalendarError(
+            f"Google Calendar didn't respond within {_CALENDAR_CALL_TIMEOUT_SECONDS}s -- please try again."
+        ) from exc
 
 
 class GoogleCalendarProvider(CalendarProvider):
@@ -222,7 +270,7 @@ class GoogleCalendarProvider(CalendarProvider):
         self.calendar_id = calendar_id or settings.google_calendar_id
 
     async def get_busy_blocks(self, start: date, end: date, timezone: str = "UTC") -> list[BusyBlock]:
-        return await asyncio.to_thread(
+        return await _bounded(
             _get_busy_blocks_sync,
             self.client_id,
             self.client_secret,
@@ -242,7 +290,7 @@ class GoogleCalendarProvider(CalendarProvider):
         attendee_email: str,
         description: str = "",
     ) -> str:
-        return await asyncio.to_thread(
+        return await _bounded(
             _create_event_sync,
             self.client_id,
             self.client_secret,

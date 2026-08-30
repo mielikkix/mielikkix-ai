@@ -5,6 +5,12 @@ alembic==1.13.1
 psycopg2-binary==2.9.12
 pgvector==0.2.5
 python-jose[cryptography]==3.3.0
+# Direct dependency (not just a transitive one, e.g. via google-auth) --
+# integrations/google_calendar_client.py calls the Calendar REST API with
+# this directly, bypassing googleapiclient's own httplib2 transport (see
+# that module's own comment on why). Pinned to the version already
+# resolved transitively so this doesn't change what's actually installed.
+requests==2.34.2
 # Direct dependency (not just python-jose's transitive one) -- used
 # directly for Fernet symmetric encryption of per-business OAuth refresh
 # tokens at rest (core/encryption.py). Pinned to the version already

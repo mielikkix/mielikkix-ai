@@ -28,17 +28,17 @@ const agents = [
   {
     name: "Support Triage",
     tagline: "Sorts inbound chat tickets, drafts replies, escalates when needed.",
-    // Live sitewide (not a dedicated /demo page like the other two --
-    // see the chat bubble in the corner of this very page) as of
-    // 2026-08-28: apps/api/app/services/support_service.py, embedded via
-    // website/public/support-chat-widget.js. Confirmed live as a real UX
-    // bug: a plain href="/" just navigated to the homepage with nothing
-    // else happening (the bubble was already visible right here on THIS
-    // page too, so nothing visibly changed) -- ?talk-to-support=1 tells
-    // the widget script to actually open itself on load instead of
-    // leaving the visitor to notice and click the bubble themselves.
+    // Now has its own /demo/support-triage page (support-triage.astro +
+    // support-triage.js), same pattern as the other two live previews --
+    // it used to just link to "/" relying on the sitewide chat bubble
+    // (support-chat-widget.js, still embedded site-wide via Layout.astro
+    // for real visitors), but that gave a visitor zero explanation of
+    // what Support Triage actually does differently from any other
+    // chatbot -- confirmed live, reported as "literally just the normal
+    // chatbot." The dedicated page explains the classify/answer/escalate
+    // behavior up front and tags each reply with which one happened.
     status: "preview",
-    href: "/?talk-to-support=1",
+    href: "/demo/support-triage",
     icon: "M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z",
   },
   {

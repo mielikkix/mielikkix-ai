@@ -22,7 +22,16 @@ erDiagram
     CONVERSATIONS ||--o{ LEADS : "may produce"
     USERS ||--o{ BUSINESSES : "owns/admins"
     USERS ||--o{ PASSWORD_RESET_TOKENS : "requests"
+    BUSINESSES ||--o{ CALENDAR_CONNECTIONS : "has"
+    BUSINESSES ||--o{ REVIEWS : "has"
+    PRODUCTS ||--o{ SEO_DRAFTS : "has draft for"
+    TICKETS ||--o{ TICKET_MESSAGES : "contains"
 ```
+
+> Force-agent tables (`bookings`, `calendar_connections`, `reviews`,
+> `seo_drafts`, `tickets`/`ticket_messages`) are listed separately under
+> "Force agent tables" below — they follow the same conventions but weren't
+> part of the original MVP schema this diagram was first drawn for.
 
 ## Tables
 
@@ -191,6 +200,95 @@ Count against a business is capped by plan (`apps/api/app/core/plans.py`'s `max_
 | created_at | TIMESTAMPTZ | indexed |
 
 One row per LLM API call, written in the same transaction as the chat message/settings update it belongs to. Powers the platform-admin Groq usage page (`GET /api/admin/llm-usage`) — see `files/ARCHITECTURE.md` §2.8.
+
+## Force agent tables
+
+Tables added by the Force agents (`apps/agents/*`), each documented in full in
+that agent's own `CLAUDE.md` — summarized here for the platform-wide picture.
+
+### `bookings` (Booking Assistant)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| session_id | TEXT | nullable, indexed — links back to the chat/widget session, if any |
+| name / email / phone | TEXT | phone nullable |
+| meeting_type | TEXT | default `"appointment"` |
+| start_at / end_at | TIMESTAMPTZ | |
+| calendar_event_id | TEXT | the Google Calendar event this booking created |
+| status | TEXT | `confirmed` / `cancelled` |
+| created_at | TIMESTAMPTZ | |
+
+No `business_id` yet — every booking today lands on Mielikkix's own demo
+calendar, not a per-tenant one (see `calendar_connections` below, and
+`apps/agents/booking-assistant/CLAUDE.md`'s "Current gaps"). Real per-tenant
+bookings get a `business_id` once Phase 5 (per-tenant OAuth) ships.
+
+### `calendar_connections` (Booking Assistant — per-tenant OAuth, not yet wired to `bookings`)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| business_id | UUID FK, UNIQUE | 1:1 with businesses |
+| refresh_token_encrypted | TEXT | encrypted at rest via `core/encryption.py`, never logged/stored plaintext |
+| calendar_id | TEXT | default `"primary"` |
+| google_account_email | TEXT | nullable — captured once from Google's userinfo response at OAuth callback |
+| connected_at | TIMESTAMPTZ | |
+
+### `reviews` (Review & Reputation)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| business_id | UUID FK | indexed |
+| platform | TEXT | `google` / `facebook` / `tripadvisor` / `yelp` / `trustpilot` / `manual` / `chat` |
+| external_review_id | TEXT | nullable, indexed — the platform's own review ID, used for import de-dup (app-level check, not a UNIQUE constraint) |
+| customer_name | TEXT | nullable |
+| rating | INTEGER | nullable, 1-5 |
+| review_text | TEXT | |
+| review_language | TEXT | nullable — ISO 639-1 code detected by the LLM |
+| review_date | TIMESTAMPTZ | nullable — when the review was actually posted, distinct from `created_at` |
+| sentiment | TEXT | nullable — `positive` / `neutral` / `negative` / `mixed` |
+| sentiment_score | FLOAT | nullable, -1.0..1.0 |
+| topics / positive_points / negative_points | JSON | nullable lists — prompt-level, not DB enums |
+| primary_issue | TEXT | nullable |
+| priority | TEXT | `low` / `medium` / `high` / `critical` |
+| requires_response | BOOLEAN | default true |
+| requires_human_review | BOOLEAN | default false — server-forced true for `critical` regardless of what the LLM said |
+| escalation_reason | TEXT | nullable — `legal_threat` / `safety_issue` / `serious_misconduct` / `discrimination` / `fraud` / `high_reputation_risk` / `repeated_complaint` / `unknown` |
+| analyzed_at | TIMESTAMPTZ | nullable |
+| ai_response / response_tone | TEXT | nullable |
+| response_status | TEXT | `none` / `draft` / `approved` / `rejected` / `published` — nothing sets `published` today; this agent never auto-publishes |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+Indexed on `(business_id, platform, external_review_id)` for the dedup lookup.
+
+### `seo_drafts` (SEO Copywriter)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| business_id | UUID FK | indexed — carried here too (not just via `product_id`) so a tenant's draft list doesn't need a join |
+| product_id | UUID FK → products.id | indexed |
+| draft_description / draft_seo_title / draft_meta_description | TEXT | |
+| status | TEXT | `draft` / `approved` / `rejected` |
+| created_at | TIMESTAMPTZ | |
+
+Deliberately separate from `products` — only an explicit approve copies a draft onto the real `Product` row; generation never writes live copy directly.
+
+### `tickets` / `ticket_messages` (Support Triage)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| session_id | TEXT | indexed — ties a visitor's messages into one ticket without login |
+| channel | TEXT | `web` / `voice` |
+| status | TEXT | `open` / `escalated` / `resolved` |
+| category / priority / confidence | TEXT/TEXT/FLOAT | all nullable |
+| customer_name / customer_email / customer_phone | TEXT | nullable |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+No `business_id` — Support Triage's widget serves *Mielikkix's own* marketing-site
+visitors, not a tenant's customers; the "tenant" here is the platform itself.
+
+`ticket_messages`: `id`, `ticket_id` (FK → tickets.id), `role` (`user`/`agent`/`human`),
+`content`, `created_at`. Named `TicketMessage`, not `Message` — `messages` (above) is
+already a different, tenant-scoped table for the product's own chat widget.
 
 ## Notes on Vector Storage
 

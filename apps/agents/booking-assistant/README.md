@@ -8,4 +8,7 @@ and sends reminders.
 See [`CLAUDE.md`](./CLAUDE.md) in this directory for integrations needed,
 data model, and test criteria — read that before touching this agent's code.
 
-This is currently a **structure-only scaffold** — no business logic yet.
+Core flow is built and live: NL-parsed availability search, double-booking-safe
+confirmation against a real Google Calendar, chat-widget handoff, and voice-agent
+handoff. See [`CLAUDE.md`](./CLAUDE.md)'s "Current state" section for exact status
+and remaining phases (per-tenant OAuth, dashboard Bookings tab, VPS deploy).

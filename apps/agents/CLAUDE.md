@@ -2,15 +2,17 @@
 
 Read the root `CLAUDE.md` first (non-negotiable monorepo conventions — shared
 packages, one dashboard, modular-process deploy). This file adds the
-conventions specific to the three flagship agents currently in active build:
-**Voice Receptionist**, **Booking Assistant**, **Support Triage** (this
-supersedes Review & Reputation as the third active flagship — see that
-change noted in the root `CLAUDE.md`'s "Current status"; Review & Reputation
-stays scaffolded and queued, not dropped).
+conventions shared across the 5 Force agents built so far: **Voice
+Receptionist**, **Booking Assistant**, **Support Triage** (the original 3
+flagships), plus **Review & Reputation** and **SEO Copywriter** (both since
+built too — see each agent's own `CLAUDE.md` for exact status). The
+remaining agents (social-media, email-marketing, feedback-survey,
+loyalty-reengage, quote-invoice) are still queued, structure-only scaffolds
+under `_template/`.
 
 Each agent's own `CLAUDE.md` (in its folder) covers what's specific to that
-agent. This file covers what all three share, so it isn't reinvented
-differently in each one.
+agent. This file covers what they share, so it isn't reinvented differently
+in each one.
 
 ## Shared conventions
 

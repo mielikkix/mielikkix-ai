@@ -7,8 +7,8 @@ interface Props {
   title: string;
   description: string;
   path?: string;
-  /** Which page-JSON namespace (src/assets/i18n/<lang>/<page>.json) drives client-side translation on this page. Omit for pages with no translation JSON (e.g. demo). */
-  page?: "home" | "features" | "pricing";
+  /** Which page-JSON namespace (src/assets/i18n/<lang>/<page>.json) drives client-side translation on this page. Omit for pages with no translation JSON. */
+  page?: "home" | "features" | "pricing" | "agents" | "demo";
   /** Dot-path into that page's JSON for the translated <title> (e.g. "SEO.TITLE"). */
   titleKey?: string;
   /** Dot-path into that page's JSON for the translated meta description (e.g. "SEO.DESCRIPTION"). */

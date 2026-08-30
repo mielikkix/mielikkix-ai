@@ -1,0 +1,30 @@
+{
+  "SEO": {
+    "TITLE": "Book en gratis demo",
+    "DESCRIPTION": "Book en gratis demo av MielikkiX, helt uforpliktende, og se dine egne FAQ-er og dokumenter svare på kundespørsmål på minutter."
+  },
+  "BACK_LINK": "Tilbake til AI-agenter",
+  "PAGE_HERO": {
+    "LINE1": "Book din",
+    "LINE2": "gratis demo",
+    "SUBHEADING": "Fortell oss litt om bedriften din, så tar vi kontakt for å avtale en gjennomgang."
+  },
+  "REASSURANCES": [
+    "15-minutters gjennomgang, tilpasset din bedriftstype",
+    "Vi setter opp en eksempel-FAQ eller et dokument live på samtalen",
+    "Ingen press, ingen kredittkort — gratisplan tilgjengelig uansett"
+  ],
+  "FORM": {
+    "NAME_LABEL": "Ditt navn",
+    "BUSINESS_LABEL": "Bedriftsnavn",
+    "EMAIL_LABEL": "E-post",
+    "PHONE_LABEL": "Telefon (valgfritt)",
+    "WEBSITE_LABEL": "Nettsiden din (valgfritt)",
+    "MESSAGE_LABEL": "Noe spesifikt du vil se?",
+    "SUBMIT": "Be om min gratis demo"
+  },
+  "STATUS": {
+    "SUCCESS": "Takk! Vi tar kontakt innen én virkedag for å avtale demoen din.",
+    "ERROR": "Noe gikk galt under sendingen — prøv igjen, eller send oss en e-post direkte."
+  }
+}

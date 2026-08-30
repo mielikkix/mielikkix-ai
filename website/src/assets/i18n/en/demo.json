@@ -1,0 +1,30 @@
+{
+  "SEO": {
+    "TITLE": "Book a Free Demo",
+    "DESCRIPTION": "Book a free, no-pressure demo of MielikkiX and see your own FAQs and documents answering customer questions in minutes."
+  },
+  "BACK_LINK": "Back to AI Agents",
+  "PAGE_HERO": {
+    "LINE1": "Book your",
+    "LINE2": "free demo",
+    "SUBHEADING": "Tell us a bit about your business and we'll reach out to schedule a walkthrough."
+  },
+  "REASSURANCES": [
+    "15-minute walkthrough, tailored to your business type",
+    "We'll set up a sample FAQ/document live on the call",
+    "No pressure, no credit card — free plan available either way"
+  ],
+  "FORM": {
+    "NAME_LABEL": "Your name",
+    "BUSINESS_LABEL": "Business name",
+    "EMAIL_LABEL": "Email",
+    "PHONE_LABEL": "Phone (optional)",
+    "WEBSITE_LABEL": "Your website (optional)",
+    "MESSAGE_LABEL": "Anything specific you want to see?",
+    "SUBMIT": "Request My Free Demo"
+  },
+  "STATUS": {
+    "SUCCESS": "Thanks! We'll be in touch within one business day to schedule your demo.",
+    "ERROR": "Something went wrong sending your request — please try again, or email us directly."
+  }
+}

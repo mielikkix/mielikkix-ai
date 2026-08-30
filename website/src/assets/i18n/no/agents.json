@@ -1,0 +1,123 @@
+{
+  "SEO": {
+    "TITLE": "AI-agenter for bedriften din",
+    "DESCRIPTION": "AI-chatbot, talerresepsjonist og bookingassistent -- klare AI-løsninger fra Mielikkix. Pluss utvikling av skreddersydde AI-agenter for alt bedriften din trenger å automatisere."
+  },
+  "HERO": {
+    "LINE1": "AI-agenter bygget",
+    "LINE2": "rundt bedriften din",
+    "SUBHEADING": "Automatiser kundesamtaler, telefonsamtaler, bookinger, support og forretningsprosesser med AI-agenter designet for bedriften din.",
+    "CTA_PRIMARY": "Utforsk AI-løsninger",
+    "CTA_SECONDARY": "Bygg en skreddersydd AI-agent",
+    "SUPPORTING_LINE": "Start med våre klare AI-løsninger, eller be om en skreddersydd agent tilpasset arbeidsflyten din."
+  },
+  "CORE_SOLUTIONS": {
+    "HEADING": "Start med våre kjerneløsninger",
+    "SUBHEADING": "Klare AI-løsninger designet for å automatisere de viktigste kundevendte arbeidsflytene.",
+    "ITEMS": [
+      {
+        "NAME": "AI-chatbot",
+        "DESCRIPTION": "AI-drevne kundesamtaler døgnet rundt som svarer på spørsmål, fanger opp leads og hjelper kunder umiddelbart.",
+        "STATUS": "Kjerneløsning",
+        "CTA": "Utforsk chatboten"
+      },
+      {
+        "NAME": "Talerresepsjonist",
+        "DESCRIPTION": "En AI-resepsjonist som svarer på anrop, håndterer kundespørsmål, fanger opp henvendelser og kan hjelpe med avtaler.",
+        "STATUS": "Live demo",
+        "CTA": "Prøv talerresepsjonisten"
+      },
+      {
+        "NAME": "Bookingassistent",
+        "DESCRIPTION": "En AI-bookingassistent som hjelper kunder med å bestille time og håndtere bookingrelaterte samtaler.",
+        "STATUS": "Live demo",
+        "CTA": "Prøv bookingassistenten"
+      }
+    ]
+  },
+  "ADDITIONAL_AGENTS": {
+    "HEADING": "Flere AI-agenter vi har bygget",
+    "SUBHEADING": "Utforsk flere AI-automatiseringsmuligheter utviklet av Mielikkix.",
+    "BADGE": "Demo tilgjengelig",
+    "CTA": "Se demo",
+    "ITEMS": [
+      {
+        "NAME": "Supporttriage",
+        "DESCRIPTION": "Sorterer innkommende supporthenvendelser, identifiserer prioritet, utkaster svar og hjelper med å rute saker til riktig team."
+      },
+      {
+        "NAME": "Anmeldelser og omdømme",
+        "DESCRIPTION": "Analyserer kundeanmeldelser, identifiserer sentiment, utkaster svar i din tone og flagger saker som trenger oppmerksomhet."
+      }
+    ]
+  },
+  "CUSTOM_AGENTS": {
+    "HEADING": "Trenger du en AI-agent bygget for din bedrift?",
+    "SUBHEADING": "Alle bedrifter har ulike arbeidsflyter. Mielikkix kan designe og utvikle skreddersydde AI-agenter som automatiserer oppgavene som er spesifikke for din bedrift.",
+    "LABEL": "Eksempler på skreddersydde AI-agenter",
+    "ITEMS": [
+      {
+        "NAME": "Automatisering av sosiale medier",
+        "DESCRIPTION": "Generer og klargjør innhold til sosiale medier basert på tilbudene, kampanjene og oppdateringene dine."
+      },
+      {
+        "NAME": "E-postmarkedsføring",
+        "DESCRIPTION": "Lag personaliserte kampanjer, oppfølginger og arbeidsflyter for kundekommunikasjon."
+      },
+      {
+        "NAME": "SEO og innhold",
+        "DESCRIPTION": "Generer optimalisert innhold, produktbeskrivelser og metadata."
+      },
+      {
+        "NAME": "Tilbakemeldinger og undersøkelser",
+        "DESCRIPTION": "Samle inn kundetilbakemeldinger og gjør svarene om til handlingsrettet innsikt."
+      },
+      {
+        "NAME": "Lojalitet og reaktivering",
+        "DESCRIPTION": "Automatiserte tilbakevinningstilbud til kunder som ikke har vært innom på en stund."
+      },
+      {
+        "NAME": "Tilbud og faktura",
+        "DESCRIPTION": "Gjør kundehenvendelser om til strukturerte tilbud og fakturaklare arbeidsflyter."
+      },
+      {
+        "NAME": "Leadkvalifisering",
+        "DESCRIPTION": "Screen og poengsett innkommende leads automatisk, slik at teamet ditt bare følger opp de som er verdt det."
+      },
+      {
+        "NAME": "Intern forretningsautomatisering",
+        "DESCRIPTION": "Automatiser de repetitive administrative stegene mellom teamets egne verktøy og regneark."
+      },
+      {
+        "NAME": "Skreddersydde AI-arbeidsflyter",
+        "DESCRIPTION": "Noe mer spesifikt for din bedrift? Vi designer agenten og arbeidsflyten rundt det."
+      }
+    ]
+  },
+  "CUSTOM_CTA": {
+    "HEADING": "Fortell oss hva du vil automatisere",
+    "SUBHEADING": "Finner du ikke AI-agenten du trenger? Vi kan designe en løsning tilpasset din arbeidsprosess.",
+    "CTA_PRIMARY": "Be om en skreddersydd AI-agent",
+    "CTA_SECONDARY": "Book en gratis demo"
+  },
+  "HOW_IT_WORKS": {
+    "HEADING": "Slik fungerer det",
+    "STEPS": [
+      {
+        "STEP": "01",
+        "TITLE": "Fortell oss om arbeidsflyten din",
+        "DESCRIPTION": "Fortell oss hva teamet ditt gjør manuelt i dag."
+      },
+      {
+        "STEP": "02",
+        "TITLE": "Vi designer AI-løsningen",
+        "DESCRIPTION": "Vi designer agenten, arbeidsflyten, integrasjonene og automatiseringen rundt dine behov."
+      },
+      {
+        "STEP": "03",
+        "TITLE": "Lanser og automatiser",
+        "DESCRIPTION": "Ta løsningen i bruk og la AI håndtere det repetitive arbeidet."
+      }
+    ]
+  }
+}

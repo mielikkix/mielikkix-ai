@@ -12,7 +12,7 @@ from .core.config import settings
 from .core.cors import PublicRouteCORSMiddleware
 from .core.database import Base, engine
 from .core.limiter import limiter
-from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support, calendar_oauth
+from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support, agents_seo, calendar_oauth
 
 # Without this, every module's logger.info() call (e.g. agents_voice.py's
 # own tool-call tracing) is silently dropped -- Python's root logger
@@ -70,6 +70,7 @@ app.include_router(admin.router)
 app.include_router(agents_voice.router)
 app.include_router(agents_booking.router)
 app.include_router(agents_support.router)
+app.include_router(agents_seo.router)
 app.include_router(calendar_oauth.router)
 
 os.makedirs(settings.upload_dir, exist_ok=True)

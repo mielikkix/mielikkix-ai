@@ -30,6 +30,7 @@ export interface PlanFeatures {
   api_access_addon_available: boolean
   priority_support: boolean
   booking_enabled: boolean
+  seo_copywriter_enabled: boolean
 }
 
 export interface PlanStatus {

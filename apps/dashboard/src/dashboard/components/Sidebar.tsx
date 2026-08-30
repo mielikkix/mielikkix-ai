@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, MessageSquare, BookOpen, FileText, ShoppingBag, Users, Settings, CreditCard, LogOut, X, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, BookOpen, FileText, ShoppingBag, Users, Settings, CreditCard, LogOut, X, ShieldCheck, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../../shared/store/authStore'
 import { clsx } from 'clsx'
 
@@ -9,6 +9,7 @@ const nav = [
   { to: '/dashboard/faqs', icon: BookOpen, label: 'FAQs', color: 'text-emerald-500' },
   { to: '/dashboard/documents', icon: FileText, label: 'Documents', color: 'text-amber-500' },
   { to: '/dashboard/products', icon: ShoppingBag, label: 'Products', color: 'text-indigo-500' },
+  { to: '/dashboard/seo', icon: Sparkles, label: 'SEO Copywriter', color: 'text-fuchsia-500' },
   { to: '/dashboard/leads', icon: Users, label: 'Leads', color: 'text-pink-500' },
   { to: '/dashboard/plan', icon: CreditCard, label: 'Plan & Billing', color: 'text-orange-500' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },

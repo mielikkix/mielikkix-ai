@@ -6,6 +6,7 @@ from .resend_provider import ResendNotificationProvider
 from ..core.config import settings
 from ..models.lead import Lead
 from ..models.booking import Booking
+from ..models.ticket import Ticket
 
 
 def _format_time_range(start: datetime, end: datetime) -> str:
@@ -62,6 +63,42 @@ async def notify_new_lead(business_name: str, contact_email: str, lead: Lead) ->
     # contact_email supports a comma-separated list (e.g. multiple stakeholders
     # for a business) -- send_email's `to` stays single-recipient, so fan out here.
     for recipient in [e.strip() for e in contact_email.split(",") if e.strip()]:
+        await provider.send_email(to=recipient, subject=subject, html=html)
+
+
+async def notify_support_escalation(ticket: Ticket) -> None:
+    """Tells Mielikkix's own team a Support Triage ticket needs a human --
+    low-confidence classification, high/urgent priority, a classification
+    failure, or a direct escalation from Voice Receptionist (see
+    services/support_service.py's create_ticket). Sent to
+    settings.platform_admin_emails_list -- the same "who runs Mielikkix"
+    list app/core/dependencies.py's require_platform_admin already uses,
+    since this ticket belongs to the platform itself, not a tenant business
+    (see models/ticket.py's comment on why Ticket has no business_id).
+    """
+    provider = get_notification_provider()
+    subject = f"[Support] Ticket needs follow-up ({ticket.channel})"
+    contact_line = "".join(
+        f"<li><strong>{label}:</strong> {value}</li>"
+        for label, value in [
+            ("Name", ticket.customer_name),
+            ("Email", ticket.customer_email),
+            ("Phone", ticket.customer_phone),
+        ]
+        if value
+    )
+    last_message = ticket.messages[-1].content if ticket.messages else "(no message recorded)"
+    html = f"""
+        <p>A Support Triage ticket needs a human follow-up.</p>
+        <ul>
+            <li><strong>Category:</strong> {ticket.category or "-"}</li>
+            <li><strong>Priority:</strong> {ticket.priority or "-"}</li>
+            {contact_line}
+        </ul>
+        <p><strong>Latest message:</strong> {last_message}</p>
+        <p>Ticket ID: {ticket.id}</p>
+    """
+    for recipient in settings.platform_admin_emails_list:
         await provider.send_email(to=recipient, subject=subject, html=html)
 
 

@@ -34,6 +34,8 @@ class ProductOut(BaseModel):
     image_url: Optional[str]
     category: Optional[str]
     is_active: bool
+    seo_title: Optional[str] = None
+    meta_description: Optional[str] = None
     created_at: datetime
 
     class Config:

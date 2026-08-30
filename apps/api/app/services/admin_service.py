@@ -18,6 +18,7 @@ from ..models.faq import FAQ
 from ..models.lead import Lead
 from ..models.document import Document
 from ..models.conversation import Conversation
+from ..models.ticket import Ticket
 from ..models.llm_usage import LLMUsageLog
 from ..models.booking import Booking
 from . import plan_service
@@ -311,3 +312,62 @@ def list_bookings(db: Session, page: int = 1, page_size: int = 20) -> dict:
     ]
 
     return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+def _ticket_item(ticket: Ticket) -> dict:
+    return {
+        "id": ticket.id,
+        "channel": ticket.channel,
+        "status": ticket.status,
+        "category": ticket.category,
+        "priority": ticket.priority,
+        "confidence": ticket.confidence,
+        "customer_name": ticket.customer_name,
+        "customer_email": ticket.customer_email,
+        "customer_phone": ticket.customer_phone,
+        "created_at": ticket.created_at,
+        "updated_at": ticket.updated_at,
+    }
+
+
+def list_tickets(db: Session, page: int = 1, page_size: int = 20, status: Optional[str] = None) -> dict:
+    """Support Triage's tickets have no business_id (same reasoning as
+    list_bookings above -- see models/ticket.py's own comment: the
+    "tenant" for this table is the platform itself), so platform admin is
+    the only place this inbox can live. Escalated tickets are the ones
+    needing a human, so they sort first regardless of status filter -- an
+    operator opening this page should see what needs attention before
+    what's already resolved.
+    """
+    query = db.query(Ticket)
+    if status:
+        query = query.filter(Ticket.status == status)
+    total = query.count()
+    tickets = (
+        query.order_by(
+            (Ticket.status == "escalated").desc(),
+            Ticket.created_at.desc(),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "items": [_ticket_item(t) for t in tickets],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+def get_ticket(db: Session, ticket_id: str) -> Optional[dict]:
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if ticket is None:
+        return None
+    return {
+        **_ticket_item(ticket),
+        "messages": [
+            {"role": m.role, "content": m.content, "created_at": m.created_at} for m in ticket.messages
+        ],
+    }

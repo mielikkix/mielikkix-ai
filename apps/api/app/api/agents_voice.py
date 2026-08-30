@@ -42,7 +42,7 @@ from ..integrations.google_calendar_client import GoogleCalendarError
 from ..notifications import notify_new_booking
 from ..rag.embeddings import embed_query
 from ..rag.pipeline import retrieve_chunks, retrieve_faqs, retrieve_products
-from ..services import booking_service
+from ..services import booking_service, support_service
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ _SYSTEM_PROMPT_BASE = (
 
 # Appended to every system prompt (booking has nothing to do with whether
 # RAG found business context, so this isn't conditional on that) --
-# instructs the LLM on the two real tools it has (see _BOOKING_TOOLS
+# instructs the LLM on the real tools it has (see _VOICE_TOOLS
 # below), and enforces the "always get an explicit yes" rule at the prompt
 # level too, not just the server-side _CONFIRMATION_PATTERN gate in
 # _execute_tool -- belt and suspenders, since Twilio's speech-to-text is
@@ -87,7 +87,12 @@ _BOOKING_SYSTEM_PROMPT_ADDENDUM = (
     "email back to them and explicitly ask 'shall I book it?' -- only call "
     "book_appointment after they clearly say yes to that specific "
     "question, in a separate reply from when you offered the times. Never "
-    "invent a name or email -- ask for them if you don't have them yet."
+    "invent a name or email -- ask for them if you don't have them yet.\n\n"
+    "If the caller has an issue, complaint, or question you cannot resolve "
+    "yourself -- a billing dispute, a technical problem, or anything you're "
+    "not confident you've fully addressed -- use the create_support_ticket "
+    "tool so a real person follows up. Get their name first if you don't "
+    "already have it. Tell them a member of the team will be in touch."
 )
 
 
@@ -179,7 +184,33 @@ _BOOK_APPOINTMENT_TOOL = {
     },
 }
 
-_BOOKING_TOOLS = [_CHECK_AVAILABILITY_TOOL, _BOOK_APPOINTMENT_TOOL]
+_CREATE_SUPPORT_TICKET_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "create_support_ticket",
+        "description": (
+            "Creates a support ticket for a human team member to follow up "
+            "on. Use this when the caller has an issue, complaint, or "
+            "question you cannot resolve yourself -- a billing dispute, a "
+            "technical problem, or anything you're not confident you've "
+            "fully addressed. Their phone number is already known from the "
+            "call itself."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "customer_name": {"type": "string"},
+                "issue_description": {
+                    "type": "string",
+                    "description": "A short summary of the caller's issue, in your own words.",
+                },
+            },
+            "required": ["customer_name", "issue_description"],
+        },
+    },
+}
+
+_VOICE_TOOLS = [_CHECK_AVAILABILITY_TOOL, _BOOK_APPOINTMENT_TOOL, _CREATE_SUPPORT_TICKET_TOOL]
 
 # How many extra LLM round-trips one phone turn may spend on tool calls
 # before giving up -- Twilio's own webhook response budget is on the order
@@ -550,6 +581,26 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
 
         return json.dumps({"status": result.status})
 
+    if tool_call.name == "create_support_ticket":
+        customer_name = args.get("customer_name")
+        issue_description = args.get("issue_description")
+        if not customer_name or not issue_description:
+            logger.info(
+                "call=%s turn=%s create_support_ticket missing_details name=%r issue=%r",
+                call_sid, turn_count, customer_name, issue_description,
+            )
+            return json.dumps({"status": "missing_details"})
+
+        result = await support_service.create_ticket(
+            db,
+            channel="voice",
+            customer_name=customer_name,
+            customer_phone=_call_caller_number.get(call_sid, ""),
+            issue_description=issue_description,
+        )
+        logger.info("call=%s turn=%s create_support_ticket -> ticket=%s status=%s", call_sid, turn_count, result.ticket_id, result.status)
+        return json.dumps({"status": result.status, "ticket_id": result.ticket_id})
+
     logger.info("call=%s turn=%s unknown_tool=%s", call_sid, turn_count, tool_call.name)
     return json.dumps({"status": "unknown_tool"})
 
@@ -576,9 +627,10 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     interfaces just format its result differently (TwiML XML with a
     <Hangup/>, vs. plain JSON with an `ended` flag).
 
-    Phase 4: the single LLM call is now a bounded tool-calling loop -- the
-    model may ask to run check_availability/book_appointment (see
-    _BOOKING_TOOLS) before returning the plain text it actually says aloud.
+    Phase 4/5: the single LLM call is now a bounded tool-calling loop -- the
+    model may ask to run check_availability/book_appointment/
+    create_support_ticket (see _VOICE_TOOLS) before returning the plain text
+    it actually says aloud.
     Only that final text is persisted to `history`; the intermediate
     tool-call/tool-result messages live only in this turn's local
     `messages` list and are discarded once the turn ends -- replaying raw
@@ -627,7 +679,7 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
         for _ in range(_MAX_TOOL_ROUNDS + 1):
             result = await _llm_client.chat(
                 messages,
-                tools=_BOOKING_TOOLS,
+                tools=_VOICE_TOOLS,
                 tool_choice="auto",
                 # LLMClient's own default (512) is too tight here -- confirmed
                 # live: a real reply came back as pages of garbled whitespace/

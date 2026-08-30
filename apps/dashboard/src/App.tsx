@@ -9,6 +9,7 @@ import { DashboardPage } from './dashboard/pages/DashboardPage'
 import { FAQsPage } from './dashboard/pages/FAQsPage'
 import { DocumentsPage } from './dashboard/pages/DocumentsPage'
 import { ProductsPage } from './dashboard/pages/ProductsPage'
+import { SeoPage } from './dashboard/pages/SeoPage'
 import { LeadsPage } from './dashboard/pages/LeadsPage'
 import { ConversationsPage } from './dashboard/pages/ConversationsPage'
 import { SettingsPage } from './dashboard/pages/SettingsPage'
@@ -20,6 +21,7 @@ import { AdminBusinessesPage } from './dashboard/pages/admin/AdminBusinessesPage
 import { AdminBusinessDetailPage } from './dashboard/pages/admin/AdminBusinessDetailPage'
 import { AdminUsagePage } from './dashboard/pages/admin/AdminUsagePage'
 import { AdminBookingsPage } from './dashboard/pages/admin/AdminBookingsPage'
+import { AdminTicketsPage } from './dashboard/pages/admin/AdminTicketsPage'
 import { useAuthStore } from './shared/store/authStore'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -114,6 +116,14 @@ export function App() {
         }
       />
       <Route
+        path="/dashboard/seo"
+        element={
+          <RequireAuth>
+            <DashboardLayout><SeoPage /></DashboardLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/dashboard/leads"
         element={
           <RequireAuth>
@@ -182,6 +192,14 @@ export function App() {
         element={
           <RequireAdmin>
             <AdminLayout><AdminBookingsPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/tickets"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminTicketsPage /></AdminLayout>
           </RequireAdmin>
         }
       />

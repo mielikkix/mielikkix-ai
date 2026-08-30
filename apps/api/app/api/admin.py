@@ -12,6 +12,8 @@ from ..schemas.admin import (
     AdminOverviewOut,
     AdminLLMUsageOut,
     AdminBookingListOut,
+    AdminTicketListOut,
+    AdminTicketDetailOut,
 )
 from ..services import admin_service
 
@@ -78,3 +80,21 @@ def list_bookings(
     db: Session = Depends(get_db),
 ):
     return admin_service.list_bookings(db, page=page, page_size=page_size)
+
+
+@router.get("/tickets", response_model=AdminTicketListOut)
+def list_tickets(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    return admin_service.list_tickets(db, page=page, page_size=page_size, status=status)
+
+
+@router.get("/tickets/{ticket_id}", response_model=AdminTicketDetailOut)
+def get_ticket(ticket_id: str, db: Session = Depends(get_db)):
+    ticket = admin_service.get_ticket(db, ticket_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return ticket

@@ -22,7 +22,7 @@ from twilio.request_validator import RequestValidator
 from app.main import app
 from app.core.config import settings
 from app.api import agents_voice
-from app.services import booking_service
+from app.services import booking_service, support_service
 from mielikkix_agent_core import LLMResult, LLMUsage, ToolCall
 
 client = TestClient(app)
@@ -885,3 +885,74 @@ def test_fire_booking_notification_noop_without_notify_email(monkeypatch):
 
     assert len(agents_voice._pending_notification_tasks) == 0
     fake_notify.assert_not_called()
+
+
+def test_gather_create_support_ticket_tool_creates_escalated_ticket(monkeypatch):
+    """Phase 5 (apps/agents/support-triage/CLAUDE.md): Voice Receptionist
+    hands a caller's issue off to Support Triage as a direct function call,
+    not HTTP -- see apps/agents/CLAUDE.md, "How the three agents talk to
+    each other"."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-supportticket"
+    agents_voice._forget_call(call_sid)
+    agents_voice._call_caller_number[call_sid] = "+15559876543"
+
+    fake_create_ticket = AsyncMock(
+        return_value=support_service.TicketResult(ticket_id="tix-123", status="escalated")
+    )
+    monkeypatch.setattr(support_service, "create_ticket", fake_create_ticket)
+
+    tool_call = ToolCall(
+        id="call_1",
+        name="create_support_ticket",
+        arguments='{"customer_name": "Jane", "issue_description": "Says her invoice total looks wrong."}',
+    )
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", tool_call),
+            _tool_call_result("I've flagged this for our team -- someone will follow up with you soon."),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "my invoice total looks wrong, can someone help"},
+    )
+
+    assert resp.status_code == 200
+    assert "follow up with you soon" in resp.text
+    fake_create_ticket.assert_awaited_once()
+    awaited_kwargs = fake_create_ticket.await_args.kwargs
+    assert awaited_kwargs["channel"] == "voice"
+    assert awaited_kwargs["customer_name"] == "Jane"
+    assert awaited_kwargs["customer_phone"] == "+15559876543"
+    assert awaited_kwargs["issue_description"] == "Says her invoice total looks wrong."
+
+
+def test_gather_create_support_ticket_tool_requires_name_and_issue(monkeypatch):
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-supportticket-missing"
+    agents_voice._forget_call(call_sid)
+
+    fake_create_ticket = AsyncMock()
+    monkeypatch.setattr(support_service, "create_ticket", fake_create_ticket)
+
+    tool_call = ToolCall(id="call_1", name="create_support_ticket", arguments='{"customer_name": ""}')
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", tool_call),
+            _tool_call_result("Could I get your name and a quick description of the issue?"),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "I have a problem"},
+    )
+
+    assert resp.status_code == 200
+    fake_create_ticket.assert_not_awaited()

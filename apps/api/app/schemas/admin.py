@@ -143,3 +143,34 @@ class AdminBookingListOut(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class AdminTicketMessageOut(BaseModel):
+    role: str
+    content: str
+    created_at: datetime
+
+
+class AdminTicketListItem(BaseModel):
+    id: UUID
+    channel: str
+    status: str
+    category: Optional[str]
+    priority: Optional[str]
+    confidence: Optional[float]
+    customer_name: Optional[str]
+    customer_email: Optional[str]
+    customer_phone: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+
+class AdminTicketDetailOut(AdminTicketListItem):
+    messages: List[AdminTicketMessageOut]
+
+
+class AdminTicketListOut(BaseModel):
+    items: List[AdminTicketListItem]
+    total: int
+    page: int
+    page_size: int

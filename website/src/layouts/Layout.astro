@@ -71,6 +71,6 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
       const currencyForLang = SUPPORTED_LANGUAGES.find((l) => l.code === storedLang)?.currency ?? DEFAULT_CURRENCY;
       void initCurrency(currencyForLang);
     </script>
-    <script is:inline src="https://app.mielikkix.ai/widget.js" data-business="c7650cb2-6ea1-4cc2-846b-2f7cc4025267"></script>
+    <script src="/support-chat-widget.js" data-api-url={import.meta.env.PUBLIC_API_URL}></script>
   </body>
 </html>

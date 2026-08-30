@@ -42,6 +42,9 @@ class PlanFeatures:
     # (app/api/calendar_oauth.py) and the /request, /confirm routes
     # (app/api/agents_booking.py) -- see plan_service.require_feature.
     booking_enabled: bool
+    # Gates SEO Copywriter's bulk-generate/approve routes
+    # (app/api/agents_seo.py) -- see plan_service.require_feature.
+    seo_copywriter_enabled: bool
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,7 @@ PLANS: dict[str, Plan] = {
             api_access_addon_available=False,
             priority_support=False,
             booking_enabled=False,
+            seo_copywriter_enabled=False,
         ),
     ),
     "basic": Plan(
@@ -118,6 +122,7 @@ PLANS: dict[str, Plan] = {
             api_access_addon_available=False,
             priority_support=False,
             booking_enabled=False,
+            seo_copywriter_enabled=False,
         ),
     ),
     "business": Plan(
@@ -146,6 +151,7 @@ PLANS: dict[str, Plan] = {
             api_access_addon_available=True,  # +$12/mo add-on
             priority_support=True,
             booking_enabled=True,
+            seo_copywriter_enabled=True,
         ),
     ),
     "growth": Plan(
@@ -174,6 +180,7 @@ PLANS: dict[str, Plan] = {
             api_access_addon_available=False,
             priority_support=True,
             booking_enabled=True,
+            seo_copywriter_enabled=True,
         ),
     ),
 }

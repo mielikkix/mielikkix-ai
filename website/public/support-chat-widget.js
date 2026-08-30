@@ -99,14 +99,33 @@
   const sendBtn = document.getElementById("mlx-support-send");
 
   let opened = false;
-  bubble.addEventListener("click", () => {
-    panel.classList.toggle("mlx-open");
+  function openPanel() {
+    panel.classList.add("mlx-open");
     if (!opened) {
       opened = true;
       addBubble("agent", "Hi! Ask me anything about Mielikkix, or say you'd like to book a call.");
     }
+  }
+  bubble.addEventListener("click", () => {
+    if (panel.classList.contains("mlx-open")) {
+      panel.classList.remove("mlx-open");
+    } else {
+      openPanel();
+    }
   });
   closeBtn.addEventListener("click", () => panel.classList.remove("mlx-open"));
+
+  // Support Triage has no dedicated /demo page of its own (see agents.astro's
+  // own comment on its "Talk to it now" card) -- this widget IS the demo,
+  // wherever it's embedded, so a visitor arriving via ?talk-to-support=1
+  // should actually see it open, not just land on a page where a bubble
+  // happens to also be present somewhere in the corner.
+  if (new URLSearchParams(location.search).get("talk-to-support")) {
+    openPanel();
+    const url = new URL(location.href);
+    url.searchParams.delete("talk-to-support");
+    history.replaceState({}, "", url);
+  }
 
   function addBubble(who, text) {
     const p = document.createElement("p");

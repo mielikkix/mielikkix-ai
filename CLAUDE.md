@@ -93,3 +93,8 @@ mielikkix-ai/
 - Day-by-day build plan: `Mielikkix_8Day_ToDo.docx`.
 - Each agent folder has its own `CLAUDE.md` with that agent's specific integrations,
   data model, and test criteria — read that before touching an agent's code.
+- **Which LLM provider/model powers which feature, and why: `files/LLM_MODELS.md`.**
+  Read before changing any agent's `_llm_client` construction or adding a new one —
+  covers the Chat Widget's separate per-tenant provider system vs. the Force agents'
+  explicit tier assignment (OpenAI cheap/fast vs. Anthropic Claude Sonnet vs. the
+  reserved Opus tier), and exactly which env var controls which model.

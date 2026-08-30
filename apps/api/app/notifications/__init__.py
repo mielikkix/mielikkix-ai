@@ -1,4 +1,5 @@
 from datetime import datetime
+from html import escape as _esc
 
 from .base import NotificationProvider
 from .console_provider import ConsoleNotificationProvider
@@ -39,7 +40,7 @@ async def notify_password_reset(to_email: str, full_name: str, reset_token: str)
     reset_url = f"{settings.frontend_url}/reset-password?token={reset_token}"
     subject = "Reset your MielikkiX password"
     html = f"""
-        <p>Hi {full_name},</p>
+        <p>Hi {_esc(full_name)},</p>
         <p>We received a request to reset your MielikkiX password. Click the link below to choose a new one:</p>
         <p><a href="{reset_url}">Reset your password</a></p>
         <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
@@ -51,12 +52,12 @@ async def notify_new_lead(business_name: str, contact_email: str, lead: Lead) ->
     provider = get_notification_provider()
     subject = f"New lead from {business_name}"
     html = f"""
-        <p>You've got a new lead from your MielikkiX widget on <strong>{business_name}</strong>.</p>
+        <p>You've got a new lead from your MielikkiX widget on <strong>{_esc(business_name)}</strong>.</p>
         <ul>
-            <li><strong>Name:</strong> {lead.name}</li>
-            <li><strong>Email:</strong> {lead.email or "-"}</li>
-            <li><strong>Phone:</strong> {lead.phone or "-"}</li>
-            <li><strong>Message:</strong> {lead.message or "-"}</li>
+            <li><strong>Name:</strong> {_esc(lead.name)}</li>
+            <li><strong>Email:</strong> {_esc(lead.email or "-")}</li>
+            <li><strong>Phone:</strong> {_esc(lead.phone or "-")}</li>
+            <li><strong>Message:</strong> {_esc(lead.message or "-")}</li>
         </ul>
         <p>Log in to your MielikkiX dashboard to follow up.</p>
     """
@@ -79,7 +80,7 @@ async def notify_support_escalation(ticket: Ticket) -> None:
     provider = get_notification_provider()
     subject = f"[Support] Ticket needs follow-up ({ticket.channel})"
     contact_line = "".join(
-        f"<li><strong>{label}:</strong> {value}</li>"
+        f"<li><strong>{label}:</strong> {_esc(value)}</li>"
         for label, value in [
             ("Name", ticket.customer_name),
             ("Email", ticket.customer_email),
@@ -91,11 +92,11 @@ async def notify_support_escalation(ticket: Ticket) -> None:
     html = f"""
         <p>A Support Triage ticket needs a human follow-up.</p>
         <ul>
-            <li><strong>Category:</strong> {ticket.category or "-"}</li>
-            <li><strong>Priority:</strong> {ticket.priority or "-"}</li>
+            <li><strong>Category:</strong> {_esc(ticket.category or "-")}</li>
+            <li><strong>Priority:</strong> {_esc(ticket.priority or "-")}</li>
             {contact_line}
         </ul>
-        <p><strong>Latest message:</strong> {last_message}</p>
+        <p><strong>Latest message:</strong> {_esc(last_message)}</p>
         <p>Ticket ID: {ticket.id}</p>
     """
     for recipient in settings.platform_admin_emails_list:
@@ -117,13 +118,13 @@ async def notify_new_booking(contact_email: str, booking: Booking) -> None:
     html = f"""
         <p>A new booking was just made through the Mielikkix Booking Assistant.</p>
         <ul>
-            <li><strong>What:</strong> {booking.meeting_type}</li>
+            <li><strong>What:</strong> {_esc(booking.meeting_type)}</li>
             <li><strong>When:</strong> {_format_time_range(booking.start_at, booking.end_at)}</li>
-            <li><strong>Name:</strong> {booking.name}</li>
-            <li><strong>Email:</strong> {booking.email}</li>
-            <li><strong>Phone:</strong> {booking.phone or "-"}</li>
+            <li><strong>Name:</strong> {_esc(booking.name)}</li>
+            <li><strong>Email:</strong> {_esc(booking.email)}</li>
+            <li><strong>Phone:</strong> {_esc(booking.phone or "-")}</li>
         </ul>
-        <p>Calendar event ID: {booking.calendar_event_id}</p>
+        <p>Calendar event ID: {_esc(booking.calendar_event_id)}</p>
     """
     for recipient in [e.strip() for e in contact_email.split(",") if e.strip()]:
         await provider.send_email(to=recipient, subject=subject, html=html)

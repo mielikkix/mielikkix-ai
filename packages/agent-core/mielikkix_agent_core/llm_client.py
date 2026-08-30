@@ -124,6 +124,9 @@ class LLMClient:
         self.model = model or getattr(settings, model_field)
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
+        # Only relevant for provider="anthropic" -- see settings.anthropic_workspace_id's
+        # own comment for why most keys never need this.
+        self.anthropic_workspace_id = settings.anthropic_workspace_id
         self._client = None
 
     def _get_client(self):
@@ -143,7 +146,20 @@ class LLMClient:
             if self.provider == "anthropic":
                 from anthropic import AsyncAnthropic
 
-                self._client = AsyncAnthropic(api_key=self.api_key, timeout=self.timeout_seconds, max_retries=0)
+                # An "identity-linked" API key scoped to more than one
+                # workspace 400s on every request ("anthropic-workspace-id
+                # is required...") without this header -- confirmed live.
+                # A plain single-workspace key doesn't need it, so this is
+                # only sent when explicitly configured.
+                extra_headers = (
+                    {"anthropic-workspace-id": self.anthropic_workspace_id} if self.anthropic_workspace_id else None
+                )
+                self._client = AsyncAnthropic(
+                    api_key=self.api_key,
+                    timeout=self.timeout_seconds,
+                    max_retries=0,
+                    default_headers=extra_headers,
+                )
             elif self.provider == "openai":
                 from openai import AsyncOpenAI
 
@@ -272,6 +288,14 @@ class LLMClient:
     # --- Anthropic: same public contract, genuinely different wire shape ---
 
     async def _create_anthropic(self, client, messages, max_tokens, temperature, tools, tool_choice):
+        # `temperature` is accepted (and used) by chat()'s Groq/OpenAI path
+        # above, but NOT forwarded here -- confirmed live, a real
+        # BadRequestError: "`temperature` is deprecated for this model" on
+        # claude-sonnet-5. Rather than special-case which Anthropic models
+        # do/don't accept it (a moving target as models change), this
+        # client just never sends it for Anthropic and lets the model use
+        # its own default -- none of this codebase's callers rely on a
+        # specific temperature value being honored.
         system_text, anthropic_messages = _to_anthropic_messages(messages)
         kwargs = {}
         if tools is not None:
@@ -284,7 +308,6 @@ class LLMClient:
             system=system_text,
             messages=anthropic_messages,
             max_tokens=max_tokens,
-            temperature=temperature,
             **kwargs,
         )
 

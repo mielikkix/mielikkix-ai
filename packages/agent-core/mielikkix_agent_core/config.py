@@ -43,6 +43,13 @@ class AgentCoreSettings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5"
     anthropic_opus_model: str = "claude-opus-5"
+    # Only needed for an "identity-linked" API key scoped to more than one
+    # workspace (confirmed live: such a key gets a 400 "anthropic-workspace-id
+    # is required..." on every request until this is set) -- a plain
+    # single-workspace key from Console -> Settings -> API Keys doesn't need
+    # this at all. Find it at console.anthropic.com's workspace settings page
+    # if you hit that error.
+    anthropic_workspace_id: str = ""
 
     class Config:
         env_file = str(_find_root_env_file())

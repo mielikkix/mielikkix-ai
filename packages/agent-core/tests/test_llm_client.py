@@ -244,12 +244,13 @@ async def test_anthropic_chat_extracts_system_prompt_and_returns_text(monkeypatc
     assert result.usage.prompt_tokens == 10
     assert result.usage.completion_tokens == 5
     assert result.usage.total_tokens == 15
+    # No `temperature` -- confirmed live, claude-sonnet-5 rejects it outright
+    # ("`temperature` is deprecated for this model"), unlike Groq/OpenAI.
     fake_create.assert_awaited_once_with(
         model="test-model",
         system="You are helpful.",
         messages=[{"role": "user", "content": "hi"}],
         max_tokens=512,
-        temperature=0.7,
     )
 
 

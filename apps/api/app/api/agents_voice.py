@@ -83,11 +83,16 @@ _BOOKING_SYSTEM_PROMPT_ADDENDUM = (
     "When it returns options, read out at most 2-3 of them using their "
     "'spoken' text exactly as given (never read out a raw date/time "
     "yourself) and ask which works. Once the caller has picked one AND "
-    "given you a name and email, read the specific day/time, name, and "
-    "email back to them and explicitly ask 'shall I book it?' -- only call "
-    "book_appointment after they clearly say yes to that specific "
-    "question, in a separate reply from when you offered the times. Never "
-    "invent a name or email -- ask for them if you don't have them yet.\n\n"
+    "given you a name and email, call propose_booking with those details "
+    "-- do NOT compose your own confirmation question, and do NOT read the "
+    "email back yourself. propose_booking's own result IS what gets said "
+    "next, verbatim: the system spells the email out letter by letter so a "
+    "misheard one (confirmed live: 'jobs10' misheard as 'jobstown') is "
+    "actually catchable by ear, which a paraphrased reading in your own "
+    "words would undo. If the caller corrects a detail after hearing it "
+    "read back, call propose_booking again with the corrected value --  "
+    "never invent a name or email; ask for them if you don't have them "
+    "yet.\n\n"
     "If the caller has an issue, complaint, or question you cannot resolve "
     "yourself -- a billing dispute, a technical problem, or anything you're "
     "not confident you've fully addressed -- use the create_support_ticket "
@@ -110,6 +115,31 @@ def _format_slot_for_speech(slot_start: datetime) -> str:
         else local.strftime("%I:%M %p").lstrip("0")
     )
     return f"{day} at {time_part}"
+
+
+# Speaks a string one character at a time (digits as words, punctuation
+# named aloud) instead of as a fluent word -- see propose_booking's own
+# comment (_execute_tool) for why: a caller can only catch a speech-to-text
+# error like "jobs10" heard back as "jobstown" if the readback is spelled
+# out, not paraphrased in prose the way the LLM was previously trusted to
+# do (confirmed live: it didn't reliably comply even when told to).
+_DIGIT_WORDS = {"0": "zero", "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine"}
+_SYMBOL_WORDS = {".": "dot", "_": "underscore", "-": "dash", "+": "plus"}
+
+
+def _spell_for_speech(text: str) -> str:
+    pieces = [_DIGIT_WORDS.get(ch) or _SYMBOL_WORDS.get(ch) or ch.lower() for ch in text]
+    return ", ".join(pieces)
+
+
+def _spell_email_for_speech(email: str) -> str:
+    """Spells the local part (before @) out character by character -- the
+    part a caller invents themselves and speech-to-text most often mangles
+    -- but reads the domain normally ('at gmail dot com'), since a common
+    domain is short and low-ambiguity enough that spelling it out too would
+    just make an already-careful readback needlessly tedious to listen to."""
+    local, _, domain = email.partition("@")
+    return f"{_spell_for_speech(local)}, at {domain.replace('.', ' dot ')}"
 
 
 # Booking Assistant's /request and /confirm routes take the VISITOR's own
@@ -149,15 +179,19 @@ _CHECK_AVAILABILITY_TOOL = {
     },
 }
 
-_BOOK_APPOINTMENT_TOOL = {
+_PROPOSE_BOOKING_TOOL = {
     "type": "function",
     "function": {
-        "name": "book_appointment",
+        "name": "propose_booking",
         "description": (
-            "Actually creates the booking. Only call this after the caller "
-            "has clearly confirmed OUT LOUD which slot number they want, in "
-            "a separate reply from when you offered it, and you have their "
-            "name and email."
+            "Reads the chosen slot and the caller's name/email back to "
+            "them (spelling the email out letter by letter) and asks "
+            "'shall I book it?' -- does NOT create the booking yet, only "
+            "the caller's own next 'yes' does that. Call this once you "
+            "know which slot number the caller wants and you have their "
+            "name and email. The exact confirmation wording is generated "
+            "for you; say it verbatim, don't add your own text before or "
+            "after it."
         ),
         "parameters": {
             "type": "object",
@@ -210,7 +244,7 @@ _CREATE_SUPPORT_TICKET_TOOL = {
     },
 }
 
-_VOICE_TOOLS = [_CHECK_AVAILABILITY_TOOL, _BOOK_APPOINTMENT_TOOL, _CREATE_SUPPORT_TICKET_TOOL]
+_VOICE_TOOLS = [_CHECK_AVAILABILITY_TOOL, _PROPOSE_BOOKING_TOOL, _CREATE_SUPPORT_TICKET_TOOL]
 
 # How many extra LLM round-trips one phone turn may spend on tool calls
 # before giving up -- Twilio's own webhook response budget is on the order
@@ -245,18 +279,19 @@ _GOODBYE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Gates book_appointment (see _execute_tool) -- checked against the raw
-# caller speech for the turn that triggers the call, not turn-count
-# bookkeeping. An earlier version tracked "was book_appointment called in
-# the same turn as check_availability" instead, but that broke on a real,
-# legitimate flow (confirmed live): the model redundantly re-called
-# check_availability to double-check a slot it had already offered in an
-# earlier turn, then tried to book in that same turn -- the re-check
-# stamped "just checked" over the ORIGINAL turn, making an already-
-# confirmed booking look same-turn and get wrongly refused. Checking the
-# caller's own words directly avoids that fragility: it doesn't matter how
-# many tool calls happened or in which turn, only whether the human
-# actually said something affirmative in the turn that's about to book.
+# Gates the deterministic finalize-booking step in _handle_turn (see
+# _call_pending_confirmation below), checked against the raw caller speech
+# for the turn immediately after propose_booking ran -- not turn-count
+# bookkeeping otherwise, and not re-parsed from an LLM tool call at all
+# anymore. An earlier version (when book_appointment created the booking
+# directly) tracked "was book_appointment called in the same turn as
+# check_availability" instead, but that broke on a real, legitimate flow
+# (confirmed live): the model redundantly re-called check_availability to
+# double-check a slot it had already offered in an earlier turn, then tried
+# to book in that same turn -- the re-check stamped "just checked" over the
+# ORIGINAL turn, making an already-confirmed booking look same-turn and get
+# wrongly refused. Checking the caller's own words for the turn right after
+# propose_booking's readback avoids that fragility entirely.
 _CONFIRMATION_PATTERN = re.compile(
     r"\b(yes|yeah|yep|yup|sure|go ahead|book it|please book|confirm|"
     r"that works|sounds good|correct|do it|book that|please do)\b",
@@ -407,9 +442,18 @@ _call_last_seen: dict[str, float] = {}
 # the conversation state above.
 _call_pending_slots: dict[str, list[booking_service.SlotOption]] = {}
 _call_pending_meeting_type: dict[str, str] = {}
+# Set by propose_booking (_execute_tool), consumed by _handle_turn's
+# pending-confirmation fast path -- slot_index/name/email/phone exactly as
+# read back to the caller, plus the turn_count propose_booking ran on.
+# Single-shot and turn-scoped on purpose: valid ONLY if the very next real
+# turn is the one that confirms it (see _handle_turn), so a stale proposal
+# nobody answered can never get accidentally triggered by an unrelated
+# "yes" several turns later.
+_call_pending_confirmation: dict[str, dict] = {}
 # Twilio's own `From` field on the incoming call -- captured once in
-# voice_incoming, never from speech-to-text, so book_appointment has a
-# verified phone number to fall back on if the caller doesn't state one.
+# voice_incoming, never from speech-to-text, so propose_booking/
+# _finalize_booking has a verified phone number to fall back on if the
+# caller doesn't state one.
 _call_caller_number: dict[str, str] = {}
 
 
@@ -424,6 +468,7 @@ def _forget_call(call_sid: str) -> None:
     _call_turn_counts.pop(call_sid, None)
     _call_pending_slots.pop(call_sid, None)
     _call_pending_meeting_type.pop(call_sid, None)
+    _call_pending_confirmation.pop(call_sid, None)
     _call_caller_number.pop(call_sid, None)
 
 
@@ -495,11 +540,11 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
         # aloud. When all 8 were included in the tool result, the model
         # sometimes renumbered "1, 2" in its own spoken prose to match
         # whichever ones it chose to mention, which didn't line up with
-        # their REAL index in the full list -- so book_appointment(index=1)
-        # could silently book a completely different slot than the one the
+        # their REAL index in the full list -- so propose_booking(index=1)
+        # could silently stage a completely different slot than the one the
         # caller actually heard and agreed to. Storing the same truncated
-        # list book_appointment looks up from makes that mismatch
-        # impossible: index 1 in the tool result and index 1 in
+        # list propose_booking/_finalize_booking look up from makes that
+        # mismatch impossible: index 1 in the tool result and index 1 in
         # _call_pending_slots are now guaranteed to be the same slot.
         spoken_slots = result.slots[:_MAX_SPOKEN_SLOTS]
         _call_pending_slots[call_sid] = spoken_slots
@@ -516,25 +561,17 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
             }
         )
 
-    if tool_call.name == "book_appointment":
-        # Server-enforced, not just prompt discipline (see the system
-        # prompt addendum) -- refuses to book unless the CALLER's own
-        # words for this turn contain a clear affirmative (see
-        # _CONFIRMATION_PATTERN's own comment for why this checks the raw
-        # speech rather than turn-count bookkeeping around
-        # check_availability).
-        if not _CONFIRMATION_PATTERN.search(speech):
-            logger.info("call=%s turn=%s book_appointment refused: no confirmation phrase in speech=%r", call_sid, turn_count, speech)
-            return json.dumps(
-                {
-                    "status": "confirmation_required",
-                    "message": (
-                        "Read the slot, name, and email back and get an "
-                        "explicit yes in your NEXT reply before booking."
-                    ),
-                }
-            )
-
+    if tool_call.name == "propose_booking":
+        # Doesn't book anything -- only stages _call_pending_confirmation
+        # and hands back the exact deterministic text to say next (see
+        # _handle_turn's tool-round loop, which speaks this verbatim
+        # instead of letting the model paraphrase it). The actual booking
+        # only happens if the caller's OWN next turn passes
+        # _CONFIRMATION_PATTERN, checked in _handle_turn against their raw
+        # speech -- never re-derived from another LLM tool call, which is
+        # exactly the risk this whole propose/finalize split exists to
+        # remove (a model that garbles or re-invents slot/name/email on a
+        # second call would silently book the wrong thing).
         slots = _call_pending_slots.get(call_sid, [])
         slot_index = args.get("slot_index")
         # LLM-generated JSON isn't guaranteed to emit a number as a JSON
@@ -545,41 +582,28 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
         if isinstance(slot_index, str) and slot_index.strip().isdigit():
             slot_index = int(slot_index.strip())
         if not isinstance(slot_index, int) or not (1 <= slot_index <= len(slots)):
-            logger.info("call=%s turn=%s book_appointment invalid_slot_index=%r (have %d slots)", call_sid, turn_count, slot_index, len(slots))
+            logger.info("call=%s turn=%s propose_booking invalid_slot_index=%r (have %d slots)", call_sid, turn_count, slot_index, len(slots))
             return json.dumps({"status": "invalid_slot_index"})
 
         name, email = args.get("name"), args.get("email")
         if not name or not email:
-            logger.info("call=%s turn=%s book_appointment missing_details name=%r email=%r", call_sid, turn_count, name, email)
+            logger.info("call=%s turn=%s propose_booking missing_details name=%r email=%r", call_sid, turn_count, name, email)
             return json.dumps({"status": "missing_details"})
 
         chosen = slots[slot_index - 1]
-        try:
-            result = await booking_service.confirm_booking_slot(
-                db,
-                None,
-                chosen.start,
-                chosen.end,
-                _VOICE_BOOKING_TIMEZONE,
-                name,
-                email,
-                args.get("phone") or _call_caller_number.get(call_sid),
-                _call_pending_meeting_type.get(call_sid, "appointment"),
-                call_sid,
-            )
-        except GoogleCalendarError:
-            logger.info("call=%s turn=%s book_appointment calendar_error", call_sid, turn_count)
-            return json.dumps({"status": "calendar_error"})
-
-        logger.info("call=%s turn=%s book_appointment -> status=%s", call_sid, turn_count, result.status)
-
-        if result.status == "booked":
-            _fire_booking_notification(result)
-            _call_pending_slots.pop(call_sid, None)
-            _call_pending_meeting_type.pop(call_sid, None)
-            return json.dumps({"status": "booked", "spoken_time": _format_slot_for_speech(chosen.start)})
-
-        return json.dumps({"status": result.status})
+        _call_pending_confirmation[call_sid] = {
+            "turn": turn_count,
+            "slot_index": slot_index,
+            "name": name,
+            "email": email,
+            "phone": args.get("phone"),
+        }
+        confirmation_text = (
+            f"Just to confirm: {_format_slot_for_speech(chosen.start)} for {name}. "
+            f"Your email, spelled out: {_spell_email_for_speech(email)}. Shall I book it?"
+        )
+        logger.info("call=%s turn=%s propose_booking -> awaiting_confirmation slot=%s email=%s", call_sid, turn_count, slot_index, email)
+        return json.dumps({"status": "awaiting_confirmation", "say": confirmation_text})
 
     if tool_call.name == "create_support_ticket":
         customer_name = args.get("customer_name")
@@ -605,6 +629,60 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
     return json.dumps({"status": "unknown_tool"})
 
 
+async def _finalize_booking(db: Session, call_sid: str, turn_count: int, pending: dict) -> str:
+    """Actually creates the booking staged by propose_booking, once
+    _handle_turn has confirmed the caller's very next turn said yes.
+    Deliberately does NOT go back through the LLM for slot_index/name/email
+    -- those are exactly what propose_booking already read back to the
+    caller verbatim (see _execute_tool); re-deriving them from a second
+    tool call would reopen the misheard-detail risk this whole split
+    exists to close. Only the confirmation reply itself is deterministic
+    prose, same reasoning as propose_booking's own confirmation_text.
+    """
+    slots = _call_pending_slots.get(call_sid, [])
+    slot_index = pending["slot_index"]
+    if not (1 <= slot_index <= len(slots)):
+        # Slots are only ever cleared by a completed booking or a fresh
+        # check_availability call (see _execute_tool/_start_call) -- this
+        # can only happen if the caller asked to check availability again
+        # for something else between propose_booking and now, which
+        # replaced the list propose_booking's slot_index pointed into.
+        logger.info("call=%s turn=%s finalize_booking stale_slot_index=%s (have %d slots)", call_sid, turn_count, slot_index, len(slots))
+        return "Sorry, that slot isn't available anymore -- could you tell me what you'd like to book again?"
+
+    chosen = slots[slot_index - 1]
+    try:
+        result = await booking_service.confirm_booking_slot(
+            db,
+            None,
+            chosen.start,
+            chosen.end,
+            _VOICE_BOOKING_TIMEZONE,
+            pending["name"],
+            pending["email"],
+            pending.get("phone") or _call_caller_number.get(call_sid),
+            _call_pending_meeting_type.get(call_sid, "appointment"),
+            call_sid,
+        )
+    except GoogleCalendarError:
+        logger.info("call=%s turn=%s finalize_booking calendar_error", call_sid, turn_count)
+        return "Sorry, I couldn't reach the calendar just now -- could we try that again in a moment?"
+
+    logger.info("call=%s turn=%s finalize_booking -> status=%s", call_sid, turn_count, result.status)
+
+    if result.status == "booked":
+        _fire_booking_notification(result)
+        _call_pending_slots.pop(call_sid, None)
+        _call_pending_meeting_type.pop(call_sid, None)
+        return (
+            f"You're all set -- I've booked {_format_slot_for_speech(chosen.start)}. "
+            f"A calendar invite is on its way to {pending['email']}."
+        )
+    if result.status == "conflict":
+        return "Sorry, that slot was just taken by someone else -- would you like me to check availability again?"
+    return "Sorry, something went wrong booking that -- could we try again in a moment?"
+
+
 def _assert_valid_twilio_request(request: Request, form: dict) -> None:
     """See Phase 0's version of this function for the full explanation --
     unchanged here, just reused by both routes below."""
@@ -628,10 +706,15 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     <Hangup/>, vs. plain JSON with an `ended` flag).
 
     Phase 4/5: the single LLM call is now a bounded tool-calling loop -- the
-    model may ask to run check_availability/book_appointment/
+    model may ask to run check_availability/propose_booking/
     create_support_ticket (see _VOICE_TOOLS) before returning the plain text
-    it actually says aloud.
-    Only that final text is persisted to `history`; the intermediate
+    it actually says aloud. propose_booking is a special case: its own
+    result text is spoken directly (see the tool-round loop below), never
+    handed back to the model to paraphrase, and if THIS turn is a caller's
+    "yes" to a booking propose_booking staged last turn, the whole LLM call
+    is skipped entirely in favor of _finalize_booking -- see the pending-
+    confirmation check right after `history.append` below.
+    Only the final text is persisted to `history`; the intermediate
     tool-call/tool-result messages live only in this turn's local
     `messages` list and are discarded once the turn ends -- replaying raw
     tool JSON across turns would bloat context for no benefit, since the
@@ -664,6 +747,26 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
         return _TURN_CAP_CLOSING_LINE, True
 
     history.append({"role": "user", "content": speech})
+
+    # Deterministic finalize-booking fast path: propose_booking staged a
+    # confirmation on some earlier turn, and this is the very next one --
+    # if the caller's own raw words affirm it, book it now using exactly
+    # what was already read back to them (never re-asking the LLM to
+    # restate slot/name/email, which would reopen the misheard-detail risk
+    # propose_booking's spelled-out readback exists to close), and skip the
+    # LLM call entirely for this turn. Single-shot: popped here regardless
+    # of outcome, so a stale unanswered proposal can never fire later on an
+    # unrelated "yes". A non-affirmative reply here (a correction, a new
+    # question, anything else) just falls through to the normal LLM turn
+    # below with the proposal already cleared -- the model still has
+    # propose_booking available to re-stage once it has corrected details.
+    pending = _call_pending_confirmation.get(call_sid)
+    if pending and pending["turn"] == turn_count - 1:
+        _call_pending_confirmation.pop(call_sid, None)
+        if _CONFIRMATION_PATTERN.search(speech):
+            reply = await _finalize_booking(db, call_sid, turn_count, pending)
+            history.append({"role": "assistant", "content": reply})
+            return reply, False
 
     try:
         context = _retrieve_context(db, _anchor_query_for_retrieval(speech))
@@ -713,6 +816,19 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
             for tool_call in result.tool_calls:
                 tool_output = await _execute_tool(db, call_sid, turn_count, speech, tool_call)
                 messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": tool_output})
+                # propose_booking's result is spoken verbatim, never handed
+                # back to the model for another round -- see _execute_tool's
+                # own comment on why paraphrasing it would undo the whole
+                # point of spelling the email out.
+                if tool_call.name == "propose_booking":
+                    try:
+                        parsed = json.loads(tool_output)
+                    except json.JSONDecodeError:
+                        parsed = {}
+                    if parsed.get("status") == "awaiting_confirmation":
+                        reply = parsed["say"]
+                        history.append({"role": "assistant", "content": reply})
+                        return reply, False
         else:
             return _TOOL_LOOP_FALLBACK, False
     except Exception:
@@ -739,6 +855,7 @@ def _start_call(call_sid: str) -> str:
     _call_turn_counts.pop(call_sid, None)
     _call_pending_slots.pop(call_sid, None)
     _call_pending_meeting_type.pop(call_sid, None)
+    _call_pending_confirmation.pop(call_sid, None)
     return _GREETING
 
 
@@ -772,8 +889,8 @@ async def voice_incoming(request: Request):
 
     call_sid = form.get("CallSid", "")
     # Twilio's own caller-ID field -- captured once, here, never from
-    # speech-to-text, so book_appointment has a verified phone number to
-    # fall back on if the caller doesn't state one (see _execute_tool).
+    # speech-to-text, so propose_booking/_finalize_booking has a verified
+    # phone number to fall back on if the caller doesn't state one.
     _call_caller_number[call_sid] = form.get("From", "")
 
     response = VoiceResponse()

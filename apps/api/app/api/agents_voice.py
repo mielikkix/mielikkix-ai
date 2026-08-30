@@ -84,15 +84,14 @@ _BOOKING_SYSTEM_PROMPT_ADDENDUM = (
     "'spoken' text exactly as given (never read out a raw date/time "
     "yourself) and ask which works. Once the caller has picked one AND "
     "given you a name and email, call propose_booking with those details "
-    "-- do NOT compose your own confirmation question, and do NOT read the "
-    "email back yourself. propose_booking's own result IS what gets said "
-    "next, verbatim: the system spells the email out letter by letter so a "
-    "misheard one (confirmed live: 'jobs10' misheard as 'jobstown') is "
-    "actually catchable by ear, which a paraphrased reading in your own "
-    "words would undo. If the caller corrects a detail after hearing it "
-    "read back, call propose_booking again with the corrected value --  "
-    "never invent a name or email; ask for them if you don't have them "
-    "yet.\n\n"
+    "-- do NOT compose your own confirmation question yourself. "
+    "propose_booking's own result IS what gets said next, verbatim: it "
+    "reads the slot/name/email back and explicitly asks whether the email "
+    "is correct before asking to book, which catches a misheard email "
+    "(confirmed live) better than you moving straight to 'shall I book "
+    "it?' would. If the caller corrects a detail after hearing it read "
+    "back, call propose_booking again with the corrected value -- never "
+    "invent a name or email; ask for them if you don't have them yet.\n\n"
     "If the caller has an issue, complaint, or question you cannot resolve "
     "yourself -- a billing dispute, a technical problem, or anything you're "
     "not confident you've fully addressed -- use the create_support_ticket "
@@ -117,29 +116,15 @@ def _format_slot_for_speech(slot_start: datetime) -> str:
     return f"{day} at {time_part}"
 
 
-# Speaks a string one character at a time (digits as words, punctuation
-# named aloud) instead of as a fluent word -- see propose_booking's own
-# comment (_execute_tool) for why: a caller can only catch a speech-to-text
-# error like "jobs10" heard back as "jobstown" if the readback is spelled
-# out, not paraphrased in prose the way the LLM was previously trusted to
-# do (confirmed live: it didn't reliably comply even when told to).
-_DIGIT_WORDS = {"0": "zero", "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine"}
-_SYMBOL_WORDS = {".": "dot", "_": "underscore", "-": "dash", "+": "plus"}
-
-
-def _spell_for_speech(text: str) -> str:
-    pieces = [_DIGIT_WORDS.get(ch) or _SYMBOL_WORDS.get(ch) or ch.lower() for ch in text]
-    return ", ".join(pieces)
-
-
-def _spell_email_for_speech(email: str) -> str:
-    """Spells the local part (before @) out character by character -- the
-    part a caller invents themselves and speech-to-text most often mangles
-    -- but reads the domain normally ('at gmail dot com'), since a common
-    domain is short and low-ambiguity enough that spelling it out too would
-    just make an already-careful readback needlessly tedious to listen to."""
-    local, _, domain = email.partition("@")
-    return f"{_spell_for_speech(local)}, at {domain.replace('.', ' dot ')}"
+# A loose sanity check, not full RFC 5322 validation -- just enough to
+# catch the shape of failure confirmed live: speech-to-text mangling
+# "pratibhajobs10@gmail.com" into something like "pratibha jobstand at
+# gmail.com" (the LITERAL WORD "at", no "@" at all), which propose_booking
+# below used to accept and read back as garbled nonsense. Rejecting
+# anything that doesn't look like `local@domain.tld` here means a caller
+# gets asked to repeat a clearly-broken email immediately, deterministically,
+# rather than confirming visible garbage.
+_EMAIL_SHAPE_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 # Booking Assistant's /request and /confirm routes take the VISITOR's own
@@ -185,12 +170,12 @@ _PROPOSE_BOOKING_TOOL = {
         "name": "propose_booking",
         "description": (
             "Reads the chosen slot and the caller's name/email back to "
-            "them (spelling the email out letter by letter) and asks "
-            "'shall I book it?' -- does NOT create the booking yet, only "
-            "the caller's own next 'yes' does that. Call this once you "
-            "know which slot number the caller wants and you have their "
-            "name and email. The exact confirmation wording is generated "
-            "for you; say it verbatim, don't add your own text before or "
+            "them, asks whether the email is correct, and asks 'shall I "
+            "book it?' -- does NOT create the booking yet, only the "
+            "caller's own next 'yes' does that. Call this once you know "
+            "which slot number the caller wants and you have their name "
+            "and email. The exact confirmation wording is generated for "
+            "you; say it verbatim, don't add your own text before or "
             "after it."
         ),
         "parameters": {
@@ -601,6 +586,20 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
         if not name or not email:
             logger.info("call=%s turn=%s propose_booking missing_details name=%r email=%r", call_sid, turn_count, name, email)
             return json.dumps({"status": "missing_details"})
+        # Confirmed live: speech-to-text can mangle an email badly enough
+        # that what the model extracted isn't even shaped like one anymore
+        # (e.g. "pratibha jobstand at gmail.com" -- the literal word "at",
+        # no "@"). Catching that HERE, deterministically, means the caller
+        # gets asked to repeat it immediately instead of the confirmation
+        # step reading back visible garbage.
+        if not _EMAIL_SHAPE_PATTERN.match(email):
+            logger.info("call=%s turn=%s propose_booking malformed_email=%r", call_sid, turn_count, email)
+            return json.dumps(
+                {
+                    "status": "invalid_email",
+                    "message": "That doesn't sound like a complete email address. Ask the caller to say it again slowly.",
+                }
+            )
 
         chosen = slots[slot_index - 1]
         _call_pending_confirmation[call_sid] = {
@@ -610,9 +609,18 @@ async def _execute_tool(db: Session, call_sid: str, turn_count: int, speech: str
             "email": email,
             "phone": args.get("phone"),
         }
+        # Read back normally (not spelled out) but as an explicit yes/no
+        # question specifically about the email -- confirmed live that
+        # character-by-character spelling, while unambiguous, made a real
+        # conversation painfully slow to follow and hard to correct
+        # mid-stream. The email-shape check above already catches the
+        # worst failure mode (a structurally broken email); this question
+        # is the caller's chance to catch a well-formed-but-wrong one
+        # (right shape, wrong person -- e.g. a misheard digit inside a
+        # plausible-looking address).
         confirmation_text = (
-            f"Just to confirm: {_format_slot_for_speech(chosen.start)} for {name}. "
-            f"Your email, spelled out: {_spell_email_for_speech(email)}. Shall I book it?"
+            f"Just to confirm: {_format_slot_for_speech(chosen.start)} for {name}, "
+            f"and I have your email as {email}. Is that correct? Shall I book it?"
         )
         logger.info("call=%s turn=%s propose_booking -> awaiting_confirmation slot=%s email=%s", call_sid, turn_count, slot_index, email)
         return json.dumps({"status": "awaiting_confirmation", "say": confirmation_text})
@@ -765,11 +773,12 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     # if the caller's own raw words affirm it, book it now using exactly
     # what was already read back to them (never re-asking the LLM to
     # restate slot/name/email, which would reopen the misheard-detail risk
-    # propose_booking's spelled-out readback exists to close), and skip the
-    # LLM call entirely for this turn. Single-shot: popped here regardless
-    # of outcome, so a stale unanswered proposal can never fire later on an
-    # unrelated "yes". A non-affirmative reply here (a correction, a new
-    # question, anything else) just falls through to the normal LLM turn
+    # propose_booking's explicit "is that correct?" readback exists to
+    # close), and skip the LLM call entirely for this turn. Single-shot:
+    # popped here regardless of outcome, so a stale unanswered proposal
+    # can never fire later on an unrelated "yes". A non-affirmative reply
+    # here (a correction, a new question, anything else) just falls
+    # through to the normal LLM turn
     # below with the proposal already cleared -- the model still has
     # propose_booking available to re-stage once it has corrected details.
     pending = _call_pending_confirmation.get(call_sid)
@@ -830,8 +839,8 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
                 messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": tool_output})
                 # propose_booking's result is spoken verbatim, never handed
                 # back to the model for another round -- see _execute_tool's
-                # own comment on why paraphrasing it would undo the whole
-                # point of spelling the email out.
+                # own comment on why paraphrasing it would undo the point
+                # of the explicit "is that correct?" question.
                 if tool_call.name == "propose_booking":
                     try:
                         parsed = json.loads(tool_output)

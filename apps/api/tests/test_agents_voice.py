@@ -654,9 +654,9 @@ def test_check_availability_truncates_slots_before_storing_or_returning_them(mon
 def test_gather_propose_booking_speaks_deterministic_readback_without_booking_yet(monkeypatch):
     """propose_booking must never book on its own -- it only stages
     _call_pending_confirmation and speaks a server-generated readback
-    (spelling the email out) verbatim, without a second LLM call to
-    paraphrase it. Only the caller's OWN next-turn "yes" (a separate test)
-    actually books."""
+    (reading the email back and explicitly asking if it's correct)
+    verbatim, without a second LLM call to paraphrase it. Only the
+    caller's OWN next-turn "yes" (a separate test) actually books."""
     monkeypatch.setattr(settings, "twilio_auth_token", "")
     monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
     call_sid = "CAtest-propose"
@@ -686,15 +686,56 @@ def test_gather_propose_booking_speaks_deterministic_readback_without_booking_ye
 
     assert resp.status_code == 200
     assert "Shall I book it" in resp.text
-    # The email must be spelled out character by character, not read as a
-    # fluent word -- this is the whole point of the deterministic readback.
-    assert "j, o, h, n, j, o, b, s, one, zero" in resp.text
+    # The email is read back and explicitly checked, not silently trusted
+    # -- this is the whole point of the deterministic readback.
+    assert "johnjobs10@example.com" in resp.text
+    assert "Is that correct" in resp.text
     fake_confirm.assert_not_awaited()
     fake_chat.assert_awaited_once()
     pending = agents_voice._call_pending_confirmation[call_sid]
     assert pending["slot_index"] == 1
     assert pending["name"] == "John"
     assert pending["email"] == "johnjobs10@example.com"
+
+
+def test_gather_propose_booking_rejects_a_malformed_email_instead_of_staging_it(monkeypatch):
+    """Real live bug this guards against: speech-to-text mangled
+    'pratibhajobs10@gmail.com' into 'pratibha jobstand at gmail.com' (the
+    literal word "at", no "@" at all) -- propose_booking used to accept
+    that as-is and read it back verbatim, producing a nonsensical
+    confirmation. Anything not shaped like local@domain.tld must be
+    rejected here, deterministically, instead of ever reaching
+    _call_pending_confirmation."""
+    monkeypatch.setattr(settings, "twilio_auth_token", "")
+    monkeypatch.setattr(agents_voice, "_retrieve_context", lambda db, query, **kwargs: "")
+    call_sid = "CAtest-malformed-email"
+    agents_voice._forget_call(call_sid)
+
+    monday = datetime.now(timezone.utc) + timedelta(days=(7 - datetime.now(timezone.utc).weekday()))
+    slots = [booking_service.SlotOption(start=monday.replace(hour=14, minute=0), end=monday.replace(hour=14, minute=30))]
+    agents_voice._call_pending_slots[call_sid] = slots
+
+    propose_call = ToolCall(
+        id="call_1",
+        name="propose_booking",
+        arguments='{"slot_index": 1, "name": "Pratibha", "email": "pratibha jobstand at gmail.com"}',
+    )
+    fake_chat = AsyncMock(
+        side_effect=[
+            _tool_call_result("", propose_call),
+            _tool_call_result("Sorry, could you say your email again slowly?"),
+        ]
+    )
+    monkeypatch.setattr(agents_voice._llm_client, "chat", fake_chat)
+
+    resp = client.post(
+        "/api/agents/voice/gather",
+        data={"CallSid": call_sid, "SpeechResult": "my name is Pratibha and my email is pratibha jobstand at gmail.com"},
+    )
+
+    assert resp.status_code == 200
+    assert "say your email again" in resp.text
+    assert call_sid not in agents_voice._call_pending_confirmation
 
 
 def test_gather_finalizes_booking_on_the_next_turns_confirmation_with_no_further_llm_call(monkeypatch):

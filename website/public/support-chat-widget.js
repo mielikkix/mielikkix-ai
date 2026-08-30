@@ -59,7 +59,7 @@
     .mlx-bubble { max-width: 85%; border-radius: 16px; padding: 8px 12px; font-size: 13.5px; line-height: 1.4; }
     .mlx-bubble.mlx-visitor { align-self: flex-end; border-bottom-right-radius: 4px; color: #fff; background-image: linear-gradient(135deg, #ff6b00 0%, #f5a623 100%); }
     .mlx-bubble.mlx-agent { align-self: flex-start; border-bottom-left-radius: 4px; background: #e2e8f0; color: #1e293b; }
-    #mlx-support-slots { display: none; flex-direction: column; gap: 6px; padding: 0 14px 10px; }
+    #mlx-support-slots { display: none; flex-direction: column; gap: 6px; padding: 10px 14px; max-height: 160px; overflow-y: auto; border-top: 1px solid #e2e8f0; flex-shrink: 0; }
     .mlx-slot-btn { width: 100%; text-align: left; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; font-size: 13px; background: #fff; cursor: pointer; color: #1e293b; }
     .mlx-slot-btn:hover { border-color: #f5a623; background: #fff7ed; }
     #mlx-support-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #e2e8f0; background: #fff; }

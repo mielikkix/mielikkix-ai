@@ -86,7 +86,19 @@ class LLMClient:
         if self._client is None:
             from groq import AsyncGroq
 
-            self._client = AsyncGroq(api_key=self.api_key, timeout=self.timeout_seconds)
+            # max_retries=0: without this, the SDK retries a 429/5xx
+            # ITSELF before chat() below ever sees an exception -- and it
+            # does so honoring Groq's own Retry-After header, which under
+            # real sustained rate-limiting can be tens of seconds (confirmed
+            # live: 8s, then 20s, then 21s, then 39s, compounding within a
+            # SINGLE chat() call since the SDK's own retries run first).
+            # That left a caller (e.g. Voice Receptionist mid-call) silently
+            # blocked for up to a minute-plus with no way to react. Disabling
+            # the SDK's own retry makes chat()'s loop below the only retry
+            # layer -- same retryable-error set, but a fast, bounded 0.5s/1s
+            # backoff instead, so a rate-limited turn fails back to the
+            # caller quickly enough to say something rather than hang.
+            self._client = AsyncGroq(api_key=self.api_key, timeout=self.timeout_seconds, max_retries=0)
         return self._client
 
     def _is_retryable(self, exc: Exception) -> bool:

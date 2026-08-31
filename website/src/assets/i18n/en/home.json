@@ -1,6 +1,6 @@
 {
   "SEO": {
-    "TITLE": "AI Chat Widget for Every Businesses",
+    "TITLE": "AI Chat Widget for Every Business",
     "DESCRIPTION": "MielikkiX gives your business a branded AI chat widget that answers customer questions from your own FAQs, documents, and catalog — day or night. Free plan available."
   },
   "HERO": {
@@ -11,6 +11,34 @@
   },
   "SOCIAL_PROOF": {
     "TEXT": "Whether you run a retail store, e-commerce business, clinic, restaurant, hotel, real estate agency, or any service business, MielikkiX helps you engage visitors instantly, capture qualified leads, and grow your business with AI-powered conversations."
+  },
+  "AUDIENCE_SEGMENTS": {
+    "HEADING_PLAIN": "Built for",
+    "HEADING_ACCENT": "how you actually run your business",
+    "SUBHEADING": "Three ways teams like yours are already putting the Force Agents to work.",
+    "ITEMS": [
+      {
+        "NAME": "Solo & Small-Team Service Providers",
+        "KEY_MESSAGE_TITLE": "Never miss a client call again",
+        "KEY_MESSAGE_SUBTITLE": "Book appointments while you work",
+        "PROBLEM": "Every hour spent with a client is an hour the phone goes unanswered, and each missed call is a booking that walks to a competitor.",
+        "SOLUTION": "The Voice Receptionist answers every call on a real business line 24/7, while the AI-layered Booking Assistant checks live availability and books the appointment on the spot — no front desk required."
+      },
+      {
+        "NAME": "Multi-Location Franchise & Chain Operators",
+        "KEY_MESSAGE_TITLE": "One consistent front desk",
+        "KEY_MESSAGE_SUBTITLE": "Deployed at every single location",
+        "PROBLEM": "Phone coverage varies wildly from site to site, so customers get inconsistent service depending on which location happens to pick up.",
+        "SOLUTION": "Because each Force Agent runs as an independent microservice, the same Voice Receptionist and Booking Assistant configuration can be deployed identically across every location, giving corporate one consistent standard without adding headcount at each site."
+      },
+      {
+        "NAME": "Growing SaaS & E-commerce Support Teams",
+        "KEY_MESSAGE_TITLE": "Sort support tickets instantly",
+        "KEY_MESSAGE_SUBTITLE": "Scale your team not your headcount",
+        "PROBLEM": "As support volume grows faster than headcount, tickets pile up faster than a small team can manually sort and route them.",
+        "SOLUTION": "Support Triage automatically classifies and routes incoming requests the moment they arrive, so a lean team spends its time resolving issues instead of sorting them — and because it's a standalone microservice, it can be added without touching voice or booking systems."
+      }
+    ]
   },
   "FEATURES_SECTION": {
     "HEADING_PLAIN": "Everything you need,",

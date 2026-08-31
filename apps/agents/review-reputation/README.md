@@ -1,10 +1,11 @@
 # apps/agents/review-reputation
 
-Flagship Force agent (build order: Day 6). Monitors a tenant's Google/Facebook
-reviews, drafts AI reply suggestions in the business's voice, and
-(optionally, per tenant setting) auto-posts replies within guardrails.
+Built and live. Analyzes reviews (sentiment, topics, priority, escalation),
+drafts AI reply suggestions in the business's voice, and surfaces reputation
+insights/trends — a human always approves a response before it's considered
+final; this agent never auto-publishes anywhere.
 
 See [`CLAUDE.md`](./CLAUDE.md) in this directory for integrations needed,
-data model, and test criteria — read that before touching this agent's code.
-
-This is currently a **structure-only scaffold** — no business logic yet.
+data model, and test criteria — read that before touching this agent's code,
+including exactly which real review platforms (Google/Facebook/...) are not
+yet connected.

@@ -12,6 +12,34 @@
   "SOCIAL_PROOF": {
     "TEXT": "Enten du driver en butikk, nettbutikk, klinikk, restaurant, hotell, eiendomsmeglerfirma eller en annen type tjenestevirksomhet, hjelper MielikkiX deg med å engasjere besøkende umiddelbart, fange opp kvalifiserte potensielle kunder og få virksomheten til å vokse ved hjelp av AI-drevne samtaler."
   },
+  "AUDIENCE_SEGMENTS": {
+    "HEADING_PLAIN": "Bygget for",
+    "HEADING_ACCENT": "slik du faktisk driver bedriften din",
+    "SUBHEADING": "Tre måter team som ditt allerede setter Force-agentene i arbeid.",
+    "ITEMS": [
+      {
+        "NAME": "Selvstendige og små tjenesteytende team",
+        "KEY_MESSAGE_TITLE": "Gå aldri glipp av en kundesamtale igjen",
+        "KEY_MESSAGE_SUBTITLE": "Bestill timer mens du jobber",
+        "PROBLEM": "Hver time du bruker hos en kunde er en time telefonen ikke blir besvart, og hver ubesvarte samtale er en bestilling som går til en konkurrent.",
+        "SOLUTION": "Voice Receptionist svarer på hver samtale på et ekte bedriftsnummer døgnet rundt, mens den AI-drevne Booking Assistant sjekker ledig tid i sanntid og bestiller timen på stedet — ingen resepsjon nødvendig."
+      },
+      {
+        "NAME": "Franchise- og kjedeaktører med flere lokasjoner",
+        "KEY_MESSAGE_TITLE": "Én konsekvent resepsjon",
+        "KEY_MESSAGE_SUBTITLE": "Satt i drift på hver eneste lokasjon",
+        "PROBLEM": "Telefondekningen varierer sterkt fra sted til sted, så kundene får ulik service avhengig av hvilken lokasjon som tilfeldigvis svarer.",
+        "SOLUTION": "Fordi hver Force-agent kjører som en uavhengig mikrotjeneste, kan samme konfigurasjon av Voice Receptionist og Booking Assistant rulles ut identisk på hver lokasjon — én felles standard for hele kjeden, uten å øke bemanningen på hvert enkelt sted."
+      },
+      {
+        "NAME": "Voksende SaaS- og nettbutikk-supportteam",
+        "KEY_MESSAGE_TITLE": "Sorter supportsaker øyeblikkelig",
+        "KEY_MESSAGE_SUBTITLE": "Skaler teamet ikke bemanningen",
+        "PROBLEM": "Når supportvolumet vokser raskere enn bemanningen, hoper sakene seg opp raskere enn et lite team klarer å sortere og rute dem manuelt.",
+        "SOLUTION": "Support Triage klassifiserer og ruter innkommende henvendelser automatisk idet de kommer inn, slik at et lite team kan bruke tiden på å løse saker i stedet for å sortere dem — og fordi den er en frittstående mikrotjeneste, kan den legges til uten å røre verken telefoni- eller bestillingssystemene."
+      }
+    ]
+  },
   "FEATURES_SECTION": {
     "HEADING_PLAIN": "Alt du trenger,",
     "HEADING_ACCENT": "ingenting du ikke trenger",

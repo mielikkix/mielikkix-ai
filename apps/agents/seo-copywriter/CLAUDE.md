@@ -1,22 +1,24 @@
 # CLAUDE.md — apps/agents/seo-copywriter
 
-Place this file at `mielikkix-ai/apps/agents/seo-copywriter/CLAUDE.md`.
-
 ## What this agent does
 
 Bulk-generates product descriptions and SEO metadata (title tag, meta
 description) for a business's existing product catalog
 (`apps/api/app/models/product.py`), written to actually target real search
 intent rather than keyword-stuffed filler. A human reviews and approves
-each draft before it overwrites anything live. Queued agent, fast-follow
-after the 3 flagships (see root `CLAUDE.md`'s "Current status").
+each draft before it overwrites anything live. Built and live — see
+`apps/api/app/services/seo_service.py`, `apps/api/app/api/agents_seo.py`,
+and `apps/dashboard/src/dashboard/pages/SeoPage.tsx`.
 
 ## Integrations needed
 
-Nothing beyond `packages/agent-core`'s LLM client — this agent reads an
-existing `Product` row and writes a draft back; no third-party API, no
-external account setup. One of the faster agents to build for exactly this
-reason.
+Nothing beyond `packages/agent-core`'s LLM client, on OpenAI's cheap/fast
+tier (`LLMClient(provider="openai", model=settings.openai_mini_model)`, per
+`apps/agents/CLAUDE.md`'s tier assignment — routine content generation
+from a product's own existing fields, not multi-step reasoning) — this
+agent reads an existing `Product` row and writes a draft back; no
+third-party API, no external account setup. One of the faster agents to
+build for exactly this reason.
 
 ## Data this agent stores
 

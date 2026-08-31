@@ -24,9 +24,10 @@ mielikkix-ai/
 │       ├── voice-receptionist/   # flagship — see its own CLAUDE.md
 │       ├── booking-assistant/    # flagship — see its own CLAUDE.md
 │       ├── support-triage/       # flagship — see its own CLAUDE.md
-│       ├── review-reputation/    # queued (was flagship 3; superseded by support-triage — see apps/agents/CLAUDE.md)
+│       ├── review-reputation/    # built (2026-08-30) — see its own CLAUDE.md
+│       ├── seo-copywriter/       # built — see its own CLAUDE.md
 │       ├── _template/            # copy this folder to start any of the remaining queued agents
-│       └── ...                   # social-media, email-marketing, seo-copywriter,
+│       └── ...                   # social-media, email-marketing,
 │                                  # feedback-survey, loyalty-reengage, quote-invoice
 ├── packages/
 │   ├── agent-core/      # shared LLM client, prompt/tool-calling framework, memory/RAG.
@@ -62,6 +63,11 @@ mielikkix-ai/
    work (emails, review polling, non-real-time tasks) goes through the shared job queue,
    not a standalone always-on daemon per agent.
 5. **All 10 agents call external LLM/STT/TTS APIs.** No self-hosted models on this VPS.
+6. **Third-party integrations sit behind a provider abstraction, not spread through the app.**
+   `apps/api/app/rag/providers/` (LLM/embeddings) and `apps/api/app/integrations/
+   calendar_provider.py` (calendar) are the pattern: an ABC + a `get_*_provider()` factory,
+   so swapping Groq/Gemini/Ollama or Google/Outlook is a factory change, not a rewrite. New
+   integrations (payments, SMS, etc.) follow the same shape.
 
 ## Current status
 
@@ -69,13 +75,26 @@ mielikkix-ai/
 - Dashboard: **live**, serving the Chat Widget module today; agent modules added as they ship.
 - Force agents: flagship 3 (Voice Receptionist, Booking Assistant, Support Triage)
   in active build — see `apps/agents/CLAUDE.md` for shared conventions across
-  the three. Review & Reputation (originally the third flagship) and the
-  remaining 6 are queued as fast-follow using the same `_template/` pattern.
+  the three. SEO Copywriter and Review & Reputation are also built (each with
+  its own `apps/agents/<name>/CLAUDE.md`) — both are single-LLM-call, no-
+  external-integration agents, so they built fast off the same shared
+  infrastructure. The remaining 5 are queued as fast-follow using the same
+  `_template/` pattern.
 
 ## Where to look next
 
+- **Target SaaS architecture (multi-tenant entitlements, calendar-provider abstraction,
+  AI-agent-core intent routing, live-demo goals): `files/Mielikkix AI — Claude Code Project
+  Instructions.md`.** Read this before any change that touches Booking Assistant, the
+  chatbot's intent handling, or multi-tenant/billing structure — it's the authoritative
+  reference for where this platform is headed, not just what exists today.
 - Architecture rationale and per-agent specs: `Mielikkix_10_Agent_Architecture_Plan.docx`
   (project docs).
 - Day-by-day build plan: `Mielikkix_8Day_ToDo.docx`.
 - Each agent folder has its own `CLAUDE.md` with that agent's specific integrations,
   data model, and test criteria — read that before touching an agent's code.
+- **Which LLM provider/model powers which feature, and why: `files/LLM_MODELS.md`.**
+  Read before changing any agent's `_llm_client` construction or adding a new one —
+  covers the Chat Widget's separate per-tenant provider system vs. the Force agents'
+  explicit tier assignment (OpenAI cheap/fast vs. Anthropic Claude Sonnet vs. the
+  reserved Opus tier), and exactly which env var controls which model.

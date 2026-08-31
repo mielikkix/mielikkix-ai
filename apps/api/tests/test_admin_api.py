@@ -1,6 +1,10 @@
 """API-level tests for the platform-admin endpoints in app/api/admin.py."""
+from datetime import datetime, timedelta, timezone
+
 from app.core.config import settings
 from app.models.llm_usage import LLMUsageLog
+from app.models.booking import Booking
+from app.models.ticket import Ticket, TicketMessage
 
 
 def _make_admin(monkeypatch, email: str):
@@ -208,3 +212,142 @@ def test_admin_llm_usage_aggregates_logged_calls(client, business, monkeypatch, 
     assert body["totals"]["requests"] == 1
     assert body["totals"]["total_tokens"] == 150
     assert body["by_business"][0]["business_id"] == business["business_id"]
+
+
+def _make_booking(db_session, **overrides) -> Booking:
+    now = datetime.now(timezone.utc)
+    fields = {
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "meeting_type": "consultation",
+        "start_at": now + timedelta(days=1),
+        "end_at": now + timedelta(days=1, minutes=30),
+        "calendar_event_id": "fake-event-id",
+    }
+    fields.update(overrides)
+    booking = Booking(**fields)
+    db_session.add(booking)
+    db_session.commit()
+    return booking
+
+
+def test_non_admin_cannot_list_bookings(client, business):
+    resp = client.get("/api/admin/bookings", headers=business["headers"])
+    assert resp.status_code == 403
+
+
+def test_admin_can_list_bookings(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_booking(db_session, name="Jane Doe", email="jane@example.com")
+
+    resp = client.get("/api/admin/bookings", headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["name"] == "Jane Doe"
+    assert body["items"][0]["email"] == "jane@example.com"
+    assert body["items"][0]["status"] == "confirmed"
+
+
+def test_admin_bookings_most_recent_first(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_booking(db_session, name="Booked First", email="first@example.com")
+    _make_booking(db_session, name="Booked Second", email="second@example.com")
+
+    resp = client.get("/api/admin/bookings", headers=business["headers"])
+
+    names = [item["name"] for item in resp.json()["items"]]
+    assert names == ["Booked Second", "Booked First"]
+
+
+def test_admin_bookings_pagination(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    for i in range(3):
+        _make_booking(db_session, name=f"Booking {i}", email=f"booking{i}@example.com")
+
+    resp = client.get("/api/admin/bookings", params={"page": 1, "page_size": 2}, headers=business["headers"])
+    body = resp.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 2
+
+    resp2 = client.get("/api/admin/bookings", params={"page": 2, "page_size": 2}, headers=business["headers"])
+    assert len(resp2.json()["items"]) == 1
+
+
+def _make_ticket(db_session, **overrides) -> Ticket:
+    fields = {
+        "session_id": "sess-admin-test",
+        "channel": "web",
+        "status": "open",
+        "category": "pricing",
+        "priority": "low",
+        "confidence": 0.9,
+        "customer_email": "visitor@example.com",
+    }
+    fields.update(overrides)
+    ticket = Ticket(**fields)
+    db_session.add(ticket)
+    db_session.commit()
+    return ticket
+
+
+def test_non_admin_cannot_list_tickets(client, business):
+    resp = client.get("/api/admin/tickets", headers=business["headers"])
+    assert resp.status_code == 403
+
+
+def test_admin_can_list_tickets(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_ticket(db_session, session_id="sess-1", customer_email="jane@example.com")
+
+    resp = client.get("/api/admin/tickets", headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["customer_email"] == "jane@example.com"
+    assert body["items"][0]["status"] == "open"
+
+
+def test_admin_tickets_escalated_sort_first_regardless_of_recency(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_ticket(db_session, session_id="sess-old-escalated", status="escalated", customer_email="old@example.com")
+    _make_ticket(db_session, session_id="sess-new-open", status="open", customer_email="new@example.com")
+
+    resp = client.get("/api/admin/tickets", headers=business["headers"])
+
+    emails = [item["customer_email"] for item in resp.json()["items"]]
+    assert emails[0] == "old@example.com"
+
+
+def test_admin_tickets_filter_by_status(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    _make_ticket(db_session, session_id="sess-open", status="open")
+    _make_ticket(db_session, session_id="sess-escalated", status="escalated")
+
+    resp = client.get("/api/admin/tickets", params={"status": "escalated"}, headers=business["headers"])
+
+    body = resp.json()
+    assert body["total"] == 1
+    assert body["items"][0]["status"] == "escalated"
+
+
+def test_admin_can_get_ticket_detail_with_messages(client, business, monkeypatch, db_session):
+    _make_admin(monkeypatch, business["email"])
+    ticket = _make_ticket(db_session, session_id="sess-detail")
+    db_session.add(TicketMessage(ticket_id=ticket.id, role="user", content="hi"))
+    db_session.add(TicketMessage(ticket_id=ticket.id, role="agent", content="hello, how can I help?"))
+    db_session.commit()
+
+    resp = client.get(f"/api/admin/tickets/{ticket.id}", headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [m["content"] for m in body["messages"]] == ["hi", "hello, how can I help?"]
+
+
+def test_admin_get_ticket_detail_404_for_unknown_id(client, business, monkeypatch):
+    _make_admin(monkeypatch, business["email"])
+    resp = client.get("/api/admin/tickets/00000000-0000-0000-0000-000000000000", headers=business["headers"])
+    assert resp.status_code == 404

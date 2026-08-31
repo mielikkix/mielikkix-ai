@@ -7,8 +7,8 @@ interface Props {
   title: string;
   description: string;
   path?: string;
-  /** Which page-JSON namespace (src/assets/i18n/<lang>/<page>.json) drives client-side translation on this page. Omit for pages with no translation JSON (e.g. demo). */
-  page?: "home" | "features" | "pricing";
+  /** Which page-JSON namespace (src/assets/i18n/<lang>/<page>.json) drives client-side translation on this page. Omit for pages with no translation JSON. */
+  page?: "home" | "features" | "pricing" | "agents" | "demo";
   /** Dot-path into that page's JSON for the translated <title> (e.g. "SEO.TITLE"). */
   titleKey?: string;
   /** Dot-path into that page's JSON for the translated meta description (e.g. "SEO.DESCRIPTION"). */
@@ -19,6 +19,10 @@ const { title, description, path = "/", page, titleKey, descriptionKey } = Astro
 const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
 const canonicalUrl = new URL(path, siteUrl).toString();
 const ogImage = new URL("/og-image.png", siteUrl).toString();
+
+// Only renders once a real Plausible account/domain exists (see .env.example) --
+// no PUBLIC_PLAUSIBLE_DOMAIN means no third-party script and no tracking request.
+const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
 ---
 
 <!doctype html>
@@ -51,6 +55,10 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
     <meta name="twitter:title" content={`${title} · MielikkiX`} data-i18n-meta-title={titleKey} />
     <meta name="twitter:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta name="twitter:image" content={ogImage} />
+
+    {plausibleDomain && (
+      <script is:inline data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script>
+    )}
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased" data-page={page}>
     <Header />
@@ -71,6 +79,7 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
       const currencyForLang = SUPPORTED_LANGUAGES.find((l) => l.code === storedLang)?.currency ?? DEFAULT_CURRENCY;
       void initCurrency(currencyForLang);
     </script>
-    <script is:inline src="https://app.mielikkix.ai/widget.js" data-business="c7650cb2-6ea1-4cc2-846b-2f7cc4025267"></script>
+    <script is:inline src="/widget-common.js"></script>
+    <script src="/support-chat-widget.js" data-api-url={import.meta.env.PUBLIC_API_URL}></script>
   </body>
 </html>

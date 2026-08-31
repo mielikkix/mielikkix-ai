@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send } from 'lucide-react'
 import { LeadForm } from './LeadForm'
+import { BookingFlow, BookingFlowHandle } from './BookingFlow'
 import { MarkdownText } from './MarkdownText'
 import { widgetStrings } from './i18n'
 
@@ -42,6 +43,11 @@ export function ChatWindow({
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
+  // The message that triggered the booking flow (see BookingFlow's Props
+  // doc) -- null means "not showing", same on/off role showLeadForm plays,
+  // just also carrying the seed text BookingFlow needs.
+  const [bookingSeedMessage, setBookingSeedMessage] = useState<string | null>(null)
+  const bookingFlowRef = useRef<BookingFlowHandle>(null)
   const [inputFocused, setInputFocused] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -52,11 +58,24 @@ export function ChatWindow({
     if (!msg || loading) return
     setInput('')
     setMessages((m) => [...m, { sender: 'visitor', content: msg }])
+
+    // The booking panel is already open and mid-conversation (e.g. it just
+    // asked "which date?") -- route this reply to IT instead of treating
+    // it as a brand-new top-level question. Without this, answering in the
+    // main box (the only input the visitor has been using) reclassified
+    // that reply on its own, which could suggest_lead_capture instead and
+    // silently swap the whole booking panel out for the lead form.
+    if (bookingSeedMessage !== null && bookingFlowRef.current) {
+      bookingFlowRef.current.submitMessage(msg)
+      return
+    }
+
     // The form renders below the whole message list, so leaving it up would
     // park it under every later answer for the rest of the session. Clear it
     // on each new question; the reply re-shows it if that reply still suggests
     // capturing a lead.
     setShowLeadForm(false)
+    setBookingSeedMessage(null)
     setLoading(true)
     try {
       const res = await fetch(`${apiBaseUrl}/api/chat/message`, {
@@ -73,6 +92,7 @@ export function ChatWindow({
       if (data.lang) setLang(data.lang)
       setMessages((m) => [...m, { sender: 'ai', content: data.reply }])
       if (data.suggest_lead_capture) setShowLeadForm(true)
+      if (data.suggest_booking_flow) setBookingSeedMessage(msg)
     } catch {
       setMessages((m) => [...m, { sender: 'ai', content: strings.chatError }])
     } finally {
@@ -123,6 +143,20 @@ export function ChatWindow({
               }}
             />
           </div>
+        )}
+        {bookingSeedMessage !== null && (
+          <BookingFlow
+            ref={bookingFlowRef}
+            primaryColor={primaryColor}
+            apiBaseUrl={apiBaseUrl}
+            lang={lang}
+            businessId={businessId}
+            initialMessage={bookingSeedMessage}
+            onBooked={(confirmationText) => {
+              setBookingSeedMessage(null)
+              setMessages((m) => [...m, { sender: 'ai', content: confirmationText }])
+            }}
+          />
         )}
         <div ref={bottomRef} />
       </div>

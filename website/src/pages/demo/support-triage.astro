@@ -1,0 +1,79 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+// Not linked from the header nav (see Header.astro), same as
+// /demo/voice-receptionist and /demo/booking-assistant -- reachable only
+// via direct link (agents.astro's "Talk to it now" card) for now.
+//
+// Confirmed live: before this page existed, that card just linked to "/",
+// where the sitewide support-chat-widget.js bubble happened to already be
+// visible -- a real visitor reported it as "literally just the normal
+// chatbot," which it was: nothing on the page ever explained WHAT Support
+// Triage actually does differently from any other chatbot (classify,
+// answer confidently when it's sure, escalate to a human when it's not).
+// This page fixes that the same way /demo/voice-receptionist and
+// /demo/booking-assistant already do it: a real explanation up front, plus
+// a demo that makes the underlying behavior visible rather than hiding it
+// behind a generic chat bubble -- see support-triage.js's own comment on
+// the confidence/escalation tag shown under every reply.
+//
+// Talks to the real app/api/agents_support.py route (POST
+// /api/agents/support/chat/message) -- the SAME endpoint the sitewide
+// widget uses, just presented inline with real explanation around it
+// instead of a floating corner popup.
+---
+
+<Layout
+  title="Try Our Support Triage"
+  description="An early preview of Mielikkix's AI Support Triage -- see it classify a question, answer confidently when it's sure, and hand off to a human when it's not."
+  path="/demo/support-triage"
+>
+  <div class="mx-auto max-w-[1440px] px-6 pt-8">
+    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+      &larr; Back to AI Agents
+    </a>
+  </div>
+  <PageHero
+    line1="Meet Mielikkix's"
+    line2="Support Triage"
+    subheading="An early preview -- every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing."
+  />
+
+  <section class="mx-auto max-w-lg px-6 py-16">
+    <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
+      <div id="transcript" class="flex flex-1 flex-col gap-1.5 overflow-y-auto p-5"></div>
+
+      <form id="composerForm" class="flex gap-2 border-t border-slate-100 p-3">
+        <input
+          id="composerInput"
+          type="text"
+          autocomplete="off"
+          placeholder="Ask a question, or try something off-topic"
+          class="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-violet-400"
+        />
+        <button
+          id="composerSend"
+          type="submit"
+          class="brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Send"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" />
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
+      <p class="font-semibold text-slate-600">Try it both ways:</p>
+      <p class="mt-1">
+        Ask something Mielikkix's own docs actually cover (e.g. <em>"what does the chat widget do"</em>)
+        to see it answer confidently. Ask something vague or unrelated to see it escalate to a real
+        person instead of guessing -- every reply below is tagged with which one happened, and why.
+      </p>
+    </div>
+  </section>
+
+  <script src="/support-triage.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+</Layout>

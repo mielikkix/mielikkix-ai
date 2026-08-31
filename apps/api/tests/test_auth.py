@@ -75,3 +75,13 @@ def test_new_business_defaults_to_free_plan(client, business):
     resp = client.get("/api/businesses/me", headers=business["headers"])
     assert resp.status_code == 200
     assert resp.json()["plan"] == "free"
+
+
+def test_new_business_defaults_contact_email_to_owners_login_email(client, business):
+    """So lead/booking notifications (notifications/notify_new_lead,
+    notify_new_booking) have somewhere to go from the moment a business
+    signs up, rather than silently going nowhere until someone visits
+    Settings and fills this in by hand -- editable there afterward."""
+    resp = client.get("/api/businesses/me/settings", headers=business["headers"])
+    assert resp.status_code == 200
+    assert resp.json()["contact_email"] == business["email"]

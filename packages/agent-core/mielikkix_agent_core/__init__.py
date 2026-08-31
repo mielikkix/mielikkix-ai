@@ -2,7 +2,7 @@
 agent and the Chat Widget. See this package's CLAUDE.md for what belongs
 here vs. in an individual agent."""
 
-from .llm_client import LLMClient, LLMResult, LLMUsage
+from .llm_client import LLMClient, LLMResult, LLMUsage, ToolCall
 
 __version__ = "0.1.0"
-__all__ = ["LLMClient", "LLMResult", "LLMUsage"]
+__all__ = ["LLMClient", "LLMResult", "LLMUsage", "ToolCall"]

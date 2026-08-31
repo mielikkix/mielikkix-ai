@@ -58,8 +58,9 @@ const productLinks = [
       </div>
     </div>
 
-    <div class="mt-10 border-t border-slate-200 pt-6 text-sm text-slate-400" data-i18n="FOOTER.COPYRIGHT">
-      {enFooter.FOOTER.COPYRIGHT.replace("{{YEAR}}", String(year))}
+    <div class="mt-10 flex flex-col gap-3 border-t border-slate-200 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+      <span data-i18n="FOOTER.COPYRIGHT">{enFooter.FOOTER.COPYRIGHT.replace("{{YEAR}}", String(year))}</span>
+      <a href="/privacy" class="hover:text-violet-600">Privacy Policy</a>
     </div>
   </div>
 </footer>

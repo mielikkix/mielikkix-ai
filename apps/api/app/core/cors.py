@@ -11,6 +11,14 @@ from starlette.responses import Response
 _PUBLIC_ROUTES = {
     ("POST", "/api/chat/message"),
     ("POST", "/api/leads"),
+    # Booking Assistant Phase 5: a real tenant's booking flow now runs from
+    # THEIR OWN chat widget, embedded on their own (arbitrary, unknowable in
+    # advance) website -- same reasoning as /api/chat/message above. Safe to
+    # open the same way: no cookies/credentials, business_id-scoped (each
+    # request only ever touches that one business's own CalendarConnection,
+    # see agents_booking.py's _resolve_calendar_provider), and rate-limited.
+    ("POST", "/api/agents/booking/request"),
+    ("POST", "/api/agents/booking/confirm"),
 }
 _PUBLIC_PREFIXES = {
     ("GET", "/api/chat/history/"),

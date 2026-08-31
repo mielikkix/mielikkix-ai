@@ -19,6 +19,19 @@ export interface WidgetStrings {
   inputPlaceholder: string
   openChat: string
   closeChat: string
+  bookingFindTimes: string
+  bookingFinding: string
+  bookingNoAvailability: string
+  bookingNotConfigured: string
+  bookingNamePlaceholder: string
+  bookingEmailPlaceholder: string
+  bookingConfirm: string
+  bookingConfirming: string
+  bookingConflict: string
+  bookingGenericError: string
+  bookingBackToDescribe: string
+  bookingBackToSlots: string
+  bookingBooked: string
 }
 
 const EN: WidgetStrings = {
@@ -37,6 +50,19 @@ const EN: WidgetStrings = {
   inputPlaceholder: 'Type a message…',
   openChat: 'Open chat',
   closeChat: 'Close chat',
+  bookingFindTimes: 'Find times',
+  bookingFinding: 'Finding times…',
+  bookingNoAvailability: 'No open times in that window — try a different day or date range.',
+  bookingNotConfigured: "Sorry, booking isn't set up for this business yet.",
+  bookingNamePlaceholder: 'Your name',
+  bookingEmailPlaceholder: 'Your email',
+  bookingConfirm: 'Confirm booking',
+  bookingConfirming: 'Booking…',
+  bookingConflict: 'Sorry, that time was just taken. Please pick another.',
+  bookingGenericError: 'Sorry, something went wrong. Please try again.',
+  bookingBackToDescribe: '← Describe something else',
+  bookingBackToSlots: '← Pick a different time',
+  bookingBooked: "You're booked!",
 }
 
 const WIDGET_STRINGS: Record<string, WidgetStrings> = {
@@ -57,6 +83,19 @@ const WIDGET_STRINGS: Record<string, WidgetStrings> = {
     inputPlaceholder: 'Skriv en melding…',
     openChat: 'Åpne chat',
     closeChat: 'Lukk chat',
+    bookingFindTimes: 'Finn tider',
+    bookingFinding: 'Finner tider…',
+    bookingNoAvailability: 'Ingen ledige tider i den perioden — prøv en annen dag eller periode.',
+    bookingNotConfigured: 'Beklager, booking er ikke satt opp for denne bedriften ennå.',
+    bookingNamePlaceholder: 'Navnet ditt',
+    bookingEmailPlaceholder: 'E-post',
+    bookingConfirm: 'Bekreft booking',
+    bookingConfirming: 'Booker…',
+    bookingConflict: 'Beklager, den tiden ble nettopp tatt. Velg en annen.',
+    bookingGenericError: 'Beklager, noe gikk galt. Vennligst prøv igjen.',
+    bookingBackToDescribe: '← Beskriv noe annet',
+    bookingBackToSlots: '← Velg et annet tidspunkt',
+    bookingBooked: 'Du er booket!',
   },
 }
 

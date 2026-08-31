@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,15 @@ from .core.config import settings
 from .core.cors import PublicRouteCORSMiddleware
 from .core.database import Base, engine
 from .core.limiter import limiter
-from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support
+from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support, agents_seo, agents_reviews, calendar_oauth
+
+# Without this, every module's logger.info() call (e.g. agents_voice.py's
+# own tool-call tracing) is silently dropped -- Python's root logger
+# defaults to WARNING, and nothing else in this app configures it.
+# uvicorn's own access/error logs already print at INFO regardless of this;
+# this just makes the app's OWN module loggers equally visible instead of
+# only ever showing up for actual errors.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 
 Base.metadata.create_all(bind=engine)
 
@@ -61,6 +70,9 @@ app.include_router(admin.router)
 app.include_router(agents_voice.router)
 app.include_router(agents_booking.router)
 app.include_router(agents_support.router)
+app.include_router(agents_seo.router)
+app.include_router(agents_reviews.router)
+app.include_router(calendar_oauth.router)
 
 os.makedirs(settings.upload_dir, exist_ok=True)
 

@@ -62,6 +62,25 @@ class Settings(BaseSettings):
             )
         return v
 
+    # Encrypts per-business OAuth refresh tokens at rest (see
+    # core/encryption.py) -- unlike secret_key (signs tokens, never needs to
+    # be reversed) this key must actually decrypt what it encrypts, so a
+    # missing/placeholder value is caught the same fail-fast way, but there
+    # is no "insecure known value" set to check against (a Fernet key IS
+    # its own randomness) -- just require that something was actually set.
+    token_encryption_key: str = ""
+
+    @field_validator("token_encryption_key")
+    @classmethod
+    def _reject_missing_token_encryption_key(cls, v: str) -> str:
+        if not v or v == "change-me-generate-a-real-fernet-key":
+            raise ValueError(
+                "TOKEN_ENCRYPTION_KEY is missing or a placeholder. Generate a real one with "
+                "`python -c \"from cryptography.fernet import Fernet; "
+                "print(Fernet.generate_key().decode())\"` and set it in your .env."
+            )
+        return v
+
     upload_dir: str = "./uploads"
     max_upload_size_mb: int = 10
 
@@ -158,13 +177,33 @@ class Settings(BaseSettings):
     # scripts/connect_google_calendar.py once locally (opens a browser for
     # you to sign in, then prints the values below to paste into .env).
     #
-    # google_calendar_client_id/secret identify OUR APP to Google, not any
-    # one tenant -- created once in Google Cloud Console (Phase 0: a new
-    # project, Calendar API enabled, an OAuth 2.0 Client ID of type "Web
-    # application"). The SAME client_id/secret is reused for every tenant's
-    # OAuth connection later; only the refresh token differs per tenant.
+    # google_calendar_client_id/secret identify OUR APP to Google for the
+    # Phase 1 Desktop-app flow (scripts/connect_google_calendar.py) that set
+    # up Mielikkix's own demo calendar -- a "Desktop app" OAuth Client ID in
+    # Google Cloud Console, per that script's own docstring. NOT reused for
+    # real per-tenant connections below -- a refresh token can only be
+    # refreshed with the client_id/secret of whichever OAuth client actually
+    # issued it, and a Desktop-app client can't be used for the server-side
+    # redirect flow real tenants need (see google_calendar_oauth_client_id
+    # below for that one).
     google_calendar_client_id: str = ""
     google_calendar_client_secret: str = ""
+    # The real per-tenant OAuth client (Phase 5) -- a SEPARATE "Web
+    # application" OAuth Client ID in the same (or a different) Google
+    # Cloud project, with this app's own callback route
+    # (api/calendar_oauth.py) registered as an authorized redirect URI. The
+    # SAME client_id/secret is reused for every tenant's connection; only
+    # the resulting refresh token (stored encrypted per business, see
+    # models/calendar_connection.py) differs per tenant.
+    google_calendar_oauth_client_id: str = ""
+    google_calendar_oauth_client_secret: str = ""
+    # This app's own public URL, used to build the redirect_uri Google sends
+    # the tenant back to after consent (api/calendar_oauth.py) -- same idiom
+    # as voice_agent_public_base_url above. Must exactly match an Authorized
+    # redirect URI configured on the Web application client above (Google
+    # rejects the whole exchange otherwise); the callback route itself is
+    # always at /api/businesses/me/calendar/callback.
+    api_public_base_url: str = "http://localhost:8000"
     # The one test calendar's long-lived refresh token (Phase 1 only -- a
     # real per-tenant one replaces this in Phase 5). Python note: unlike an
     # API key, this alone can't authenticate a request -- app/integrations/
@@ -177,6 +216,23 @@ class Settings(BaseSettings):
     # "primary" is Google's own special ID for "this account's default
     # calendar", not a placeholder needing to be filled in with a real ID.
     google_calendar_id: str = "primary"
+    # Phase 2 (availability = business_hours minus busy blocks) needs SOME
+    # business hours to subtract against. The real design (this agent's
+    # CLAUDE.md) reads a per-tenant BusinessSettings.business_hours row,
+    # set via a "Connect Google Calendar" dashboard UI -- but that UI is
+    # Phase 5, not built yet, so there's no way to populate that JSON column
+    # for anyone yet either. Same Phase-1-style simplification as
+    # google_calendar_id above: one hardcoded Mon-Fri window, from settings,
+    # until Phase 5 replaces this with the real per-tenant lookup.
+    booking_agent_hours_start: str = "09:00"
+    booking_agent_hours_end: str = "17:00"
+    # Who gets emailed when a new booking is confirmed (see
+    # notifications/notify_new_booking) -- Google's own calendar invite
+    # already tells the CUSTOMER; this is the separate "the business got
+    # notified" step. Defaults to Mielikkix's own real business inbox since
+    # this demo has no per-tenant BusinessSettings.contact_email to read yet
+    # (see models/booking.py's comment on why Booking has no business_id).
+    booking_notification_email: str = "post@mielikkix.no"
 
     # Support Triage agent (apps/agents/support-triage) -- unlike every
     # other agent, this one's "tenant" is the platform itself: it powers
@@ -194,6 +250,45 @@ class Settings(BaseSettings):
     # answer. Phase 2 (this agent's CLAUDE.md) will additionally escalate
     # to a human below this same threshold; Phase 1 just declines to guess.
     support_agent_confidence_threshold: float = 0.6
+
+    # Review & Reputation agent (apps/agents/review-reputation) -- Google
+    # Business Profile is the one real ReviewPlatform implementation wired
+    # up so far (app/integrations/review_platforms/google_platform.py), for
+    # ONE hardcoded connected location, same Phase-1-style simplification
+    # google_calendar_* above uses for its one demo calendar (a real
+    # per-tenant "connect your Google Business Profile" dashboard flow is a
+    # later phase, same shape as calendar_oauth.py's per-tenant flow).
+    #
+    # Unlike Calendar API, enabling this for real isn't just OAuth config --
+    # Google gates the Business Profile API itself behind a SEPARATE access
+    # request (support.google.com/business/contact/api_default) that must be
+    # submitted and approved before ANY of these credentials can actually
+    # call the API, on top of needing a verified Business Profile location.
+    # See apps/agents/review-reputation/CLAUDE.md "Integrations needed".
+    # Left empty, GoogleReviewsPlatform still constructs fine -- it only
+    # fails (with a clear GoogleReviewsError) the moment a real API call is
+    # attempted, same "lazy failure" as GoogleCalendarProvider.
+    #
+    # google_reviews_client_id/secret identify our app to Google -- a
+    # "Desktop app" OAuth Client ID in Google Cloud Console (create via
+    # scripts/connect_google_reviews.py's own docstring), separate from
+    # google_calendar_client_id/secret above even if reusing the same
+    # Google Cloud project, since business.manage is a different scope than
+    # this app's Calendar client was ever granted.
+    google_reviews_client_id: str = ""
+    google_reviews_client_secret: str = ""
+    # The connected account's long-lived refresh token, obtained the same
+    # one-time interactive way as google_calendar_refresh_token above --
+    # see scripts/connect_google_reviews.py.
+    google_reviews_refresh_token: str = ""
+    # Which Business Profile account/location to read reviews from and post
+    # replies to -- both required, no default, since unlike
+    # google_calendar_id's "primary" there's no generic placeholder value
+    # that means anything for a specific business's Business Profile.
+    # scripts/connect_google_reviews.py prints these once you've picked
+    # your location.
+    google_reviews_account_id: str = ""
+    google_reviews_location_id: str = ""
 
     @property
     def platform_admin_emails_list(self) -> list[str]:

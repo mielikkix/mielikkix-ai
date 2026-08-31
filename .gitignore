@@ -1,7 +1,13 @@
 # Environment
 .env
 *.env.local
-.env.production.example
+# .env.production.example is deliberately NOT ignored -- it's a template
+# (placeholder values only, e.g. REPLACE_WITH_A_RANDOM_PASSWORD, see its
+# own header comment: "Never commit the FILLED-IN file", meaning the
+# template itself is meant to be tracked, the same way .env.example is).
+# Confirmed live: this was accidentally gitignored, so a real fix to it
+# (e.g. correcting CORS_ORIGINS for production) never actually reached
+# anyone deploying from a fresh clone of this repo.
 
 # Python
 __pycache__/

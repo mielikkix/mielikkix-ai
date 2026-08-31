@@ -46,15 +46,13 @@ form?.addEventListener("submit", async (event) => {
 
     form.reset();
     form.classList.add("hidden");
-    if (status) {
-      status.textContent = "Thanks! We'll be in touch within one business day to schedule your demo.";
-      status.classList.remove("hidden");
-    }
+    // Text itself is server-rendered (and translated via data-i18n, see
+    // translationService.ts) directly on these elements -- this just
+    // reveals it, rather than overwriting it with a hardcoded English
+    // string, which would stomp whatever language the visitor has selected.
+    status?.classList.remove("hidden");
   } catch {
-    if (errorEl) {
-      errorEl.textContent = "Something went wrong sending your request — please try again, or email us directly.";
-      errorEl.classList.remove("hidden");
-    }
+    errorEl?.classList.remove("hidden");
   } finally {
     if (submitButton) submitButton.disabled = false;
   }

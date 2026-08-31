@@ -87,6 +87,11 @@ export function ProductsPage() {
     setForm({ name: p.name, description: p.description || '', price: p.price?.toString() || '', currency: p.currency, category: p.category || '' })
   }
 
+  // Same bug/fix as FAQsPage's formIncomplete: an empty Save click
+  // silently created a nameless product with no error shown -- see
+  // schemas/product.py's _not_blank for the backend side of this.
+  const formIncomplete = !form.name.trim()
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -104,7 +109,7 @@ export function ProductsPage() {
           <div className="space-y-3">
             <ProductFormFields form={form} onChange={set} multiCurrencyAllowed={multiCurrencyAllowed} />
             <div className="flex gap-2">
-              <Button size="sm" loading={createMut.isPending} onClick={() => createMut.mutate(form)}>Save</Button>
+              <Button size="sm" disabled={formIncomplete} loading={createMut.isPending} onClick={() => createMut.mutate(form)}>Save</Button>
               <Button size="sm" variant="secondary" onClick={() => { setAdding(false); setForm(emptyForm) }}>Cancel</Button>
             </div>
             {createMut.isError && (
@@ -123,9 +128,14 @@ export function ProductsPage() {
               <div className="space-y-3">
                 <ProductFormFields form={form} onChange={set} multiCurrencyAllowed={multiCurrencyAllowed} />
                 <div className="flex gap-2">
-                  <Button size="sm" loading={updateMut.isPending} onClick={() => updateMut.mutate({ id: p.id, ...form })}>Save</Button>
+                  <Button size="sm" disabled={formIncomplete} loading={updateMut.isPending} onClick={() => updateMut.mutate({ id: p.id, ...form })}>Save</Button>
                   <Button size="sm" variant="secondary" onClick={() => setEditId(null)}>Cancel</Button>
                 </div>
+                {updateMut.isError && (
+                  <p className="text-sm text-red-600">
+                    {(updateMut.error as any)?.response?.data?.detail ?? 'Could not save that product.'}
+                  </p>
+                )}
               </div>
             ) : (
               <div>

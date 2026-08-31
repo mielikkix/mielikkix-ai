@@ -18,7 +18,9 @@ from ..models.faq import FAQ
 from ..models.lead import Lead
 from ..models.document import Document
 from ..models.conversation import Conversation
+from ..models.ticket import Ticket
 from ..models.llm_usage import LLMUsageLog
+from ..models.booking import Booking
 from . import plan_service
 
 
@@ -273,4 +275,99 @@ def get_llm_usage(db: Session, business_id: Optional[str] = None, days: int = 30
         },
         "by_day": by_day,
         "by_business": by_business,
+    }
+
+
+def list_bookings(db: Session, page: int = 1, page_size: int = 20) -> dict:
+    """Booking Assistant's bookings have no business_id yet (see
+    models/booking.py's own comment -- these are all Mielikkix's own demo
+    calendar, not per-tenant data), so unlike list_businesses above there's
+    no per-tenant dashboard this could live in instead -- platform admin is
+    the only place that makes sense today. Ordered by created_at desc (most
+    recently made booking first) -- this is an activity view for an
+    operator, not a scheduling tool.
+    """
+    query = db.query(Booking)
+    total = query.count()
+    bookings = (
+        query.order_by(Booking.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    items = [
+        {
+            "id": booking.id,
+            "name": booking.name,
+            "email": booking.email,
+            "phone": booking.phone,
+            "meeting_type": booking.meeting_type,
+            "start_at": booking.start_at,
+            "end_at": booking.end_at,
+            "status": booking.status,
+            "created_at": booking.created_at,
+        }
+        for booking in bookings
+    ]
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+def _ticket_item(ticket: Ticket) -> dict:
+    return {
+        "id": ticket.id,
+        "channel": ticket.channel,
+        "status": ticket.status,
+        "category": ticket.category,
+        "priority": ticket.priority,
+        "confidence": ticket.confidence,
+        "customer_name": ticket.customer_name,
+        "customer_email": ticket.customer_email,
+        "customer_phone": ticket.customer_phone,
+        "created_at": ticket.created_at,
+        "updated_at": ticket.updated_at,
+    }
+
+
+def list_tickets(db: Session, page: int = 1, page_size: int = 20, status: Optional[str] = None) -> dict:
+    """Support Triage's tickets have no business_id (same reasoning as
+    list_bookings above -- see models/ticket.py's own comment: the
+    "tenant" for this table is the platform itself), so platform admin is
+    the only place this inbox can live. Escalated tickets are the ones
+    needing a human, so they sort first regardless of status filter -- an
+    operator opening this page should see what needs attention before
+    what's already resolved.
+    """
+    query = db.query(Ticket)
+    if status:
+        query = query.filter(Ticket.status == status)
+    total = query.count()
+    tickets = (
+        query.order_by(
+            (Ticket.status == "escalated").desc(),
+            Ticket.created_at.desc(),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "items": [_ticket_item(t) for t in tickets],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+def get_ticket(db: Session, ticket_id: str) -> Optional[dict]:
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if ticket is None:
+        return None
+    return {
+        **_ticket_item(ticket),
+        "messages": [
+            {"role": m.role, "content": m.content, "created_at": m.created_at} for m in ticket.messages
+        ],
     }

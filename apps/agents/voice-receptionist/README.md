@@ -8,4 +8,7 @@ notifies the business owner.
 See [`CLAUDE.md`](./CLAUDE.md) in this directory for integrations needed,
 data model, and test criteria — read that before touching this agent's code.
 
-This is currently a **structure-only scaffold** — no business logic yet.
+Core flow is built and tested: inbound-call handling, RAG-grounded conversation,
+and a deterministic propose/finalize booking flow with a natural readback
+confirmation. See [`CLAUDE.md`](./CLAUDE.md)'s Definition of Done for exact status
+on the Support Triage handoff, call-summary notifications, and VPS deploy.

@@ -1,0 +1,123 @@
+{
+  "SEO": {
+    "TITLE": "AI Agents for Your Business",
+    "DESCRIPTION": "AI Chatbot, Voice Receptionist, and Booking Assistant -- ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
+  },
+  "HERO": {
+    "LINE1": "AI Agents Built",
+    "LINE2": "Around Your Business",
+    "SUBHEADING": "Automate customer conversations, phone calls, bookings, support, and business workflows with AI agents designed for your business.",
+    "CTA_PRIMARY": "Explore AI Solutions",
+    "CTA_SECONDARY": "Build a Custom AI Agent",
+    "SUPPORTING_LINE": "Start with our ready-to-use AI solutions or request a custom agent tailored to your workflow."
+  },
+  "CORE_SOLUTIONS": {
+    "HEADING": "Start With Our Core AI Solutions",
+    "SUBHEADING": "Ready-to-demo AI solutions designed to automate the most important customer-facing workflows.",
+    "ITEMS": [
+      {
+        "NAME": "AI Chatbot",
+        "DESCRIPTION": "24/7 AI-powered customer conversations that answer questions, capture leads, and help customers instantly.",
+        "STATUS": "Core Solution",
+        "CTA": "Explore Chatbot"
+      },
+      {
+        "NAME": "Voice Receptionist",
+        "DESCRIPTION": "An AI receptionist that answers calls, handles customer questions, captures requests, and can assist with appointments.",
+        "STATUS": "Live Demo",
+        "CTA": "Try Voice Receptionist"
+      },
+      {
+        "NAME": "Booking Assistant",
+        "DESCRIPTION": "An AI booking assistant that helps customers schedule appointments and manage booking-related conversations.",
+        "STATUS": "Live Demo",
+        "CTA": "Try Booking Assistant"
+      }
+    ]
+  },
+  "ADDITIONAL_AGENTS": {
+    "HEADING": "More AI Agents We've Built",
+    "SUBHEADING": "Explore additional AI automation capabilities developed by Mielikkix.",
+    "BADGE": "Demo Available",
+    "CTA": "View Demo",
+    "ITEMS": [
+      {
+        "NAME": "Support Triage",
+        "DESCRIPTION": "Sorts inbound support requests, identifies priority, drafts responses, and helps route issues to the right team."
+      },
+      {
+        "NAME": "Review & Reputation",
+        "DESCRIPTION": "Analyzes customer reviews, identifies sentiment, drafts on-brand responses, and flags issues that need attention."
+      }
+    ]
+  },
+  "CUSTOM_AGENTS": {
+    "HEADING": "Need an AI Agent Built for Your Business?",
+    "SUBHEADING": "Every business has different workflows. Mielikkix can design and develop custom AI agents that automate the tasks specific to your business.",
+    "LABEL": "Custom AI Agent Examples",
+    "ITEMS": [
+      {
+        "NAME": "Social Media Automation",
+        "DESCRIPTION": "Generate and prepare social content from your offers, campaigns, and business updates."
+      },
+      {
+        "NAME": "Email Marketing",
+        "DESCRIPTION": "Create personalized campaigns, follow-ups, and customer communication workflows."
+      },
+      {
+        "NAME": "SEO & Content",
+        "DESCRIPTION": "Generate optimized content, product descriptions, and metadata."
+      },
+      {
+        "NAME": "Feedback & Surveys",
+        "DESCRIPTION": "Collect customer feedback and turn responses into actionable insights."
+      },
+      {
+        "NAME": "Loyalty & Re-engagement",
+        "DESCRIPTION": "Automated win-back offers for customers who haven't been back in a while."
+      },
+      {
+        "NAME": "Quote & Invoice",
+        "DESCRIPTION": "Turn customer requests into structured quotes and invoice-ready workflows."
+      },
+      {
+        "NAME": "Lead Qualification",
+        "DESCRIPTION": "Screen and score inbound leads automatically, so your team only follows up on the ones worth it."
+      },
+      {
+        "NAME": "Internal Business Automation",
+        "DESCRIPTION": "Automate the repetitive back-office steps between your team's own tools and spreadsheets."
+      },
+      {
+        "NAME": "Custom AI Workflows",
+        "DESCRIPTION": "Something more specific to your business? We design the agent and workflow around it."
+      }
+    ]
+  },
+  "CUSTOM_CTA": {
+    "HEADING": "Tell Us What You Want to Automate",
+    "SUBHEADING": "Don't see the AI agent you need? We can design a solution around your business process.",
+    "CTA_PRIMARY": "Request a Custom AI Agent",
+    "CTA_SECONDARY": "Book a Free Demo"
+  },
+  "HOW_IT_WORKS": {
+    "HEADING": "How It Works",
+    "STEPS": [
+      {
+        "STEP": "01",
+        "TITLE": "Tell Us Your Workflow",
+        "DESCRIPTION": "Tell us what your team does manually today."
+      },
+      {
+        "STEP": "02",
+        "TITLE": "We Design the AI Solution",
+        "DESCRIPTION": "We design the agent, workflow, integrations, and automation around your requirements."
+      },
+      {
+        "STEP": "03",
+        "TITLE": "Launch & Automate",
+        "DESCRIPTION": "Deploy the solution and let AI handle the repetitive work."
+      }
+    ]
+  }
+}

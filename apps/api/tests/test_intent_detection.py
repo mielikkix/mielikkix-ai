@@ -3,6 +3,11 @@ suggest_lead_capture when the intent is "lead" (or confidence is low), and the
 widget then shows the contact form. Substring matching used to misfire on
 ordinary words containing a keyword, which popped that form on questions that
 had nothing to do with getting in touch -- these lock in whole-word matching.
+
+Also covers "booking" (added alongside Booking Assistant's chat-widget
+handoff, see chat_service.py's suggest_booking_flow) -- checked before
+"lead" so a real booking request isn't swallowed by lead's broader
+"schedule"/"demo"/"call" keywords.
 """
 
 import pytest
@@ -55,3 +60,24 @@ def test_support_questions():
 
 def test_plain_question_defaults_to_faq():
     assert _detect_intent("What are your opening hours?") == "faq"
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "I want to book a consultation",
+        "Can I book an appointment for next week?",
+        "I need to reschedule my appointment",
+    ],
+)
+def test_booking_requests_are_booking(message):
+    assert _detect_intent(message) == "booking"
+
+
+def test_generic_scheduling_language_without_book_stays_a_lead():
+    """Deliberately unchanged from before "booking" existed -- "schedule a
+    demo call" has no "book"/"appointment"/"reschedule" in it, so it keeps
+    classifying as a lead rather than routing into Booking Assistant's real
+    availability flow for a request that isn't actually asking to book
+    something specific yet."""
+    assert _detect_intent("Can we schedule a demo call?") == "lead"

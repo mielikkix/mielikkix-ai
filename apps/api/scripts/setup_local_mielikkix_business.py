@@ -37,7 +37,16 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 MARKETING_DIR = REPO_ROOT / "marketing"
 SUPPORTED_FILES = [
     "Mielikkix-AI-About.docx",
-    "Mielikkix-AI-FAQ.pdf",
+    # .txt, not the original .pdf -- that PDF's text is a rendered image of
+    # old "AgentNexus" placeholder-branded content (confirmed live via the
+    # Support Triage widget on 2026-08-28: an FAQ answer literally said
+    # "AgentNexus" instead of "Mielikkix", traced back to this file).
+    # Rewriting a PDF's embedded text in place isn't practical without a
+    # new PDF-authoring dependency this repo doesn't have yet, so the
+    # corrected content lives in a plain .txt file instead -- the RAG
+    # pipeline treats both the same once ingested. The original mis-branded
+    # .pdf is left on disk, just no longer referenced here.
+    "Mielikkix-AI-FAQ.txt",
     "Mielikkix-AI-Getting-Started.txt",
     "Mielikkix-AI-Pricing-Comparison.xlsx",
 ]

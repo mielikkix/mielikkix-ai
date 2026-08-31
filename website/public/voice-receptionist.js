@@ -6,7 +6,9 @@
 // (set at build time by the .astro page from PUBLIC_API_URL) rather than
 // Astro's define:vars, since define:vars only works on is:inline scripts,
 // which is exactly what triggers the CSP block in the first place.
+// postJSON comes from widget-common.js, loaded before this file.
 const { apiUrl } = document.currentScript.dataset;
+const { postJSON } = window.MlxWidget;
 
 const avatarRing = document.getElementById("avatarRing");
 const waveformEl = document.getElementById("waveform");
@@ -46,6 +48,12 @@ const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRec
 let recognizer = null;
 let callSid = null;
 let active = false;
+// "en" or "no" -- mirrors the server's own per-call _call_language (see
+// agents_voice.py's _DevReply.language). The server decides WHETHER this
+// call has switched to Norwegian (from the caller's own speech); this
+// variable just drives which language THIS PAGE listens/speaks in next,
+// so the two stay in lockstep turn by turn.
+let currentLanguage = "en";
 
 const STATE_COLORS = { idle: "text-slate-500", listening: "text-emerald-600", thinking: "text-amber-600", speaking: "text-violet-600" };
 
@@ -79,16 +87,6 @@ function logLine(who, text) {
   return p; // so callers can update this exact bubble later (see heard_as correction)
 }
 
-async function postJSON(path, body) {
-  const resp = await fetch(`${apiUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) throw new Error(`${path} returned ${resp.status}`);
-  return resp.json();
-}
-
 function getVoicesAsync() {
   return new Promise((resolve) => {
     const existing = window.speechSynthesis.getVoices();
@@ -102,14 +100,33 @@ function pickFemaleVoice(voices) {
   return voices.find((v) => patterns.test(v.name)) || null;
 }
 
+// Norwegian voice availability varies a lot by OS/browser (often just one,
+// sometimes none) -- unlike pickFemaleVoice, this can't afford to also
+// filter by name pattern, or it'd come up empty on browsers that only ship
+// one Norwegian voice with an unremarkable name. `nb`/`no` covers both
+// Bokmål ("nb-NO") and the older generic "no-NO" tag some engines still use.
+function pickNorwegianVoice(voices) {
+  return voices.find((v) => /^(nb|no)\b/i.test(v.lang)) || null;
+}
+
 let femaleVoice = null;
-getVoicesAsync().then((voices) => { femaleVoice = pickFemaleVoice(voices); });
+let norwegianVoice = null;
+getVoicesAsync().then((voices) => {
+  femaleVoice = pickFemaleVoice(voices);
+  norwegianVoice = pickNorwegianVoice(voices);
+});
 
 function speak(text) {
   return new Promise((resolve) => {
     setState("speaking", "Speaking...");
     const utterance = new SpeechSynthesisUtterance(text);
-    if (femaleVoice) utterance.voice = femaleVoice;
+    // Falls back to the browser's default voice (reading Norwegian text
+    // with an English accent) if this browser/OS has no Norwegian voice
+    // installed at all -- still understandable, and better than silently
+    // speaking the wrong language's voice for English text instead.
+    const voice = currentLanguage === "no" ? norwegianVoice : femaleVoice;
+    if (voice) utterance.voice = voice;
+    utterance.lang = currentLanguage === "no" ? "nb-NO" : "en-US";
     utterance.onend = resolve;
     utterance.onerror = resolve;
     window.speechSynthesis.speak(utterance);
@@ -126,7 +143,7 @@ function listenOnce() {
     // genuinely started (onstart, below).
     setState("listening", "Get ready...");
     recognizer = new SpeechRecognitionCtor();
-    recognizer.lang = "en-US";
+    recognizer.lang = currentLanguage === "no" ? "nb-NO" : "en-US";
     recognizer.continuous = false;
     recognizer.interimResults = false;
     recognizer.maxAlternatives = 1;
@@ -183,7 +200,12 @@ async function conversationLoop() {
     setState("thinking", "Thinking...");
     let reply, ended = false, heard_as = null;
     try {
-      ({ reply, ended, heard_as } = await postJSON("/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript }));
+      const result = await postJSON(apiUrl, "/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript });
+      ({ reply, ended, heard_as } = result);
+      // Update BEFORE speak() below, so a turn that just switched languages
+      // (per the server's own _call_language latch) speaks its own reply
+      // in the new language immediately, not one turn late.
+      if (result.language) currentLanguage = result.language;
     } catch (err) {
       reply = "Sorry, something went wrong reaching the server.";
     }
@@ -211,6 +233,7 @@ async function startCall() {
   callSid = crypto.randomUUID();
   transcriptEl.innerHTML = "";
   active = true;
+  currentLanguage = "en"; // every new call starts English -- see agents_voice.py's _start_call
   setPill("connecting");
   setState("thinking", "Connecting...");
 
@@ -222,7 +245,7 @@ async function startCall() {
   // forever with no feedback.
   let reply;
   try {
-    ({ reply } = await postJSON("/api/agents/voice/dev/start", { call_sid: callSid }));
+    ({ reply } = await postJSON(apiUrl, "/api/agents/voice/dev/start", { call_sid: callSid }));
   } catch (err) {
     console.error("Failed to start call:", err);
     active = false;

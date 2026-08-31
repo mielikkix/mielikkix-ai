@@ -37,22 +37,52 @@ that needs a real VPS — see `files/ARCHITECTURE.md` §5 for that split (`app.m
 website/
 ├── src/
 │   ├── layouts/
-│   │   └── Layout.astro       # <html> shell: meta/OG/Twitter tags, Header, Footer, slot
+│   │   └── Layout.astro       # <html> shell: meta/OG/Twitter tags, Header, Footer, slot,
+│   │                           # i18n/currency bootstrap, sitewide support-chat-widget.js embed
 │   ├── components/
 │   │   ├── Header.astro       # Sticky nav, CSS-only (checkbox-hack) mobile menu
 │   │   ├── Footer.astro
-│   │   ├── FeatureCard.astro  # icon + title + description card, reused on Home & Features
-│   │   └── CTASection.astro   # Reusable gradient CTA banner, reused on all 3 marketing pages
+│   │   ├── PageHero.astro     # Shared hero heading/subheading block, reused on every inner page
+│   │   ├── BentoCard.astro / FeatureBentoCard.astro  # Bento-grid feature cards (Home & Features)
+│   │   ├── CTASection.astro   # Reusable gradient CTA banner, reused on every marketing page
+│   │   ├── Price.astro        # Renders a [data-price-usd] amount, live-converted by currencyStore
+│   │   ├── LanguageSwitcher.astro   # EN/NOR switcher — drives currency together (see below)
+│   │   └── CurrencySwitcher.astro   # Independent currency override (view USD without switching language)
 │   ├── pages/
 │   │   ├── index.astro        # Home — hero, feature highlights, how-it-works, pricing teaser, CTA
 │   │   ├── features.astro     # Full feature breakdown, grouped by category (mirrors files/FEATURES.md)
 │   │   ├── pricing.astro      # 4-tier pricing cards + billing FAQ (mirrors files/FEATURES.md plans)
-│   │   └── demo.astro         # Free-demo lead capture form
-│   └── styles/
-│       └── global.css         # Tailwind import, Google Fonts import, brand gradient utilities
+│   │   ├── agents.astro       # The 10 Mielikkix Force agents — status + live-demo links
+│   │   ├── demo.astro         # Free-demo lead capture form (POSTs to PUBLIC_API_URL/api/leads)
+│   │   ├── demo/               # One live, talk-to-it-now page per flagship/built agent
+│   │   │   ├── voice-receptionist.astro   # + public/voice-receptionist.js (Web Speech API)
+│   │   │   ├── booking-assistant.astro    # + public/booking-assistant.js
+│   │   │   ├── support-triage.astro       # + public/support-triage.js
+│   │   │   └── review-reputation.astro    # + public/review-reputation.js
+│   │   └── privacy.astro
+│   ├── lib/i18n/translationService.ts   # Client-side i18n runtime: lazy JSON, dot-path lookup, DOM apply
+│   ├── stores/currencyStore.ts          # Reactive currency state + DOM apply, on top of CurrencyService
+│   ├── services/CurrencyService.ts      # Exchange-rate fetch (Frankfurter) + localStorage cache/fallback
+│   ├── config/currency.ts               # Supported currencies, base currency, cache TTL
+│   ├── utils/currencyFormatter.ts
+│   └── assets/i18n/<en|no>/*.json       # Per-page + shared (common/footer) translation namespaces —
+│                                         # add a language by adding a folder here + one entry in
+│                                         # SUPPORTED_LANGUAGES (translationService.ts)
 ├── public/
-│   ├── favicon.ico / favicon.svg
+│   ├── favicon.ico / favicon.svg / og-image.png
+│   ├── i18n-guard.js              # Pre-paint FOUC guard (see translationService.ts's own comment)
+│   ├── demo-form.js               # /demo lead-capture form submit handler
+│   ├── support-chat-widget.js     # Sitewide bubble embedded in Layout.astro on every page —
+│   │                               # talks to Support Triage (app/api/agents_support.py), NOT the
+│   │                               # tenant-facing product Chat Widget — see its own file comment
+│   ├── voice-receptionist.js / booking-assistant.js / support-triage.js / review-reputation.js
+│   │                               # One conversation-logic file per /demo/<agent> page. Kept as
+│   │                               # external files (not inline <script>) because the CSP below has
+│   │                               # no 'unsafe-inline' for script-src.
+│   ├── reduced-motion-video.js
+│   ├── flags/                     # Vendored flag-icons SVGs for LanguageSwitcher/CurrencySwitcher
 │   └── robots.txt
+├── .htaccess (public/) — security headers + CSP, deployed as-is to Hostinger's public_html
 └── astro.config.mjs           # site URL (for sitemap), Tailwind + sitemap integrations
 ```
 
@@ -68,15 +98,17 @@ let the two drift.
 - ~~`site` domain is a placeholder~~ — fixed: `astro.config.mjs`, `public/robots.txt`, and the
   dashboard's `AuthLayout.tsx` (`MARKETING_URL`) all now point at the real registered domain,
   `https://mielikkix.ai`.
-- **No `og-image.png`** yet — `Layout.astro` references `/og-image.png` for social share previews;
-  add a real 1200×630 image to `public/` before launch or social shares will show a broken image.
+- ~~No `og-image.png`~~ — fixed: `public/og-image.png` (1200×630, on-brand) now exists; social
+  shares render a real preview instead of a broken image.
 - ~~Demo form has no backend~~ — fixed: `src/pages/demo.astro` now `POST`s directly to the
   MielikkiX API's public `/api/leads` endpoint.
-- **No analytics** wired up yet (e.g. Plausible, GA4, or Vercel Analytics) — needed to actually
-  measure organic traffic and demo-request conversion once live.
+- **Analytics scaffolding is in `Layout.astro` but inactive** — a Plausible snippet is wired up
+  behind `PUBLIC_PLAUSIBLE_DOMAIN`; it renders nothing until that env var is set to a real domain
+  registered with a Plausible account. Sign up, add the var to `.env.production`, redeploy.
 - **No testimonials/social proof yet** — the home page has a placeholder social-proof strip
   ("Built for retail shops, clinics, restaurants...") instead of real customer logos/quotes, since
-  MielikkiX doesn't have paying customers yet. Replace once available.
+  MielikkiX doesn't have paying customers yet. Replace once available — don't fabricate
+  quotes/logos in the meantime.
 
 ## Commands
 

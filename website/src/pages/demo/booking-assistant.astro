@@ -1,0 +1,76 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+// Not linked from the header nav (see Header.astro), same as
+// /demo/voice-receptionist -- reachable only via direct link for now.
+// Talks to the real Phase 1-3 routes in app/api/agents_booking.py: real
+// Google Calendar availability, real Groq-parsed free text, real event
+// creation on the one connected test calendar (see that file's module
+// docstring, and apps/agents/booking-assistant/CLAUDE.md for the full
+// phased plan). NOT a per-tenant OAuth-connected calendar yet -- that's
+// Phase 5 -- every booking made here lands on the same single test
+// calendar, so this is a proof this agent works end to end, not a
+// production booking page for a real business yet.
+//
+// Presented as an actual chat conversation (not a form wizard) -- matches
+// the real product experience, where this same flow shows up inline in the
+// Chat Widget itself (apps/dashboard/src/widget/BookingFlow.tsx) once
+// booking intent is detected. Bubble styling mirrors
+// /demo/voice-receptionist's transcript exactly, for a consistent feel
+// across both live demos.
+---
+
+<Layout
+  title="Try Our Booking Assistant"
+  description="An early preview of Mielikkix's AI Booking Assistant -- describe what you want to book, right in a chat, and get a real calendar invite."
+  path="/demo/booking-assistant"
+>
+  <div class="mx-auto max-w-[1440px] px-6 pt-8">
+    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+      &larr; Back to AI Agents
+    </a>
+  </div>
+  <PageHero
+    line1="Meet Mielikkix's"
+    line2="Booking Assistant"
+    subheading="An early preview -- tell it what you'd like to book, right in the chat."
+  />
+
+  <section class="mx-auto max-w-lg px-6 py-16">
+    <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
+      <div id="transcript" class="flex flex-1 flex-col gap-2 overflow-y-auto p-5"></div>
+
+      <div id="slotsWrap" class="hidden max-h-56 flex-col gap-1.5 overflow-y-auto border-t border-slate-100 px-5 py-3"></div>
+
+      <form id="composerForm" class="flex gap-2 border-t border-slate-100 p-3">
+        <input
+          id="composerInput"
+          type="text"
+          autocomplete="off"
+          placeholder="e.g. a 30 minute consultation next Tuesday afternoon"
+          class="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-violet-400"
+        />
+        <button
+          id="composerSend"
+          type="submit"
+          class="brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Send"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" />
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
+      Real calendar availability and a real Google Calendar invite -- but every booking made here
+      lands on our one shared test calendar, not a real business's own calendar (see our
+      <a href="/features" class="underline">features page</a> for how the real per-business product
+      works). A confirmed booking really does create a calendar event and emails you an invite.
+    </p>
+  </section>
+
+  <script src="/booking-assistant.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+</Layout>

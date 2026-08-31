@@ -1,0 +1,39 @@
+# Python
+# `**/` prefix required: Docker's .dockerignore patterns only match at the
+# context root by default (unlike .gitignore, they are NOT recursive). Without
+# `**/`, apps/api/.venv (1GB+) is not excluded and gets COPYed into the image
+# by the Dockerfile's `COPY apps/api/ .` step.
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
+**/.pytest_cache/
+**/test.db
+
+# Node
+**/node_modules/
+apps/dashboard/dist/
+apps/dashboard/public/widget.js
+website/
+
+# Git
+.git/
+.gitignore
+
+# Uploads / local data
+apps/api/uploads/
+
+# Logs
+**/*.log
+
+# IDE / OS
+**/.vscode/
+**/.idea/
+**/*.swp
+**/.DS_Store
+**/Thumbs.db
+
+# Env files (passed via env_file in compose, not baked into image)
+.env
+**/*.env.local

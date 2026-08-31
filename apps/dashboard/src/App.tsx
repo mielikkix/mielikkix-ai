@@ -9,6 +9,8 @@ import { DashboardPage } from './dashboard/pages/DashboardPage'
 import { FAQsPage } from './dashboard/pages/FAQsPage'
 import { DocumentsPage } from './dashboard/pages/DocumentsPage'
 import { ProductsPage } from './dashboard/pages/ProductsPage'
+import { SeoPage } from './dashboard/pages/SeoPage'
+import { ReviewsPage } from './dashboard/pages/ReviewsPage'
 import { LeadsPage } from './dashboard/pages/LeadsPage'
 import { ConversationsPage } from './dashboard/pages/ConversationsPage'
 import { SettingsPage } from './dashboard/pages/SettingsPage'
@@ -19,6 +21,8 @@ import { AdminOverviewPage } from './dashboard/pages/admin/AdminOverviewPage'
 import { AdminBusinessesPage } from './dashboard/pages/admin/AdminBusinessesPage'
 import { AdminBusinessDetailPage } from './dashboard/pages/admin/AdminBusinessDetailPage'
 import { AdminUsagePage } from './dashboard/pages/admin/AdminUsagePage'
+import { AdminBookingsPage } from './dashboard/pages/admin/AdminBookingsPage'
+import { AdminTicketsPage } from './dashboard/pages/admin/AdminTicketsPage'
 import { useAuthStore } from './shared/store/authStore'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +55,18 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const initialized = useAuthStore((s) => s.initialized)
   if (!initialized) return null
   return user ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+// Catch-all for an unmatched URL (typo, a removed/renamed route, a stale
+// bookmark) -- confirmed live: this used to unconditionally redirect to
+// /login, which bounced an already-logged-in user out of their session
+// just for mistyping a dashboard URL. Same "still authenticated, send them
+// somewhere useful" reasoning as RequireAdmin's non-admin case above.
+function NotFoundRedirect() {
+  const user = useAuthStore((s) => s.user)
+  const initialized = useAuthStore((s) => s.initialized)
+  if (!initialized) return null
+  return <Navigate to={user ? '/dashboard' : '/login'} replace />
 }
 
 // Platform-operator-only area (see files/ARCHITECTURE.md §2.7) -- gated by
@@ -109,6 +125,22 @@ export function App() {
         element={
           <RequireAuth>
             <DashboardLayout><ProductsPage /></DashboardLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard/seo"
+        element={
+          <RequireAuth>
+            <DashboardLayout><SeoPage /></DashboardLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard/reviews"
+        element={
+          <RequireAuth>
+            <DashboardLayout><ReviewsPage /></DashboardLayout>
           </RequireAuth>
         }
       />
@@ -176,7 +208,23 @@ export function App() {
           </RequireAdmin>
         }
       />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route
+        path="/admin/bookings"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminBookingsPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/tickets"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminTicketsPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route path="*" element={<NotFoundRedirect />} />
     </Routes>
   )
 }

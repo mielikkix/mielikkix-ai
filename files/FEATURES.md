@@ -25,6 +25,43 @@ A snapshot of what's actually implemented and verified working, as of this point
 - **Custom fallback message** — businesses write their own "I don't have that info" wording instead of a generic canned response.
 - **Automatic intent detection** — distinguishes FAQ questions, product inquiries, support issues, and lead-generating moments.
 
+## Booking Assistant (Force Agent)
+
+- **Books real appointments from plain language** — a visitor can type something like "I'd like to book a consultation next Tuesday afternoon" straight into the chat widget; an LLM parses that into a real availability search, no separate booking form to fill out first.
+- **Real calendar availability, not guessed slots** — checks a real connected Google Calendar's actual busy times and only offers genuinely open slots, computed against real business hours.
+- **Double-booking is impossible** — availability is re-checked at the moment of confirmation, not just when slots were first shown, so two visitors can never grab the same slot.
+- **Real calendar event + real invite** — confirming a slot creates an actual Google Calendar event and Google emails the customer a real calendar invite automatically, no separate reminder system needed.
+- **The business gets notified too** — a booking notification email fires the moment a booking is confirmed, separate from the customer's own calendar invite.
+- **Asks instead of guessing** — if a request is too vague to search a date for (e.g. "I want to book something" with no timeframe), it asks a clarifying question rather than inventing a date.
+- *Current scope: verified working end-to-end against Mielikkix's own demo calendar and business hours — real per-business connected calendars (each customer's own Google Calendar via OAuth) are not built yet.*
+
+## Voice Receptionist (Force Agent)
+
+- **Answers real inbound phone calls** — a live Twilio phone number, not a demo widget; the AI holds a natural spoken conversation grounded in the business's own FAQs/documents/products via the same RAG layer the chat widget uses.
+- **Books appointments by voice** — a caller can book a real appointment mid-call; confirmation is deterministic, not left to the LLM to improvise: the agent reads back the proposed slot, name, and email in a natural sentence ("Is that correct?") before anything is actually booked, so a misheard detail gets caught before confirmation, not after.
+- **Hands off to Support Triage** — an issue that needs human follow-up can be escalated to a support ticket mid-call.
+- *Current scope: verified working via test calls and the public browser demo; a real purchased Twilio phone number for live production calls is not yet provisioned.*
+
+## Support Triage (Force Agent)
+
+- **Live sitewide chat widget on mielikkix.ai itself** — answers visitor questions about Mielikkix's own product, not a tenant's; classifies each message, answers what it's confident about, and escalates the rest.
+- **Escalates to a human by email** — low-confidence or high/urgent-priority messages (billing disputes, anything sensitive) notify a human instead of the bot guessing.
+- **Hands booking requests to Booking Assistant** — a chat message like "can I book a call" is routed to a real booking instead of being triaged as a generic support ticket.
+- **Platform-admin ticket inbox** — every conversation is visible to the Mielikkix operator, not per-tenant (this widget serves Mielikkix's own visitors).
+
+## Review & Reputation (Force Agent)
+
+- **Analyzes any review** — sentiment, topics, priority, and escalation risk, run against reviews imported from a platform or pasted in directly.
+- **Drafts a reply in the business's own tone** — matches the review's detected language automatically.
+- **Human approval always required** — this agent never auto-publishes a response anywhere; a person reviews, edits if needed, and approves before anything is considered final.
+- **Reputation insights, never fabricated** — trend/insight numbers are computed only from real stored reviews (never invented by the LLM), and honestly report "not enough data yet" rather than showing a misleading percentage.
+- *Current scope: fully working against a mock review platform for local dev/demos — a real platform connection (Google, Facebook, TripAdvisor, Yelp, Trustpilot) is not built yet; each requires that platform's own developer/partner API access.*
+
+## SEO Copywriter (Force Agent)
+
+- **Bulk-generates product SEO copy** — description, title tag, and meta description for a business's product catalog, targeting real search intent rather than keyword-stuffed filler.
+- **Never overwrites live copy silently** — every generation lands in a separate draft, with a before/after diff; only an explicit human approval copies it onto the real product listing.
+
 ## Admin Dashboard
 
 - **Multi-tenant from the ground up** — every business's data (FAQs, documents, leads, conversations) is fully isolated from every other business's.

@@ -6,16 +6,12 @@ from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
 from ..models.user import User
 from ..models.business import Business
-from ..models.product import Product
+from ..models.product import Product, product_embedding_text
 from ..schemas.product import ProductCreate, ProductUpdate, ProductOut
 from ..services import plan_service
 from ..rag.embeddings import embed_query
 
 router = APIRouter(prefix="/api/products", tags=["products"])
-
-
-def _product_embedding_text(product: Product) -> str:
-    return f"{product.name} {product.category or ''} {product.description or ''}".strip()
 
 
 @router.get("", response_model=List[ProductOut])
@@ -37,7 +33,7 @@ def create_product(
             detail="Your plan only supports USD pricing. Upgrade your plan to use other currencies.",
         )
     product = Product(business_id=current_user.business_id, **body.model_dump())
-    product.embedding_json = json.dumps(embed_query(_product_embedding_text(product)))
+    product.embedding_json = json.dumps(embed_query(product_embedding_text(product)))
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -66,7 +62,7 @@ def update_product(
     for field, val in updates.items():
         setattr(product, field, val)
     if {"name", "category", "description"} & updates.keys():
-        product.embedding_json = json.dumps(embed_query(_product_embedding_text(product)))
+        product.embedding_json = json.dumps(embed_query(product_embedding_text(product)))
     db.commit()
     db.refresh(product)
     return product

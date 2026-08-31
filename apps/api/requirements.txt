@@ -5,6 +5,17 @@ alembic==1.13.1
 psycopg2-binary==2.9.12
 pgvector==0.2.5
 python-jose[cryptography]==3.3.0
+# Direct dependency (not just a transitive one, e.g. via google-auth) --
+# integrations/google_calendar_client.py calls the Calendar REST API with
+# this directly, bypassing googleapiclient's own httplib2 transport (see
+# that module's own comment on why). Pinned to the version already
+# resolved transitively so this doesn't change what's actually installed.
+requests==2.34.2
+# Direct dependency (not just python-jose's transitive one) -- used
+# directly for Fernet symmetric encryption of per-business OAuth refresh
+# tokens at rest (core/encryption.py). Pinned to the version already
+# resolved transitively so this doesn't change what's actually installed.
+cryptography==50.0.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-multipart==0.0.9
@@ -12,6 +23,14 @@ pydantic==2.7.1
 pydantic-settings==2.2.1
 langchain==0.2.1
 langchain-community==0.2.1
+# CPU-only torch build: sentence-transformers pulls torch as a dependency, and
+# PyPI's default torch wheel for Linux bundles the full CUDA/NVIDIA GPU stack
+# (~2.5GB of nvidia-* packages) even though this app never runs on a GPU --
+# CLAUDE.md is explicit that no self-hosted models run on the VPS this
+# deploys to. The `+cpu` local version suffix forces pip to resolve torch
+# from the extra index below instead of PyPI's GPU build.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.1+cpu
 sentence-transformers==3.0.0
 httpx==0.27.0
 python-dotenv==1.0.1
@@ -21,6 +40,15 @@ pytest-asyncio==0.23.6
 httpx==0.27.0
 slowapi==0.1.9
 groq==0.8.0
+# Multi-provider LLMClient (packages/agent-core/mielikkix_agent_core/llm_client.py)
+# -- Voice Receptionist/"simple" agents on OpenAI, Booking Assistant/
+# "complex" agents on Anthropic Claude Sonnet, Claude Opus available for a
+# future very-complex workflow. Duplicated here (not just declared in
+# agent-core's own pyproject.toml) for the same reason groq== above already
+# is: apps/api's requirements.txt pins the exact version this app actually
+# deploys with.
+openai==1.109.1
+anthropic==0.125.0
 google-generativeai==0.5.4
 # Booking Assistant's Google Calendar integration (apps/agents/booking-assistant).
 # Only actually needed for scripts/connect_google_calendar.py's one-time local
@@ -30,6 +58,15 @@ google-generativeai==0.5.4
 # google-generativeai above) and calls the API via googleapiclient (same),
 # so this is a dev-time-only addition, not new runtime surface for the app.
 google-auth-oauthlib==1.2.1
+# IANA timezone database for Python's stdlib zoneinfo, used by
+# google_calendar_client.py to turn an IANA zone name (e.g.
+# "America/New_York") into a real UTC offset for Google's freebusy API
+# (which requires one -- see that module's comment). Linux (this app's
+# Docker/VPS environment) usually already has this via the OS itself, but
+# Windows never does -- confirmed the hard way (ZoneInfoNotFoundError
+# running tests locally on Windows) -- so this is a real runtime
+# dependency, not optional, for portability across dev machines.
+tzdata==2024.1
 ollama==0.2.1
 PyPDF2==3.0.1
 python-docx==1.1.2

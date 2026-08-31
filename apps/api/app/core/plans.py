@@ -38,6 +38,16 @@ class PlanFeatures:
     api_access: bool
     api_access_addon_available: bool
     priority_support: bool
+    # Gates Booking Assistant's per-tenant Google Calendar OAuth connection
+    # (app/api/calendar_oauth.py) and the /request, /confirm routes
+    # (app/api/agents_booking.py) -- see plan_service.require_feature.
+    booking_enabled: bool
+    # Gates SEO Copywriter's bulk-generate/approve routes
+    # (app/api/agents_seo.py) -- see plan_service.require_feature.
+    seo_copywriter_enabled: bool
+    # Gates Review & Reputation's analyze/respond/import routes
+    # (app/api/agents_reviews.py) -- see plan_service.require_feature.
+    review_reputation_enabled: bool
 
 
 @dataclass(frozen=True)
@@ -85,6 +95,9 @@ PLANS: dict[str, Plan] = {
             api_access=False,
             api_access_addon_available=False,
             priority_support=False,
+            booking_enabled=False,
+            seo_copywriter_enabled=False,
+            review_reputation_enabled=False,
         ),
     ),
     "basic": Plan(
@@ -112,6 +125,9 @@ PLANS: dict[str, Plan] = {
             api_access=False,
             api_access_addon_available=False,
             priority_support=False,
+            booking_enabled=False,
+            seo_copywriter_enabled=False,
+            review_reputation_enabled=False,
         ),
     ),
     "business": Plan(
@@ -139,6 +155,9 @@ PLANS: dict[str, Plan] = {
             api_access=False,
             api_access_addon_available=True,  # +$12/mo add-on
             priority_support=True,
+            booking_enabled=True,
+            seo_copywriter_enabled=True,
+            review_reputation_enabled=True,
         ),
     ),
     "growth": Plan(
@@ -166,6 +185,9 @@ PLANS: dict[str, Plan] = {
             api_access=True,  # included, no add-on needed
             api_access_addon_available=False,
             priority_support=True,
+            booking_enabled=True,
+            seo_copywriter_enabled=True,
+            review_reputation_enabled=True,
         ),
     ),
 }

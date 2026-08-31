@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { LayoutDashboard, Building2, Gauge, LogOut, ArrowLeftCircle, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Building2, Gauge, CalendarCheck, MessagesSquare, LogOut, ArrowLeftCircle, Menu, X } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '../../shared/store/authStore'
 
@@ -8,6 +8,8 @@ const nav = [
   { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
   { to: '/admin/businesses', icon: Building2, label: 'Businesses' },
   { to: '/admin/usage', icon: Gauge, label: 'Groq Usage' },
+  { to: '/admin/bookings', icon: CalendarCheck, label: 'Bookings' },
+  { to: '/admin/tickets', icon: MessagesSquare, label: 'Support Tickets' },
 ]
 
 /** Visually distinct (dark) from the tenant Sidebar, so it's never

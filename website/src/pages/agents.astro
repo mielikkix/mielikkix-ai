@@ -1,160 +1,322 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import PageHero from "../components/PageHero.astro";
+import en from "../assets/i18n/en/agents.json";
 
-// Status is deliberately honest per-agent, not uniform marketing copy --
-// only Voice Receptionist has a working preview right now (see
-// apps/agents/voice-receptionist/CLAUDE.md). The other 9 are real, planned
-// products (see apps/agents/_template/CLAUDE.md's roster + each flagship's
-// own CLAUDE.md) but nothing to click through to yet -- claiming otherwise
-// would be worse than not having this page at all.
-const agents = [
+// Business direction (2026-08-30): Mielikkix is not productizing all 10
+// originally-planned Force agents right now. The page communicates three
+// tiers, in descending visual weight:
+//   1. Core solutions -- AI Chatbot (the live product), Voice Receptionist
+//      and Booking Assistant (working previews) -- the three things a
+//      visitor can actually use/try today.
+//   2. Additional built demos -- Support Triage, Review & Reputation --
+//      real, working previews (see their own CLAUDE.md files) but not part
+//      of the current core-product push.
+//   3. Custom AI agent development -- the remaining agent concepts (social,
+//      email, SEO, feedback, loyalty, quote/invoice, plus a few new
+//      capability examples) presented as examples of what Mielikkix can
+//      build to order, NOT as products in a pipeline -- deliberately no
+//      "Coming Soon" language anywhere in this section.
+//
+// All display text lives in assets/i18n/{en,no}/agents.json (see
+// translationService.ts) -- only non-translatable per-item metadata (icon
+// path, href, status pill color) stays here, index-aligned with each
+// JSON ITEMS array so data-i18n="...ITEMS.{i}...." keys line up.
+
+const coreSolutionsMeta = [
   {
-    name: "Voice Receptionist",
-    tagline: "Answers calls, books appointments, and texts a summary.",
-    status: "preview",
+    // The chatbot itself has no single dedicated demo route -- it's the
+    // live product embedded sitewide -- so this points at the page that
+    // actually explains what it does (knowledge base, lead capture,
+    // analytics, notifications), same target the rest of the site already
+    // uses for "learn more about the chatbot."
+    href: "/features",
+    statusClass: "bg-indigo-50 text-indigo-700",
+    icon: "M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155",
+  },
+  {
     href: "/demo/voice-receptionist",
+    statusClass: "bg-emerald-50 text-emerald-700",
     icon: "M2.25 6.75c0 8.284 6.716 15 15 15h1.5a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z",
   },
   {
-    name: "Booking Assistant",
-    tagline: "Self-serve scheduling, with reminders sent automatically.",
-    status: "soon",
+    href: "/demo/booking-assistant",
+    statusClass: "bg-emerald-50 text-emerald-700",
     icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008Z",
   },
+];
+
+const additionalAgentsMeta = [
   {
-    name: "Support Triage",
-    tagline: "Sorts inbound chat tickets, drafts replies, escalates when needed.",
-    status: "soon",
+    href: "/demo/support-triage",
     icon: "M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z",
   },
   {
-    name: "Review & Reputation",
-    tagline: "Monitors Google/Facebook reviews and drafts on-brand replies.",
-    status: "soon",
+    href: "/demo/review-reputation",
     icon: "M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z",
   },
+];
+
+const customAgentExamplesMeta = [
   {
-    name: "Social Media Agent",
-    tagline: "Turns offers and updates into ready-to-post social content.",
-    status: "soon",
     icon: "M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z",
   },
   {
-    name: "Email Marketing",
-    tagline: "Newsletters, cart recovery, and promo sends -- written and sent for you.",
-    status: "soon",
     icon: "M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75",
   },
   {
-    name: "SEO Copywriter",
-    tagline: "Bulk product descriptions and metadata, written to actually rank.",
-    status: "soon",
     icon: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z",
   },
   {
-    name: "Feedback & Survey",
-    tagline: "Post-visit surveys and sentiment summaries, no spreadsheet required.",
-    status: "soon",
     icon: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
   },
   {
-    name: "Loyalty & Re-engagement",
-    tagline: "Automated win-back offers for customers who haven't been back in a while.",
-    status: "soon",
     icon: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z",
   },
   {
-    name: "Quote & Invoice",
-    tagline: "Turns a customer request into a formal quote or invoice, ready to send.",
-    status: "soon",
     icon: "M9 14.25 20.25 3m0 0h-6.75m6.75 0v6.75M11.25 6H4.5a2.25 2.25 0 0 0-2.25 2.25v11.25A2.25 2.25 0 0 0 4.5 21.75h11.25A2.25 2.25 0 0 0 18 19.5v-6.75",
+  },
+  {
+    icon: "M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z",
+  },
+  {
+    icon: "M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.752.43.992l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a7.688 7.688 0 0 1 0-.255c.007-.378-.138-.752-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+  },
+  {
+    icon: "M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z M18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z",
   },
 ];
 ---
 
 <Layout
-  title="The Mielikkix Force Crew"
-  description="10 AI agents for small businesses -- voice, booking, support, reviews, social, and more. See what's live now and what's coming."
+  title={en.SEO.TITLE}
+  description={en.SEO.DESCRIPTION}
   path="/agents"
+  page="agents"
+  titleKey="SEO.TITLE"
+  descriptionKey="SEO.DESCRIPTION"
 >
   <PageHero
-    line1="Meet the"
-    line2="Force Crew"
-    subheading="10 AI agents for small businesses. One is live for preview today -- the rest are on the way."
-  />
+    line1={en.HERO.LINE1}
+    line2={en.HERO.LINE2}
+    subheading={en.HERO.SUBHEADING}
+    line1Key="HERO.LINE1"
+    line2Key="HERO.LINE2"
+    subheadingKey="HERO.SUBHEADING"
+  >
+    <div slot="extra" class="mt-8">
+      <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          href="#core-solutions"
+          data-i18n="HERO.CTA_PRIMARY"
+          class="rounded-full bg-white px-7 py-3 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
+        >
+          {en.HERO.CTA_PRIMARY}
+        </a>
+        <a
+          href="/demo"
+          data-i18n="HERO.CTA_SECONDARY"
+          class="rounded-full border border-white/60 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+        >
+          {en.HERO.CTA_SECONDARY}
+        </a>
+      </div>
+      <p class="mx-auto mt-5 max-w-md text-sm text-indigo-50" data-i18n="HERO.SUPPORTING_LINE">
+        {en.HERO.SUPPORTING_LINE}
+      </p>
+    </div>
+  </PageHero>
 
-  <section class="mx-auto max-w-[1440px] px-6 py-16">
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  <!-- Core AI Solutions -- the visual focus of the page -->
+  <section id="core-solutions" class="mx-auto max-w-[1440px] px-6 py-20 scroll-mt-6">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="font-display text-3xl font-bold text-slate-900 sm:text-4xl" data-i18n="CORE_SOLUTIONS.HEADING">
+        {en.CORE_SOLUTIONS.HEADING}
+      </h2>
+      <p class="mt-4 text-slate-500" data-i18n="CORE_SOLUTIONS.SUBHEADING">
+        {en.CORE_SOLUTIONS.SUBHEADING}
+      </p>
+    </div>
+
+    <div class="mt-12 grid gap-8 lg:grid-cols-3">
       {
-        agents.map((agent) => {
-          const isLive = agent.status === "preview";
-          const Wrapper = isLive ? "a" : "div";
+        en.CORE_SOLUTIONS.ITEMS.map((agent, i) => {
+          const meta = coreSolutionsMeta[i];
           return (
-            <Wrapper
-              {...(isLive ? { href: agent.href } : {})}
-              class:list={[
-                "flex flex-col rounded-3xl border p-7 transition-transform",
-                isLive
-                  ? "border-transparent bg-white shadow-lg shadow-violet-100 hover:-translate-y-1"
-                  : "border-slate-200 bg-slate-50/60",
-              ]}
+            <a
+              href={meta.href}
+              class="group flex flex-col rounded-3xl border border-transparent bg-white p-9 shadow-lg shadow-violet-100 transition-all hover:-translate-y-1.5 hover:shadow-xl hover:shadow-violet-200"
             >
-              <div class="mb-4 flex items-start justify-between">
-                <div
-                  class:list={[
-                    "flex h-11 w-11 items-center justify-center rounded-xl",
-                    isLive ? "brand-gradient" : "bg-slate-200",
-                  ]}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class:list={["h-5 w-5", isLive ? "text-white" : "text-slate-500"]}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" d={agent.icon} />
+              <div class="flex items-start justify-between">
+                <div class="brand-gradient flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm shadow-violet-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d={meta.icon} />
                   </svg>
                 </div>
-                <span
-                  class:list={[
-                    "rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                    isLive ? "bg-emerald-50 text-emerald-700" : "bg-slate-200 text-slate-500",
-                  ]}
-                >
-                  {isLive ? "Live Preview" : "Coming Soon"}
+                <span class:list={["rounded-full px-3 py-1 text-xs font-semibold", meta.statusClass]} data-i18n={`CORE_SOLUTIONS.ITEMS.${i}.STATUS`}>
+                  {agent.STATUS}
                 </span>
               </div>
-              <h2 class:list={["font-display text-lg font-bold", isLive ? "text-slate-900" : "text-slate-600"]}>
-                {agent.name}
-              </h2>
-              <p class:list={["mt-1.5 text-sm leading-relaxed", isLive ? "text-slate-500" : "text-slate-400"]}>
-                {agent.tagline}
+              <h3 class="font-display mt-6 text-2xl font-bold text-slate-900" data-i18n={`CORE_SOLUTIONS.ITEMS.${i}.NAME`}>
+                {agent.NAME}
+              </h3>
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-500" data-i18n={`CORE_SOLUTIONS.ITEMS.${i}.DESCRIPTION`}>
+                {agent.DESCRIPTION}
               </p>
-              {isLive && (
-                <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-600">
-                  Talk to it now &rarr;
-                </span>
-              )}
-            </Wrapper>
+              <span
+                class="brand-gradient mt-7 inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform group-hover:scale-105"
+                data-i18n={`CORE_SOLUTIONS.ITEMS.${i}.CTA`}
+              >
+                {agent.CTA} &rarr;
+              </span>
+            </a>
           );
         })
       }
     </div>
+  </section>
 
-    <div class="mt-14 rounded-3xl border border-slate-100 bg-slate-50 p-8 text-center">
-      <h2 class="font-display text-xl font-bold text-slate-900">Want early access as each agent ships?</h2>
-      <p class="mx-auto mt-2 max-w-lg text-sm text-slate-500">
-        Tell us which agents matter most to your business and we'll reach out as they're ready.
+  <!-- More AI agents we've built -- real, working previews, but visually secondary to the three core solutions above -->
+  <section class="mx-auto max-w-[1440px] px-6 pb-20">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl" data-i18n="ADDITIONAL_AGENTS.HEADING">
+        {en.ADDITIONAL_AGENTS.HEADING}
+      </h2>
+      <p class="mt-3 text-slate-500" data-i18n="ADDITIONAL_AGENTS.SUBHEADING">
+        {en.ADDITIONAL_AGENTS.SUBHEADING}
       </p>
-      <a
-        href="/demo"
-        class="brand-gradient mt-5 inline-block rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-105"
-      >
-        Get in Touch
-      </a>
+    </div>
+
+    <div class="mx-auto mt-10 grid max-w-3xl gap-5 sm:grid-cols-2">
+      {
+        en.ADDITIONAL_AGENTS.ITEMS.map((agent, i) => {
+          const meta = additionalAgentsMeta[i];
+          return (
+            <a
+              href={meta.href}
+              class="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md"
+            >
+              <div class="mb-4 flex items-start justify-between">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d={meta.icon} />
+                  </svg>
+                </div>
+                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500" data-i18n="ADDITIONAL_AGENTS.BADGE">
+                  {en.ADDITIONAL_AGENTS.BADGE}
+                </span>
+              </div>
+              <h3 class="font-display text-lg font-semibold text-slate-900" data-i18n={`ADDITIONAL_AGENTS.ITEMS.${i}.NAME`}>
+                {agent.NAME}
+              </h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-slate-500" data-i18n={`ADDITIONAL_AGENTS.ITEMS.${i}.DESCRIPTION`}>
+                {agent.DESCRIPTION}
+              </p>
+              <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-600" data-i18n="ADDITIONAL_AGENTS.CTA">
+                {en.ADDITIONAL_AGENTS.CTA} &rarr;
+              </span>
+            </a>
+          );
+        })
+      }
+    </div>
+  </section>
+
+  <!-- Custom AI agent development -- capability showcase, deliberately NOT framed as a product
+       roadmap. No "Coming Soon" language anywhere near this list: per current business
+       direction, these are examples of what Mielikkix can build to order, not agents already
+       in development, so the copy stays "custom agent example," never "coming soon." -->
+  <section class="bg-slate-50 py-20">
+    <div class="mx-auto max-w-[1440px] px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="font-display text-3xl font-bold text-slate-900 sm:text-4xl" data-i18n="CUSTOM_AGENTS.HEADING">
+          {en.CUSTOM_AGENTS.HEADING}
+        </h2>
+        <p class="mt-4 text-slate-500" data-i18n="CUSTOM_AGENTS.SUBHEADING">
+          {en.CUSTOM_AGENTS.SUBHEADING}
+        </p>
+      </div>
+
+      <p class="mt-12 text-center text-xs font-semibold uppercase tracking-wider text-slate-400" data-i18n="CUSTOM_AGENTS.LABEL">
+        {en.CUSTOM_AGENTS.LABEL}
+      </p>
+
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          en.CUSTOM_AGENTS.ITEMS.map((example, i) => {
+            const meta = customAgentExamplesMeta[i];
+            return (
+              <div class="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d={meta.icon} />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-display text-sm font-semibold text-slate-900" data-i18n={`CUSTOM_AGENTS.ITEMS.${i}.NAME`}>
+                    {example.NAME}
+                  </h3>
+                  <p class="mt-1 text-sm leading-relaxed text-slate-500" data-i18n={`CUSTOM_AGENTS.ITEMS.${i}.DESCRIPTION`}>
+                    {example.DESCRIPTION}
+                  </p>
+                </div>
+              </div>
+            );
+          })
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Custom agent CTA -->
+  <section class="mx-auto max-w-[1440px] px-6 py-16">
+    <div class="brand-gradient relative overflow-hidden rounded-3xl px-8 py-14 text-center shadow-xl shadow-violet-200">
+      <h2 class="font-display text-3xl font-bold text-white sm:text-4xl" data-i18n="CUSTOM_CTA.HEADING">
+        {en.CUSTOM_CTA.HEADING}
+      </h2>
+      <p class="mx-auto mt-3 max-w-xl text-indigo-50" data-i18n="CUSTOM_CTA.SUBHEADING">
+        {en.CUSTOM_CTA.SUBHEADING}
+      </p>
+      <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a
+          href="/demo"
+          data-i18n="CUSTOM_CTA.CTA_PRIMARY"
+          class="rounded-full bg-white px-7 py-3 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
+        >
+          {en.CUSTOM_CTA.CTA_PRIMARY}
+        </a>
+        <a
+          href="/demo"
+          data-i18n="CUSTOM_CTA.CTA_SECONDARY"
+          class="rounded-full border border-white/60 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+        >
+          {en.CUSTOM_CTA.CTA_SECONDARY}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="mx-auto max-w-[1440px] px-6 pb-24">
+    <h2 class="font-display text-center text-3xl font-bold text-slate-900 sm:text-4xl" data-i18n="HOW_IT_WORKS.HEADING">
+      {en.HOW_IT_WORKS.HEADING}
+    </h2>
+    <div class="mt-12 grid gap-8 md:grid-cols-3">
+      {
+        en.HOW_IT_WORKS.STEPS.map((s, i) => (
+          <div class="relative rounded-2xl bg-white p-8 shadow-sm shadow-slate-100">
+            <span class="font-display brand-gradient-text text-4xl font-extrabold" data-i18n={`HOW_IT_WORKS.STEPS.${i}.STEP`}>
+              {s.STEP}
+            </span>
+            <h3 class="font-display mt-4 text-lg font-semibold text-slate-900" data-i18n={`HOW_IT_WORKS.STEPS.${i}.TITLE`}>
+              {s.TITLE}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-slate-500" data-i18n={`HOW_IT_WORKS.STEPS.${i}.DESCRIPTION`}>
+              {s.DESCRIPTION}
+            </p>
+          </div>
+        ))
+      }
     </div>
   </section>
 </Layout>

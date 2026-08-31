@@ -7,12 +7,10 @@ flagship agents) — this file covers only what's specific to this one.
 
 Powers a chat widget, classifies incoming messages, answers what it
 confidently can, drafts replies for the rest, and escalates to a human by
-email when it should. It's also the fix for a gap flagged in the site
-review on Aug 22, 2026: `website/` (the marketing site, in this same repo)
-currently shows only a static chat-widget mockup, with no live widget
-running anywhere. Flagship agent — third of the 10 to build (replacing
-Review & Reputation as the active third flagship — see
-`apps/agents/CLAUDE.md`).
+email when it should. It was the fix for a gap flagged in the site review on
+Aug 22, 2026 (`website/` then had only a static chat-widget mockup, no live
+widget) — that gap is closed: `public/support-chat-widget.js` now runs live
+sitewide, embedded via `Layout.astro`.
 
 **Not the same thing as the product's existing chat widget**
 (`apps/dashboard/src/widget`, embedded on tenant businesses' own sites for
@@ -21,8 +19,10 @@ mielikkix.ai itself.
 
 ## Integrations needed
 
-- **LLM**: `packages/agent-core`'s client — classification (category,
-  priority, confidence) and reply drafting.
+- **LLM**: `packages/agent-core`'s client, on Anthropic Claude Sonnet
+  (`LLMClient(provider="anthropic")`, per `apps/agents/CLAUDE.md`'s tier
+  assignment) — classification (category, priority, confidence) and reply
+  drafting.
 - **Database**: `packages/db` — tickets, messages, escalation state
   (tenant-scoped like everything else; here the "tenant" is the platform
   itself, since this widget serves mielikkix.ai's own visitors).

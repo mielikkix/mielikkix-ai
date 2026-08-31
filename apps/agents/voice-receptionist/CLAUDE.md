@@ -46,18 +46,52 @@ persistent connection open.
   webhooks, building TwiML responses, sending the summary SMS. This is the
   one external dependency that isn't "just an LLM call," and it's specific
   to this agent (not shared via agent-core).
-- **LLM**: `packages/agent-core`'s client — the conversational brain and the
-  intent classifier (function-calling schema: `book_appointment`,
-  `support_issue`, `general_question`, `leave_message`).
+- **LLM**: `packages/agent-core`'s client — the conversational brain, real
+  function-calling (`check_availability`, `propose_booking`,
+  `create_support_ticket` — see `apps/api/app/api/agents_voice.py`'s
+  `_VOICE_TOOLS`), on OpenAI (`LLMClient(provider="openai")`) per
+  `apps/agents/CLAUDE.md`'s tier assignment. `propose_booking` deliberately
+  does NOT book on its own: it stages the slot/name/email and speaks a
+  server-generated (not LLM-paraphrased) confirmation back, spelling the
+  email out letter by letter — a misheard email read back as a normal word
+  is too easy for a caller to miss by ear, confirmed live. Only the
+  caller's own next-turn "yes" actually books (`_finalize_booking`), using
+  exactly what was already read back rather than re-asking the LLM to
+  restate it.
 - **Booking Assistant handoff**: direct call into
-  `apps/agents/booking-assistant`'s booking service (see
-  `apps/agents/CLAUDE.md` — same process, no internal HTTP hop) when a
-  caller wants to book.
+  `apps/api/app/services/booking_service.py` — the SAME shared logic
+  `apps/agents/booking-assistant`'s own chat/HTTP entry points use (see
+  `apps/agents/CLAUDE.md` — same process, no internal HTTP hop, and no
+  duplicated calendar/availability logic between the two entry points)
+  when a caller wants to book.
 - **Support Triage handoff**: direct call into
   `apps/agents/support-triage`'s ticket service when a caller has an issue
   needing human follow-up.
 - **SMS/email summary**: `apps/api/app/notifications` (Resend provider) —
   do not stand up a second notification system.
+
+## Language support
+
+English and Norwegian (Bokmål) today, English-only originally. A call
+starts English (there's no way to know a caller's language before they've
+said anything); `_handle_turn` in `agents_voice.py` latches to Norwegian,
+one-directionally, the first time a turn's speech scores as Norwegian via
+`rag/language_detect.py`'s `detect_message_language` — the same heuristic
+the Chat Widget already uses, not a second detector. Once latched, the
+LLM is instructed to reply only in Norwegian, Twilio's own `<Gather>`/
+`<Say>` switch to `nb-NO` recognition/voice, the deterministic (non-LLM)
+spoken lines (greeting close, silence/turn-cap closings, the
+`propose_booking` confirmation readback, `_finalize_booking`'s outcomes)
+have Norwegian equivalents, and the goodbye/booking-confirmation phrase
+regexes recognize Norwegian words too (`ha det`, `ja`, `stemmer`, ...) so
+a Norwegian-speaking caller can actually end the call or confirm a
+booking. Known limitation: turn 1's `<Gather>` is still English
+recognition (the language isn't known yet), so a caller who launches
+straight into a full Norwegian sentence may get a mis-transcribed first
+turn — reliable from turn 2 onward, once switched. The browser demo
+(`voice-receptionist.js`) mirrors this via the Web Speech API's own
+`recognizer.lang`/`speechSynthesis` voice, driven by the `language` field
+`/dev/gather` now returns each turn.
 
 ## Data this agent stores
 

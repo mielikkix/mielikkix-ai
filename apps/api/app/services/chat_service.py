@@ -98,7 +98,18 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
     db.add(ai_msg)
     db.commit()
 
-    suggest_lead = intent == "lead" or confidence < 0.3
+    # An ungated business's chatbot never offers booking in the first place
+    # -- not just blocked after the fact by agents_booking.py's own
+    # plan_service.require_feature check on /request and /confirm.
+    suggest_booking = intent == "booking" and plan_service.resolve_features(business).get("booking_enabled", False)
+    # A booking intent almost always also has low confidence (a brand-new
+    # business has no FAQ/document actually about booking), which alone
+    # would also trigger the lead-capture form below -- confirmed live: a
+    # visitor typing "book the meeting" got BOTH a lead form AND a booking
+    # panel stacked on top of each other, and only noticed the booking one
+    # after scrolling. Once we're already offering the real booking flow,
+    # the lead form for that same message is redundant, not additive.
+    suggest_lead = not suggest_booking and (intent == "lead" or confidence < 0.3)
 
     return ChatMessageResponse(
         reply=reply,
@@ -106,5 +117,6 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
         confidence=confidence,
         session_id=req.session_id,
         suggest_lead_capture=suggest_lead,
+        suggest_booking_flow=suggest_booking,
         lang=detected_lang,
     )

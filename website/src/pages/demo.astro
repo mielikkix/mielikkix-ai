@@ -1,30 +1,36 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import PageHero from "../components/PageHero.astro";
-
-const reassurances = [
-  "15-minute walkthrough, tailored to your business type",
-  "We'll set up a sample FAQ/document live on the call",
-  "No pressure, no credit card — free plan available either way",
-];
+import en from "../assets/i18n/en/demo.json";
 ---
 
 <Layout
-  title="Book a Free Demo"
-  description="Book a free, no-pressure demo of MielikkiX and see your own FAQs and documents answering customer questions in minutes."
+  title={en.SEO.TITLE}
+  description={en.SEO.DESCRIPTION}
   path="/demo"
+  page="demo"
+  titleKey="SEO.TITLE"
+  descriptionKey="SEO.DESCRIPTION"
 >
+  <div class="mx-auto max-w-[1440px] px-6 pt-8">
+    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600" data-i18n="BACK_LINK">
+      &larr; {en.BACK_LINK}
+    </a>
+  </div>
   <PageHero
-    line1="Book your"
-    line2="free demo"
-    subheading="Tell us a bit about your business and we'll reach out to schedule a walkthrough."
+    line1={en.PAGE_HERO.LINE1}
+    line2={en.PAGE_HERO.LINE2}
+    subheading={en.PAGE_HERO.SUBHEADING}
+    line1Key="PAGE_HERO.LINE1"
+    line2Key="PAGE_HERO.LINE2"
+    subheadingKey="PAGE_HERO.SUBHEADING"
   />
 
   <section class="mx-auto max-w-2xl px-6 py-16">
     <ul class="mb-10 grid gap-3 sm:grid-cols-3">
       {
-        reassurances.map((r) => (
-          <li class="rounded-xl border border-slate-100 bg-white p-4 text-center text-xs font-medium text-slate-500 shadow-sm">
+        en.REASSURANCES.map((r, i) => (
+          <li class="rounded-xl border border-slate-100 bg-white p-4 text-center text-xs font-medium text-slate-500 shadow-sm" data-i18n={`REASSURANCES.${i}`}>
             {r}
           </li>
         ))
@@ -34,7 +40,7 @@ const reassurances = [
     <form id="demo-form" class="space-y-5 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
       <div class="grid gap-5 sm:grid-cols-2">
         <div>
-          <label for="name" class="text-sm font-medium text-slate-700">Your name</label>
+          <label for="name" class="text-sm font-medium text-slate-700" data-i18n="FORM.NAME_LABEL">{en.FORM.NAME_LABEL}</label>
           <input
             type="text"
             id="name"
@@ -44,7 +50,7 @@ const reassurances = [
           />
         </div>
         <div>
-          <label for="business" class="text-sm font-medium text-slate-700">Business name</label>
+          <label for="business" class="text-sm font-medium text-slate-700" data-i18n="FORM.BUSINESS_LABEL">{en.FORM.BUSINESS_LABEL}</label>
           <input
             type="text"
             id="business"
@@ -57,7 +63,7 @@ const reassurances = [
 
       <div class="grid gap-5 sm:grid-cols-2">
         <div>
-          <label for="email" class="text-sm font-medium text-slate-700">Email</label>
+          <label for="email" class="text-sm font-medium text-slate-700" data-i18n="FORM.EMAIL_LABEL">{en.FORM.EMAIL_LABEL}</label>
           <input
             type="email"
             id="email"
@@ -67,7 +73,7 @@ const reassurances = [
           />
         </div>
         <div>
-          <label for="phone" class="text-sm font-medium text-slate-700">Phone (optional)</label>
+          <label for="phone" class="text-sm font-medium text-slate-700" data-i18n="FORM.PHONE_LABEL">{en.FORM.PHONE_LABEL}</label>
           <input
             type="tel"
             id="phone"
@@ -78,7 +84,7 @@ const reassurances = [
       </div>
 
       <div>
-        <label for="website" class="text-sm font-medium text-slate-700">Your website (optional)</label>
+        <label for="website" class="text-sm font-medium text-slate-700" data-i18n="FORM.WEBSITE_LABEL">{en.FORM.WEBSITE_LABEL}</label>
         <input
           type="url"
           id="website"
@@ -89,7 +95,7 @@ const reassurances = [
       </div>
 
       <div>
-        <label for="message" class="text-sm font-medium text-slate-700">Anything specific you want to see?</label>
+        <label for="message" class="text-sm font-medium text-slate-700" data-i18n="FORM.MESSAGE_LABEL">{en.FORM.MESSAGE_LABEL}</label>
         <textarea
           id="message"
           name="message"
@@ -101,14 +107,15 @@ const reassurances = [
       <button
         type="submit"
         class="brand-gradient w-full rounded-full px-6 py-3.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-[1.02]"
+        data-i18n="FORM.SUBMIT"
       >
-        Request My Free Demo
+        {en.FORM.SUBMIT}
       </button>
 
     </form>
 
-    <p id="demo-form-status" class="hidden mt-6 text-center text-sm font-medium text-emerald-600" role="status"></p>
-    <p id="demo-form-error" class="hidden mt-6 text-center text-sm font-medium text-red-600" role="alert"></p>
+    <p id="demo-form-status" class="hidden mt-6 text-center text-sm font-medium text-emerald-600" role="status" data-i18n="STATUS.SUCCESS">{en.STATUS.SUCCESS}</p>
+    <p id="demo-form-error" class="hidden mt-6 text-center text-sm font-medium text-red-600" role="alert" data-i18n="STATUS.ERROR">{en.STATUS.ERROR}</p>
   </section>
 
   <script

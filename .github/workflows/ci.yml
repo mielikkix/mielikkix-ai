@@ -41,6 +41,14 @@ jobs:
       # import time, so the suite can't even load without a plausible one. This
       # value is CI-only and grants nothing -- the real key lives in the VPS .env.
       SECRET_KEY: ci-only-secret-key-not-used-in-any-real-environment-0123456789
+      # Same reasoning as SECRET_KEY above, for
+      # Settings._reject_missing_token_encryption_key -- this must additionally
+      # be a real Fernet key (not just a non-empty string), since tests that
+      # touch calendar_connection.py's encrypted refresh_token actually
+      # encrypt/decrypt with it. CI-only, generated once for this purpose,
+      # grants nothing -- the real key lives in the VPS .env and is never
+      # reused here.
+      TOKEN_ENCRYPTION_KEY: _6oLADVymu_fThvu5Xs4xnm8gCblm7fY1TxfW3hrSPw=
       # app/main.py calls create_all() at import against DATABASE_URL, so it has
       # to be reachable too -- not just the separate TEST_DATABASE_URL below.
       DATABASE_URL: postgresql://mielikkix:mielikkix@localhost:5432/mielikkix

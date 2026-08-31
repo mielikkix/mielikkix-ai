@@ -45,6 +45,13 @@ export function FAQsPage() {
     setForm({ question: faq.question, answer: faq.answer, category: faq.category || '' })
   }
 
+  // Blocks the exact bug confirmed live: clicking Save with both fields
+  // empty silently created a blank FAQ (empty question AND answer), with
+  // no error shown anywhere. The backend now rejects this too (see
+  // schemas/faq.py's _not_blank), but disabling Save here avoids the
+  // round trip and gives instant feedback instead of a toast-less no-op.
+  const formIncomplete = !form.question.trim() || !form.answer.trim()
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -68,9 +75,14 @@ export function FAQsPage() {
             </div>
             <Input label="Category (optional)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
             <div className="flex gap-2">
-              <Button size="sm" loading={createMut.isPending} onClick={() => createMut.mutate(form)}>Save</Button>
+              <Button size="sm" disabled={formIncomplete} loading={createMut.isPending} onClick={() => createMut.mutate(form)}>Save</Button>
               <Button size="sm" variant="secondary" onClick={() => setAdding(false)}>Cancel</Button>
             </div>
+            {createMut.isError && (
+              <p className="text-sm text-red-600">
+                {(createMut.error as any)?.response?.data?.detail ?? 'Could not save that FAQ.'}
+              </p>
+            )}
           </div>
         </Card>
       )}
@@ -85,13 +97,18 @@ export function FAQsPage() {
                   value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} />
                 <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category" />
                 <div className="flex gap-2">
-                  <Button size="sm" loading={updateMut.isPending} onClick={() => updateMut.mutate({ id: faq.id, ...form })}>
+                  <Button size="sm" disabled={formIncomplete} loading={updateMut.isPending} onClick={() => updateMut.mutate({ id: faq.id, ...form })}>
                     <Check size={14} className="mr-1" /> Save
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => setEditId(null)}>
                     <X size={14} className="mr-1" /> Cancel
                   </Button>
                 </div>
+                {updateMut.isError && (
+                  <p className="text-sm text-red-600">
+                    {(updateMut.error as any)?.response?.data?.detail ?? 'Could not save that FAQ.'}
+                  </p>
+                )}
               </div>
             ) : (
               <div className="flex items-start justify-between gap-4">

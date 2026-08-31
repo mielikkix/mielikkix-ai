@@ -2,27 +2,44 @@
 
 Read the root `CLAUDE.md` first (non-negotiable monorepo conventions — shared
 packages, one dashboard, modular-process deploy). This file adds the
-conventions specific to the three flagship agents currently in active build:
-**Voice Receptionist**, **Booking Assistant**, **Support Triage** (this
-supersedes Review & Reputation as the third active flagship — see that
-change noted in the root `CLAUDE.md`'s "Current status"; Review & Reputation
-stays scaffolded and queued, not dropped).
+conventions shared across the 5 Force agents built so far: **Voice
+Receptionist**, **Booking Assistant**, **Support Triage** (the original 3
+flagships), plus **Review & Reputation** and **SEO Copywriter** (both since
+built too — see each agent's own `CLAUDE.md` for exact status). The
+remaining agents (social-media, email-marketing, feedback-survey,
+loyalty-reengage, quote-invoice) are still queued, structure-only scaffolds
+under `_template/`.
 
 Each agent's own `CLAUDE.md` (in its folder) covers what's specific to that
-agent. This file covers what all three share, so it isn't reinvented
-differently in each one.
+agent. This file covers what they share, so it isn't reinvented differently
+in each one.
 
 ## Shared conventions
 
 - **Language/runtime**: Python 3.12, FastAPI. Each agent's business logic
   lives in its own `apps/agents/<name>/`, but nothing here stands up its own
   server process, database, or subdomain — see "Process & deploy" below.
-- **LLM**: [Groq](https://groq.com) (`DEFAULT_LLM_PROVIDER=groq`, e.g.
-  `llama-3.3-70b-versatile`) — free tier, fast inference on open-weight
-  models. Called **only** through `packages/agent-core`'s LLM client. Do not
-  add a per-agent `llm_client.py` — if agent-core is missing something
-  (retries, a new provider, structured output helpers), add it there first,
-  then consume it (root convention #1).
+- **LLM**: `packages/agent-core`'s `LLMClient` — called **only** through it,
+  never a per-agent `llm_client.py` (root convention #1). Multi-provider as
+  of the Groq-rate-limiting incident (Groq alone kept stalling live voice
+  turns for a minute-plus under real load — see `llm_client.py`'s own
+  comments): each agent picks its own provider explicitly at construction
+  (`LLMClient(provider="openai"|"anthropic"|"groq", ...)`), by tier —
+    - **Voice Receptionist, SEO Copywriter, Review & Reputation** (low-latency /
+      cheap, routine generation) → **OpenAI**
+      (`settings.openai_model`/`openai_mini_model`).
+    - **Booking Assistant, Support Triage** (multi-turn reasoning,
+      structured tool use) → **Anthropic Claude Sonnet**
+      (`settings.anthropic_model`).
+    - **Claude Opus** (`settings.anthropic_opus_model`) is available for a
+      future workflow that genuinely needs deeper reasoning — nothing is
+      assigned to it by default; don't reach for it without a real need.
+  `DEFAULT_LLM_PROVIDER=groq` (root `.env`) is still what an agent gets if
+  it constructs `LLMClient()` with no explicit `provider=` — Groq remains
+  fine for anything low-stakes/latency-insensitive, just isn't assumed as
+  the default for these four anymore. If agent-core is missing something
+  (a new provider, a structured-output helper), add it there first, then
+  consume it — never duplicate provider plumbing per agent.
 - **Database**: the existing shared Postgres (`packages/db`, the `db`
   compose service, pgvector-enabled) — not a new database per agent. New
   tables carry `business_id` like every other tenant-scoped table.

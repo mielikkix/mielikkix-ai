@@ -22,7 +22,20 @@ from .api import auth, businesses, faqs, documents, products, chat, leads, analy
 # only ever showing up for actual errors.
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 
-Base.metadata.create_all(bind=engine)
+# Dev-only convenience: a fresh local checkout gets its schema for free on
+# first run, without remembering to run `alembic upgrade head` first. NOT
+# gated by settings.debug before 2026-08-31 -- that ran this unconditionally
+# in production too, which raced ahead of Alembic: a deploy shipping both a
+# new model AND its migration hit `psycopg2.errors.DuplicateTable` the
+# moment `alembic upgrade head` tried to create a table this line had
+# already created seconds earlier at import time. Production stays on
+# migrations as the only source of schema truth; local dev keeps the
+# convenience, since settings.debug already defaults to True in
+# .env.example's local values. (tests/conftest.py has its own separate
+# create_all() against TEST_DATABASE_URL and is unaffected by this either
+# way.)
+if settings.debug:
+    Base.metadata.create_all(bind=engine)
 
 
 @asynccontextmanager

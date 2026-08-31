@@ -6,7 +6,9 @@
 // (set at build time by the .astro page from PUBLIC_API_URL) rather than
 // Astro's define:vars, since define:vars only works on is:inline scripts,
 // which is exactly what triggers the CSP block in the first place.
+// postJSON comes from widget-common.js, loaded before this file.
 const { apiUrl } = document.currentScript.dataset;
+const { postJSON } = window.MlxWidget;
 
 const avatarRing = document.getElementById("avatarRing");
 const waveformEl = document.getElementById("waveform");
@@ -83,16 +85,6 @@ function logLine(who, text) {
   transcriptEl.style.display = "flex";
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
   return p; // so callers can update this exact bubble later (see heard_as correction)
-}
-
-async function postJSON(path, body) {
-  const resp = await fetch(`${apiUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) throw new Error(`${path} returned ${resp.status}`);
-  return resp.json();
 }
 
 function getVoicesAsync() {
@@ -208,7 +200,7 @@ async function conversationLoop() {
     setState("thinking", "Thinking...");
     let reply, ended = false, heard_as = null;
     try {
-      const result = await postJSON("/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript });
+      const result = await postJSON(apiUrl, "/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript });
       ({ reply, ended, heard_as } = result);
       // Update BEFORE speak() below, so a turn that just switched languages
       // (per the server's own _call_language latch) speaks its own reply
@@ -253,7 +245,7 @@ async function startCall() {
   // forever with no feedback.
   let reply;
   try {
-    ({ reply } = await postJSON("/api/agents/voice/dev/start", { call_sid: callSid }));
+    ({ reply } = await postJSON(apiUrl, "/api/agents/voice/dev/start", { call_sid: callSid }));
   } catch (err) {
     console.error("Failed to start call:", err);
     active = false;

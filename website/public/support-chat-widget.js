@@ -16,6 +16,7 @@
 // runtime-created markup would have no matching CSS at all.
 (function () {
   const { apiUrl } = document.currentScript.dataset;
+  const { postJSON, formatSlot } = window.MlxWidget;
 
   const SESSION_STORAGE_KEY = "mlx_support_session_id";
   function getSessionId() {
@@ -135,27 +136,6 @@
     transcriptEl.scrollTop = transcriptEl.scrollHeight;
   }
 
-  async function postJSON(path, body) {
-    const resp = await fetch(`${apiUrl}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(data.detail || `${path} returned ${resp.status}`);
-    return data;
-  }
-
-  function formatSlot(startISO) {
-    return new Date(startISO).toLocaleString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }
-
   // Booking handoff state -- separate from the main chat/message loop
   // above once suggest_booking_flow fires (see support_service.py's
   // handle_chat_message, Phase 3). Reuses the same two-step
@@ -202,7 +182,7 @@
     bookingStage = "describe";
     addBubble("agent", "Let me check what's open...");
     try {
-      const result = await postJSON("/api/agents/booking/request", { message: seedMessage, timezone });
+      const result = await postJSON(apiUrl, "/api/agents/booking/request", { message: seedMessage, timezone });
       meetingType = result.meeting_type || "appointment";
       if (result.status === "clarification_needed") {
         addBubble("agent", result.clarification_question);
@@ -228,7 +208,7 @@
   async function confirmBooking(visitorEmail) {
     addBubble("agent", "Booking that in...");
     try {
-      const result = await postJSON("/api/agents/booking/confirm", {
+      const result = await postJSON(apiUrl, "/api/agents/booking/confirm", {
         name: visitorName,
         email: visitorEmail,
         start: chosenSlot.start,
@@ -279,7 +259,7 @@
           await startBookingFlow(text);
         }
       } else {
-        const result = await postJSON("/api/agents/support/chat/message", {
+        const result = await postJSON(apiUrl, "/api/agents/support/chat/message", {
           session_id: getSessionId(),
           message: text,
         });

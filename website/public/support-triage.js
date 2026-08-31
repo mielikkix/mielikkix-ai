@@ -9,8 +9,10 @@
 // tag showing what actually happened server-side -- confidently answered,
 // escalated to a human, or handed off to Booking Assistant -- instead of
 // leaving that decision invisible the way the sitewide support-chat-
-// widget.js bubble does.
+// widget.js bubble does. postJSON comes from widget-common.js, loaded
+// before this file.
 const { apiUrl } = document.currentScript.dataset;
+const { postJSON } = window.MlxWidget;
 
 const transcriptEl = document.getElementById("transcript");
 const composerForm = document.getElementById("composerForm");
@@ -63,17 +65,6 @@ function tagFor(result) {
   return { text: "✓ Answered confidently from Mielikkix's own docs", className: "text-emerald-600" };
 }
 
-async function postJSON(path, body) {
-  const resp = await fetch(`${apiUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) throw new Error(data.detail || `${path} returned ${resp.status}`);
-  return data;
-}
-
 composerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = composerInput.value.trim();
@@ -84,7 +75,7 @@ composerForm.addEventListener("submit", async (e) => {
   composerInput.disabled = true;
   composerSend.disabled = true;
   try {
-    const result = await postJSON("/api/agents/support/chat/message", { session_id: sessionId, message: text });
+    const result = await postJSON(apiUrl, "/api/agents/support/chat/message", { session_id: sessionId, message: text });
     addBubble("ai", result.reply, tagFor(result));
   } catch (err) {
     console.error("Support Triage demo error:", err);

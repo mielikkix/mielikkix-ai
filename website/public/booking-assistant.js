@@ -2,8 +2,10 @@
 // actual chat (not a form wizard) -- see that page's own comment on why.
 // External file (not an inline <script>) for the same
 // Content-Security-Policy reason voice-receptionist.js is -- see that
-// file's own comment on this.
+// file's own comment on this. postJSON/formatSlot come from
+// widget-common.js, loaded before this file.
 const { apiUrl } = document.currentScript.dataset;
+const { postJSON, formatSlot } = window.MlxWidget;
 
 const transcriptEl = document.getElementById("transcript");
 const slotsWrap = document.getElementById("slotsWrap");
@@ -32,27 +34,6 @@ function addBubble(who, text) {
   transcriptEl.appendChild(p);
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
   return p;
-}
-
-function formatSlot(startISO) {
-  return new Date(startISO).toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-async function postJSON(path, body) {
-  const resp = await fetch(`${apiUrl}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok) throw new Error(data.detail || `${path} returned ${resp.status}`);
-  return data;
 }
 
 // Small conversation state machine -- which chat turn the NEXT typed
@@ -128,7 +109,7 @@ function pickSlot(slot) {
 
 async function handleDescribe(text) {
   addBubble("ai", "Let me check what's open…");
-  const result = await postJSON("/api/agents/booking/request", { message: text, timezone });
+  const result = await postJSON(apiUrl, "/api/agents/booking/request", { message: text, timezone });
   meetingType = result.meeting_type || "appointment";
 
   if (result.status === "clarification_needed") {
@@ -146,7 +127,7 @@ async function handleDescribe(text) {
 
 async function handleConfirm() {
   addBubble("ai", "Booking that in…");
-  const result = await postJSON("/api/agents/booking/confirm", {
+  const result = await postJSON(apiUrl, "/api/agents/booking/confirm", {
     name: visitorName,
     email: visitorEmail,
     start: chosenSlot.start,

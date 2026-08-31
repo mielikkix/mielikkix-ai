@@ -12,15 +12,17 @@ must implement every abstractmethod here or Python refuses to instantiate
 it, the same guarantee a TS `implements ReviewPlatform` gives you at
 compile time, just enforced at class-definition time instead.
 
-No real platform (Google Business Profile, Facebook Page reviews, Yelp,
-TripAdvisor, Trustpilot) is actually connected yet -- see this package's
-__init__.py and apps/agents/review-reputation/CLAUDE.md's "Integrations
-needed" for what real API access each would require before a real
-implementation could be written. Only MockReviewPlatform (mock_platform.py)
-exists today, for local dev/demo -- per root CLAUDE.md convention #6 and
-this task's own instruction not to implement fake integrations, every real
-platform's factory entry raises NotImplementedError with an honest message
+Google Business Profile is the one real (non-mock) platform implementation
+that exists today -- google_platform.py's GoogleReviewsPlatform, still
+unusable for a given deployment until real Google access is actually
+configured (see that module's own docstring and
+apps/agents/review-reputation/CLAUDE.md's "Integrations needed"). Facebook
+Page reviews, Yelp, TripAdvisor, and Trustpilot are NOT connected --
+this package's __init__.py's factory entry for each of those raises
+NotImplementedError with an honest message (per root CLAUDE.md convention
+#6 and this task's own instruction not to implement fake integrations)
 rather than silently returning something that pretends to work.
+MockReviewPlatform (mock_platform.py) exists purely for local dev/demo.
 """
 
 from abc import ABC, abstractmethod

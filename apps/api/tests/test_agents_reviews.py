@@ -445,7 +445,25 @@ async def test_import_reviews_deduplicates_by_external_id(db_session, business):
 
 @pytest.mark.asyncio
 async def test_import_unconnected_platform_raises_not_implemented(db_session, business):
+    # "yelp" (like facebook/tripadvisor/trustpilot) has no real
+    # implementation at all yet -- "google" is different (see the next
+    # test), which is why this no longer uses "google" as its example.
     with pytest.raises(NotImplementedError):
+        await review_service.import_reviews(db_session, business["business_id"], "yelp")
+
+
+@pytest.mark.asyncio
+async def test_import_google_without_real_credentials_raises_google_reviews_error(db_session, business):
+    """"google" IS a real ReviewPlatform implementation (unlike "yelp"
+    above) -- google_platform.GoogleReviewsPlatform always constructs, but
+    fails with a clear GoogleReviewsError (not NotImplementedError) the
+    moment it actually tries to call Google, since this test environment
+    has no real GOOGLE_REVIEWS_* credentials configured. See
+    app/integrations/google_reviews_client.py's own tests for the fully
+    mocked-API-response coverage of this platform."""
+    from app.integrations.google_reviews_client import GoogleReviewsError
+
+    with pytest.raises(GoogleReviewsError, match="isn't connected yet"):
         await review_service.import_reviews(db_session, business["business_id"], "google")
 
 

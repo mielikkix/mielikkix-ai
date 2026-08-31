@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
 from ..core.limiter import limiter
+from ..integrations.google_reviews_client import GoogleReviewsError
 from ..models.business import Business
 from ..models.user import User
 from ..services import plan_service, review_service
@@ -133,6 +134,13 @@ async def import_reviews(
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except GoogleReviewsError as exc:
+        # "google" is a real platform (unlike the still-unbuilt ones above)
+        # but this business hasn't connected real Google credentials yet, or
+        # the live API call itself failed -- see google_reviews_client.py's
+        # own error messages for exactly which. 502, not 501: the platform
+        # IS implemented, this specific call to it just didn't succeed.
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return [_ReviewOut.from_orm_review(r) for r in reviews]
 
 

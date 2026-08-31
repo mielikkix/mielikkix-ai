@@ -1,8 +1,10 @@
 """Factory for ReviewPlatform, mirroring app/rag/providers/__init__.py's
 get_llm_provider() and app/integrations/calendar_provider.py's
 get_calendar_provider() -- same "ABC + factory" idiom, applied to review
-platforms. See base.py's own module docstring for why only "mock" is a
-real implementation today.
+platforms. See base.py's own module docstring for the mock, and
+google_platform.py's own docstring for why "google" resolves to a real
+(if not-yet-configured) implementation while the rest still raise
+NotImplementedError.
 """
 
 from typing import Optional
@@ -11,14 +13,14 @@ from .base import ExternalReview, PublishResult, ReviewPlatform, ReviewResponseP
 
 # Every platform this agent is meant to eventually support (see this
 # agent's CLAUDE.md and the product's own agents.astro tagline) -- listed
-# here even though only "mock" resolves to a real implementation, so a
-# caller (or the dashboard's "connect a platform" UI, once it exists) has
-# one place to see the full intended roster rather than guessing from
-# whichever names happen to raise NotImplementedError today.
+# here even though only "mock" and "google" resolve to a real
+# implementation today, so a caller (or the dashboard's "connect a
+# platform" UI, once it exists) has one place to see the full intended
+# roster rather than guessing from whichever names happen to raise
+# NotImplementedError today.
 PLATFORM_NAMES = ["mock", "google", "facebook", "tripadvisor", "yelp", "trustpilot"]
 
 _REAL_PLATFORM_REQUIREMENTS = {
-    "google": "Google Business Profile API access (OAuth + a verified Business Profile location)",
     "facebook": "a Facebook Page access token with pages_read_user_content permission",
     "tripadvisor": "TripAdvisor Content API access (partner application required)",
     "yelp": "Yelp Fusion API access (developer application required)",
@@ -35,11 +37,23 @@ def get_review_platform(platform: str) -> Optional[ReviewPlatform]:
     review_service.import_reviews) turns that into an honest 501, the same
     "coming soon, not upgrade-to-unlock" distinction plan_service.
     require_feature already makes for NOT_YET_IMPLEMENTED_FEATURES.
+
+    "google" is the one exception: it always returns a real
+    GoogleReviewsPlatform object (google_platform.py), even before real
+    Google credentials are configured. Calling it before then fails with a
+    clear GoogleReviewsError at the first actual API call, the same "lazy
+    failure" GoogleCalendarProvider already uses -- see
+    google_reviews_client.py's own docstring for exactly what's missing
+    when that happens.
     """
     if platform == "mock":
         from .mock_platform import MockReviewPlatform
 
         return MockReviewPlatform()
+    if platform == "google":
+        from .google_platform import GoogleReviewsPlatform
+
+        return GoogleReviewsPlatform()
     if platform in _REAL_PLATFORM_REQUIREMENTS:
         raise NotImplementedError(
             f"{platform} isn't connected yet -- needs {_REAL_PLATFORM_REQUIREMENTS[platform]}. "

@@ -251,6 +251,45 @@ class Settings(BaseSettings):
     # to a human below this same threshold; Phase 1 just declines to guess.
     support_agent_confidence_threshold: float = 0.6
 
+    # Review & Reputation agent (apps/agents/review-reputation) -- Google
+    # Business Profile is the one real ReviewPlatform implementation wired
+    # up so far (app/integrations/review_platforms/google_platform.py), for
+    # ONE hardcoded connected location, same Phase-1-style simplification
+    # google_calendar_* above uses for its one demo calendar (a real
+    # per-tenant "connect your Google Business Profile" dashboard flow is a
+    # later phase, same shape as calendar_oauth.py's per-tenant flow).
+    #
+    # Unlike Calendar API, enabling this for real isn't just OAuth config --
+    # Google gates the Business Profile API itself behind a SEPARATE access
+    # request (support.google.com/business/contact/api_default) that must be
+    # submitted and approved before ANY of these credentials can actually
+    # call the API, on top of needing a verified Business Profile location.
+    # See apps/agents/review-reputation/CLAUDE.md "Integrations needed".
+    # Left empty, GoogleReviewsPlatform still constructs fine -- it only
+    # fails (with a clear GoogleReviewsError) the moment a real API call is
+    # attempted, same "lazy failure" as GoogleCalendarProvider.
+    #
+    # google_reviews_client_id/secret identify our app to Google -- a
+    # "Desktop app" OAuth Client ID in Google Cloud Console (create via
+    # scripts/connect_google_reviews.py's own docstring), separate from
+    # google_calendar_client_id/secret above even if reusing the same
+    # Google Cloud project, since business.manage is a different scope than
+    # this app's Calendar client was ever granted.
+    google_reviews_client_id: str = ""
+    google_reviews_client_secret: str = ""
+    # The connected account's long-lived refresh token, obtained the same
+    # one-time interactive way as google_calendar_refresh_token above --
+    # see scripts/connect_google_reviews.py.
+    google_reviews_refresh_token: str = ""
+    # Which Business Profile account/location to read reviews from and post
+    # replies to -- both required, no default, since unlike
+    # google_calendar_id's "primary" there's no generic placeholder value
+    # that means anything for a specific business's Business Profile.
+    # scripts/connect_google_reviews.py prints these once you've picked
+    # your location.
+    google_reviews_account_id: str = ""
+    google_reviews_location_id: str = ""
+
     @property
     def platform_admin_emails_list(self) -> list[str]:
         return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]

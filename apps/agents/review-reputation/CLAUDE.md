@@ -13,13 +13,29 @@ any response is treated as final -- this agent never auto-publishes anywhere (se
 Implemented (2026-08-30): review analysis, response generation, human approval
 workflow, reputation insights, trend detection, a mock review platform for local
 dev/demos, dashboard module, agent router registration, and the conversational
-chat endpoint. NOT implemented: any real platform integration (Google/Facebook/
-TripAdvisor/Yelp/Trustpilot) -- see "Integrations needed" below for exactly what
-each would require; `integrations/review_platforms/get_review_platform()` raises
-`NotImplementedError` with that requirement for any of them today, rather than
-pretending to work. Scheduled/batch syncing (polling a real platform on an
-interval) is also not implemented -- there's no real platform to poll yet, and this
-task's own instruction was explicit: "do not implement fake integrations."
+chat endpoint.
+
+Google Reviews (2026-08-31): `integrations/review_platforms/google_platform.py`
+(`GoogleReviewsPlatform`) and `integrations/google_reviews_client.py` are real,
+tested code against the Business Profile API v4 -- fetch, get-one, and publish-
+reply (reviews.list/get/reply) all implemented, following the exact same OAuth-
+refresh-token / `asyncio.to_thread` / REST-via-`requests` shape as
+`google_calendar_client.py`. `get_review_platform("google")` always returns a
+real `GoogleReviewsPlatform`, not `NotImplementedError` -- but it's NOT actually
+connected to anything yet: no business has real `GOOGLE_REVIEWS_*` credentials
+configured, so today it fails fast with a clear `GoogleReviewsError` the moment
+`import_reviews(..., "google")` is actually called. `scripts/connect_google_reviews.py`
+is the one-time interactive setup that would produce those credentials, but
+running it requires two things this account doesn't have yet: a verified
+Business Profile listing, and Google's own separate Business Profile API access
+request approved (support.google.com/business/answer/l/api_default) -- neither
+is something code can provide. See "Integrations needed" below.
+
+Facebook/TripAdvisor/Yelp/Trustpilot are still NOT implemented at all --
+`integrations/review_platforms/get_review_platform()` raises `NotImplementedError`
+with that requirement for any of them, rather than pretending to work. Scheduled/
+batch syncing (polling any platform on an interval, not just an on-demand
+"Import reviews" click) is also not implemented for any platform yet.
 
 ## Where the code lives
 
@@ -30,8 +46,12 @@ Same split every other Force agent's service uses (see apps/agents/CLAUDE.md):
 - `apps/api/app/integrations/review_platforms/` -- `ReviewPlatform` /
   `ReviewResponsePublisher` ABCs (base.py) + `get_review_platform()` factory
   (`__init__.py`, same idiom as `calendar_provider.py`/`rag/providers/`) +
-  `MockReviewPlatform` (`mock_platform.py`), the one real implementation, returning
-  a small fixed set of clearly-fictional reviews for local dev/demos.
+  `MockReviewPlatform` (`mock_platform.py`), returning a small fixed set of
+  clearly-fictional reviews for local dev/demos, + `GoogleReviewsPlatform`
+  (`google_platform.py`), a real (if not-yet-configured-for-any-business)
+  implementation -- see `apps/api/app/integrations/google_reviews_client.py`
+  for the actual Business Profile API v4 calls, and
+  `apps/api/scripts/connect_google_reviews.py` for the one-time OAuth setup.
 - `apps/api/app/services/review_service.py` -- all the actual logic: analysis,
   response generation, approval workflow, insights, trends, import/dedup, and the
   conversational `handle_chat_message()` entry point.
@@ -40,8 +60,22 @@ Same split every other Force agent's service uses (see apps/agents/CLAUDE.md):
 
 ## Integrations needed (for a REAL platform, not the mock)
 
-- **Google Reviews**: Google Business Profile API access (OAuth + a verified
-  Business Profile location).
+- **Google Reviews**: the code is done (`google_platform.py`/
+  `google_reviews_client.py`, tested against a mocked API in
+  `apps/api/tests/test_google_reviews_client.py`). What's actually missing is
+  external access, not code, in this order:
+  1. Google's own separate Business Profile API access request, submitted and
+     approved (support.google.com/business/answer/l/api_default) -- this alone
+     can gate the whole thing regardless of anything else being ready.
+  2. A verified Business Profile listing (business.google.com) that the
+     connecting Google account manages.
+  3. A Google Cloud OAuth "Desktop app" Client ID (same project as Calendar's
+     is fine, or a separate one).
+  4. Run `apps/api/scripts/connect_google_reviews.py` once, which walks
+     through picking the account/location and prints the five
+     `GOOGLE_REVIEWS_*` `.env` values (see `.env.example`) to paste in.
+  Until all four are done, `import_reviews(db, business_id, "google")` fails
+  fast with a clear `GoogleReviewsError`, not a silent no-op or a 500.
 - **Facebook Reviews**: a Facebook Page access token with
   `pages_read_user_content` permission.
 - **TripAdvisor**: Content API access (partner application required).
@@ -147,7 +181,17 @@ categorization, priority + server-enforced critical escalation, response generat
 (positive/negative/tone override), the approve workflow never reaching "published",
 prompt injection resistance, insights/trends computed only from real supplied data
 (with an explicit insufficient-data case), duplicate-import dedup, cross-tenant
-isolation, and the chat entry point's three intents.
+isolation, the chat entry point's three intents, and that importing from "google"
+today fails with `GoogleReviewsError` (real platform, not connected) while "yelp"
+still fails with `NotImplementedError` (not built at all).
+
+`apps/api/tests/test_google_reviews_client.py` -- the Google Reviews integration
+itself, mocked at the `requests`/`Credentials.refresh` boundary the same way
+`test_google_calendar_client.py` tests the calendar client: star-rating parsing
+(all 5 values + unspecified -> None), pagination, `since` filtering, get-by-id
+(including 404 -> None), publish-reply's request body, the "not configured" and
+API-error and timeout error paths, and `GoogleReviewsPlatform.publish_response`
+returning an error `PublishResult` rather than raising.
 
 ## Definition of done
 
@@ -161,6 +205,10 @@ isolation, and the chat entry point's three intents.
 - [x] Registered with the agent router (`apps/api/app/main.py`), gated by plan.
 - [x] Dashboard module, gated correctly by entitlement.
 - [x] Tests passing, full existing suite passing.
-- [ ] A real review platform actually connected (Google/Facebook/... -- see
-      "Integrations needed").
+- [x] Google Reviews: real, tested `ReviewPlatform`/`ReviewResponsePublisher`
+      code written and passing (`google_platform.py`, `google_reviews_client.py`).
+- [ ] Google Reviews actually CONNECTED for a real business -- blocked on
+      external access (Google's Business Profile API approval + a verified
+      listing), not on code. See "Integrations needed".
+- [ ] Facebook/TripAdvisor/Yelp/Trustpilot -- not started.
 - [ ] Deployed on the VPS, smoke-tested in production.

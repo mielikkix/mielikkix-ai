@@ -79,7 +79,19 @@ const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
       const currencyForLang = SUPPORTED_LANGUAGES.find((l) => l.code === storedLang)?.currency ?? DEFAULT_CURRENCY;
       void initCurrency(currencyForLang);
     </script>
+    <!--
+      The real tenant-facing product widget (app.mielikkix.ai/widget.js),
+      dogfooded on mielikkix.ai's own site -- MielikkiX using its own AI
+      Chatbot product on its own marketing site, the same embed snippet any
+      tenant business copies from their dashboard's "Embed your chatbot"
+      card (data-business is MielikkiX's own business_id, the same one that
+      dashboard, FAQs, and the Overview stats all belong to). Previously
+      this was /support-chat-widget.js (Support Triage) sitewide -- that
+      demo now lives on its own dedicated page, /demo/support-triage.astro
+      (with its own separate support-triage.js embed), the same pattern
+      /demo/voice-receptionist and /demo/booking-assistant already use.
+    -->
     <script is:inline src="/widget-common.js"></script>
-    <script src="/support-chat-widget.js" data-api-url={import.meta.env.PUBLIC_API_URL}></script>
+    <script src="https://app.mielikkix.ai/widget.js" data-business="c7650cb2-6ea1-4cc2-846b-2f7cc4025267"></script>
   </body>
 </html>

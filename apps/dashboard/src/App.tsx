@@ -57,6 +57,18 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
+// Catch-all for an unmatched URL (typo, a removed/renamed route, a stale
+// bookmark) -- confirmed live: this used to unconditionally redirect to
+// /login, which bounced an already-logged-in user out of their session
+// just for mistyping a dashboard URL. Same "still authenticated, send them
+// somewhere useful" reasoning as RequireAdmin's non-admin case above.
+function NotFoundRedirect() {
+  const user = useAuthStore((s) => s.user)
+  const initialized = useAuthStore((s) => s.initialized)
+  if (!initialized) return null
+  return <Navigate to={user ? '/dashboard' : '/login'} replace />
+}
+
 // Platform-operator-only area (see files/ARCHITECTURE.md §2.7) -- gated by
 // is_platform_admin on the logged-in user, resolved server-side from
 // PLATFORM_ADMIN_EMAILS (app/core/dependencies.py:require_platform_admin).
@@ -212,7 +224,7 @@ export function App() {
           </RequireAdmin>
         }
       />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<NotFoundRedirect />} />
     </Routes>
   )
 }

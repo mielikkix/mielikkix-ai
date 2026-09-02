@@ -48,6 +48,10 @@
       {
         "NAME": "Review & Reputation",
         "DESCRIPTION": "Analyzes customer reviews, identifies sentiment, drafts on-brand responses, and flags issues that need attention."
+      },
+      {
+        "NAME": "SEO Copywriter",
+        "DESCRIPTION": "Bulk-generates product descriptions and SEO metadata for your catalog, with every draft reviewed before it goes live."
       }
     ]
   },
@@ -63,10 +67,6 @@
       {
         "NAME": "Email Marketing",
         "DESCRIPTION": "Create personalized campaigns, follow-ups, and customer communication workflows."
-      },
-      {
-        "NAME": "SEO & Content",
-        "DESCRIPTION": "Generate optimized content, product descriptions, and metadata."
       },
       {
         "NAME": "Feedback & Surveys",

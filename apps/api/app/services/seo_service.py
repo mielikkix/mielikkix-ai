@@ -61,12 +61,24 @@ class DraftGenerationError(Exception):
     bad response doesn't abort the whole batch."""
 
 
-def _product_prompt(product: Product) -> str:
+def _content_prompt(name: str, category: str | None, description: str | None) -> str:
     return (
-        f"Name: {product.name}\n"
-        f"Category: {product.category or '(none given)'}\n"
-        f"Current description: {product.description or '(none given)'}"
+        f"Name: {name}\n"
+        f"Category: {category or '(none given)'}\n"
+        f"Current description: {description or '(none given)'}"
     )
+
+
+async def _generate_content(name: str, category: str | None, description: str | None) -> DraftContent:
+    result = await _llm_client.chat(
+        [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": _content_prompt(name, category, description)},
+        ],
+        json_mode=True,
+        max_tokens=1024,
+    )
+    return DraftContent(**json.loads(result.text))
 
 
 async def _generate_one(product: Product) -> DraftContent:
@@ -78,15 +90,7 @@ async def _generate_one(product: Product) -> DraftContent:
     # doesn't abort the rest" reasoning as agents_voice.py/agents_support.py's
     # own broad except-Exception around their LLM calls.
     try:
-        result = await _llm_client.chat(
-            [
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": _product_prompt(product)},
-            ],
-            json_mode=True,
-            max_tokens=1024,
-        )
-        return DraftContent(**json.loads(result.text))
+        return await _generate_content(product.name, product.category, product.description)
     except Exception as exc:
         raise DraftGenerationError(f"Could not generate an SEO draft for product {product.id}: {exc}") from exc
 
@@ -181,3 +185,15 @@ def reject_draft(db: Session, business_id: str, draft_id: str) -> SeoDraft | Non
     db.commit()
     db.refresh(draft)
     return draft
+
+
+async def run_public_demo(name: str, category: str | None, description: str | None) -> DraftContent:
+    """Public, unauthenticated, and never persisted -- powers the
+    /demo/seo-copywriter marketing page (see agents_seo.py's own /demo
+    route). Unlike generate_drafts(), there's no real Product row here: a
+    website visitor has no business account, so this takes the same
+    name/category/description fields directly and reuses the exact
+    _generate_content() call the real per-tenant path uses, same split
+    review_service.run_public_demo() uses for its own /demo route.
+    """
+    return await _generate_content(name, category, description)

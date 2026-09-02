@@ -1,0 +1,97 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+// Not linked from the header nav (see Header.astro), same as the other
+// built-agent demo pages -- reachable via agents.astro's "More AI Agents
+// We've Built" card.
+//
+// Unlike Voice Receptionist/Booking Assistant/Support Triage, this agent
+// rewrites a business's OWN product catalog -- it isn't something a
+// customer talks to, so there's no "have a conversation with it" demo the
+// way those three have. Same shape as /demo/review-reputation instead:
+// "type in a product, see what the agent would write for it," talking to a
+// dedicated PUBLIC, unauthenticated, never-persisted route (POST
+// /api/agents/seo/demo, see agents_seo.py's own docstring on it) rather
+// than the real (login-required) /api/agents/seo/* routes the dashboard
+// uses -- a website visitor has no product catalog to authenticate into.
+---
+
+<Layout
+  title="Try Our SEO Copywriter"
+  description="An early preview of Mielikkix's AI SEO Copywriter -- give it a product and see the rewritten description, title tag, and meta description it drafts."
+  path="/demo/seo-copywriter"
+>
+  <div class="mx-auto max-w-[1440px] px-6 pt-8">
+    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+      &larr; Back to AI Agents
+    </a>
+  </div>
+  <PageHero
+    line1="Meet Mielikkix's"
+    line2="SEO Copywriter"
+    subheading="An early preview -- give it a product name (plus a category and current description, if you have them) and see the description, title tag, and meta description it drafts."
+  />
+
+  <section class="mx-auto max-w-2xl px-6 py-16">
+    <div class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+      <label for="nameInput" class="text-sm font-semibold text-slate-700">Product name</label>
+      <input
+        id="nameInput"
+        type="text"
+        placeholder="e.g. Nordic Wool Throw Blanket"
+        class="mt-2 w-full rounded-2xl border border-slate-200 p-3.5 text-sm outline-none focus:border-violet-400"
+      />
+
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        {[
+          "Nordic Wool Throw Blanket",
+          "Stainless Steel French Press",
+          "Kids' Waterproof Rain Jacket",
+        ].map((example) => (
+          <button type="button" class="example-btn rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:border-violet-400 hover:text-violet-600" data-text={example}>
+            Try: "{example}"
+          </button>
+        ))}
+      </div>
+
+      <label for="categoryInput" class="mt-4 block text-sm font-semibold text-slate-700">Category <span class="font-normal text-slate-400">(optional)</span></label>
+      <input
+        id="categoryInput"
+        type="text"
+        placeholder="e.g. Home & Living"
+        class="mt-2 w-full rounded-2xl border border-slate-200 p-3.5 text-sm outline-none focus:border-violet-400"
+      />
+
+      <label for="descriptionInput" class="mt-4 block text-sm font-semibold text-slate-700">Current description <span class="font-normal text-slate-400">(optional)</span></label>
+      <textarea
+        id="descriptionInput"
+        rows={3}
+        placeholder="Paste what you have today, if anything -- the agent will rewrite it."
+        class="mt-2 w-full rounded-2xl border border-slate-200 p-3.5 text-sm outline-none focus:border-violet-400"
+      ></textarea>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          id="generateBtn"
+          type="button"
+          class="brand-gradient rounded-full px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Generate SEO copy
+        </button>
+      </div>
+    </div>
+
+    <div id="resultWrap" class="mt-6 hidden space-y-4"></div>
+
+    <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
+      This runs the exact same generation engine the real dashboard tool uses -- but nothing here is saved
+      anywhere, and it isn't writing for a real product in your catalog (see our
+      <a href="/features" class="underline">features page</a> for how the real per-business product tracks a whole
+      catalog). Connect your own business to bulk-generate drafts across your real products, with a before/after
+      diff and an explicit approve step before anything overwrites live copy.
+    </p>
+  </section>
+
+  <script src="/seo-copywriter.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+</Layout>

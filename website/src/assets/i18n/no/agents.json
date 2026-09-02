@@ -48,6 +48,10 @@
       {
         "NAME": "Anmeldelser og omdømme",
         "DESCRIPTION": "Analyserer kundeanmeldelser, identifiserer sentiment, utkaster svar i din tone og flagger saker som trenger oppmerksomhet."
+      },
+      {
+        "NAME": "SEO-tekstforfatter",
+        "DESCRIPTION": "Genererer produktbeskrivelser og SEO-metadata i bulk for katalogen din -- hvert utkast gjennomgås før det publiseres."
       }
     ]
   },
@@ -63,10 +67,6 @@
       {
         "NAME": "E-postmarkedsføring",
         "DESCRIPTION": "Lag personaliserte kampanjer, oppfølginger og arbeidsflyter for kundekommunikasjon."
-      },
-      {
-        "NAME": "SEO og innhold",
-        "DESCRIPTION": "Generer optimalisert innhold, produktbeskrivelser og metadata."
       },
       {
         "NAME": "Tilbakemeldinger og undersøkelser",

@@ -4,12 +4,13 @@ this file only maps HTTP <-> that service, the same split app/api/
 agents_booking.py uses for app/services/booking_service.py.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
+from ..core.limiter import limiter
 from ..models.business import Business
 from ..models.user import User
 from ..services import plan_service, seo_service
@@ -91,3 +92,37 @@ def reject_draft(
     if draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
     return _DraftOut.from_orm_draft(draft)
+
+
+class _DemoRequest(BaseModel):
+    name: str
+    category: str | None = None
+    description: str | None = None
+
+
+class _DemoResponseOut(BaseModel):
+    description: str
+    seo_title: str
+    meta_description: str
+
+
+@router.post("/demo", response_model=_DemoResponseOut)
+@limiter.limit("10/minute")
+async def demo(request: Request, body: _DemoRequest):
+    """Public, unauthenticated, never persisted -- powers the
+    /demo/seo-copywriter marketing page (website/). Every other route in
+    this file requires a real logged-in business (this agent rewrites a
+    tenant's OWN product catalog) -- this route exists specifically so a
+    website VISITOR can see what the agent would write for a product of
+    THEIRS, without needing an account or a real Product row first.
+    Rate-limited for the same reason every other public, unauthenticated
+    LLM-calling route in this app is (agents_reviews.py's /demo,
+    agents_booking.py's /request): a real OpenAI cost per call, reachable
+    by anyone who finds the URL.
+    """
+    content = await seo_service.run_public_demo(body.name, body.category, body.description)
+    return _DemoResponseOut(
+        description=content.description,
+        seo_title=content.seo_title,
+        meta_description=content.meta_description,
+    )

@@ -189,3 +189,39 @@ def test_cannot_approve_another_businesss_draft(client, business, signup, set_pl
     resp = client.post(f"/api/agents/seo/drafts/{draft_id}/approve", headers=business["headers"])
 
     assert resp.status_code == 404
+
+
+# --- Public demo endpoint (website/'s /demo/seo-copywriter page) ---
+
+
+def test_demo_endpoint_requires_no_auth(client, monkeypatch):
+    _mock_generation(monkeypatch, description="A great, specific description.", seo_title="Great Widget | Shop Now")
+
+    resp = client.post("/api/agents/seo/demo", json={"name": "Widget", "category": "gadgets"})
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["description"] == "A great, specific description."
+    assert body["seo_title"] == "Great Widget | Shop Now"
+
+
+def test_demo_endpoint_never_creates_a_product_or_draft(client, db_session, monkeypatch):
+    _mock_generation(monkeypatch)
+    before_products = db_session.query(Product).count()
+    before_drafts = db_session.query(SeoDraft).count()
+
+    client.post("/api/agents/seo/demo", json={"name": "Widget"})
+
+    assert db_session.query(Product).count() == before_products
+    assert db_session.query(SeoDraft).count() == before_drafts
+
+
+def test_demo_endpoint_works_with_only_a_name(client, monkeypatch):
+    fake_chat = _mock_generation(monkeypatch)
+
+    resp = client.post("/api/agents/seo/demo", json={"name": "Widget"})
+
+    assert resp.status_code == 200
+    sent_prompt = fake_chat.call_args.args[0][1]["content"]
+    assert "Widget" in sent_prompt
+    assert "(none given)" in sent_prompt

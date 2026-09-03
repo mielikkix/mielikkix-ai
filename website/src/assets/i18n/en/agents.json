@@ -48,6 +48,10 @@
       {
         "NAME": "Review & Reputation",
         "DESCRIPTION": "Analyzes customer reviews, identifies sentiment, drafts on-brand responses, and flags issues that need attention."
+      },
+      {
+        "NAME": "WhatsApp Concierge",
+        "DESCRIPTION": "Answers customer questions and captures leads right inside WhatsApp -- the conversation your customers already have open."
       }
     ]
   },

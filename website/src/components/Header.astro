@@ -11,7 +11,10 @@ const navLinks = [
   { href: "/features", label: en.NAV.FEATURES, key: "NAV.FEATURES" },
   { href: "/pricing", label: en.NAV.PRICING, key: "NAV.PRICING" },
 ];
-const currentPath = Astro.url.pathname;
+// Production (static-host directory serving) resolves "/features" to
+// "/features/", while the Astro dev server keeps it bare -- strip a
+// trailing slash so the active-link check matches in both.
+const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
 ---
 
 <header class="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur">

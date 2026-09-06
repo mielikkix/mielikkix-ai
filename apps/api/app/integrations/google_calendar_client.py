@@ -37,6 +37,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 import urllib3.util.connection as _urllib3_connection
+from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
@@ -131,7 +132,22 @@ def _get_busy_blocks_sync(
     module's docstring for why GoogleCalendarProvider.get_busy_blocks below
     wraps this in asyncio.to_thread instead of calling it directly."""
     credentials = _build_credentials(client_id, client_secret, refresh_token)
-    credentials.refresh(Request())
+    # Confirmed live: an expired/revoked refresh token (e.g. a Google Cloud
+    # OAuth app still in "Testing" publishing status, which auto-expires
+    # refresh tokens after 7 days) raises google.auth.exceptions.RefreshError
+    # here -- previously uncaught, since only the requests.post() call below
+    # was wrapped. An uncaught RefreshError isn't a GoogleCalendarError, so
+    # it skipped every caller's specific `except GoogleCalendarError` handler
+    # (agents_voice.py's check_availability/_finalize_booking, and
+    # booking_service.py's own callers) and fell all the way through to
+    # agents_voice.py's generic bare `except Exception` -- producing the
+    # same hardcoded "having trouble understanding" apology on every single
+    # booking-shaped request, instead of the graceful "calendar_error"
+    # status this module's callers already know how to handle.
+    try:
+        credentials.refresh(Request())
+    except google_auth_exceptions.GoogleAuthError as exc:
+        raise GoogleCalendarError(f"Google Calendar token refresh failed: {exc}") from exc
 
     # Google's freebusy API requires timeMin/timeMax to be full RFC3339
     # datetimes WITH a UTC offset -- a bare "2026-08-27T00:00:00" (no
@@ -186,7 +202,12 @@ def _create_event_sync(
     wraps this in asyncio.to_thread instead of calling it directly, same
     reasoning as _get_busy_blocks_sync above."""
     credentials = _build_credentials(client_id, client_secret, refresh_token)
-    credentials.refresh(Request())
+    # Same expired/revoked-refresh-token gap as _get_busy_blocks_sync above --
+    # see that function's own comment for the full explanation.
+    try:
+        credentials.refresh(Request())
+    except google_auth_exceptions.GoogleAuthError as exc:
+        raise GoogleCalendarError(f"Google Calendar token refresh failed: {exc}") from exc
 
     try:
         http_response = requests.post(

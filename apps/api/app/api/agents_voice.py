@@ -963,6 +963,12 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
         # Never leave the caller in dead air if the LLM call fails/times
         # out mid-call (see this agent's CLAUDE.md testing checklist) --
         # apologize and keep the call alive rather than hanging up on them.
+        # logger.exception (not just .info) so a future failure here is
+        # actually visible in `docker compose logs backend` -- confirmed
+        # live this block previously logged nothing at all, making a real
+        # incident (an uncaught google.auth RefreshError, see
+        # google_calendar_client.py) undiagnosable from the server side.
+        logger.exception("call=%s turn=%s handle_turn_failed", call_sid, turn_count)
         return (_LLM_ERROR_FALLBACK_NO if language == "no" else _LLM_ERROR_FALLBACK), False
 
     history.append({"role": "assistant", "content": result.text})

@@ -23,6 +23,7 @@ from datetime import date, datetime, timezone
 
 import pytest
 import requests
+from google.auth import exceptions as google_auth_exceptions
 
 from app.integrations import google_calendar_client
 from app.integrations.google_calendar_client import GoogleCalendarError, GoogleCalendarProvider
@@ -159,6 +160,29 @@ async def test_get_busy_blocks_raises_google_calendar_error_on_api_error(monkeyp
 
 
 @pytest.mark.asyncio
+async def test_get_busy_blocks_raises_google_calendar_error_on_expired_refresh_token(monkeypatch):
+    """Confirmed live: an expired/revoked refresh token (e.g. a Google
+    Cloud OAuth app still in "Testing" publishing status, which
+    auto-expires refresh tokens after 7 days) makes credentials.refresh()
+    raise google.auth.exceptions.RefreshError -- previously uncaught here
+    (only the requests.post() call below it was wrapped), so it skipped
+    every caller's own `except GoogleCalendarError` handler and surfaced
+    all the way up as agents_voice.py's generic "having trouble
+    understanding" fallback on every single booking-shaped voice request.
+    Must now degrade to the same GoogleCalendarError every other failure
+    mode here already does."""
+    provider = _configure_credentials(monkeypatch)
+
+    def _raise_refresh_error(self, request):
+        raise google_auth_exceptions.RefreshError("invalid_grant: Token has been expired or revoked.")
+
+    monkeypatch.setattr(google_calendar_client.Credentials, "refresh", _raise_refresh_error)
+
+    with pytest.raises(GoogleCalendarError, match="token refresh failed"):
+        await provider.get_busy_blocks(date(2024, 8, 13), date(2024, 8, 14))
+
+
+@pytest.mark.asyncio
 async def test_create_event_returns_the_new_event_id(monkeypatch):
     provider = _configure_credentials(monkeypatch)
     _patch_post(monkeypatch, {"id": "real-event-id-123"})
@@ -234,6 +258,28 @@ async def test_create_event_raises_google_calendar_error_on_api_error(monkeypatc
     _patch_post(monkeypatch, {"error": {"code": 409, "message": "already booked"}}, status_code=409)
 
     with pytest.raises(GoogleCalendarError, match="event creation failed"):
+        await provider.create_event(
+            summary="x",
+            start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),
+            end=datetime(2024, 8, 13, 14, 30, tzinfo=timezone.utc),
+            timezone="UTC",
+            attendee_email="jane@example.com",
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_event_raises_google_calendar_error_on_expired_refresh_token(monkeypatch):
+    """Same expired/revoked-refresh-token gap as get_busy_blocks' own test
+    above, in the other real Google API call this module makes (event
+    creation) -- see that test's own comment for the full explanation."""
+    provider = _configure_credentials(monkeypatch)
+
+    def _raise_refresh_error(self, request):
+        raise google_auth_exceptions.RefreshError("invalid_grant: Token has been expired or revoked.")
+
+    monkeypatch.setattr(google_calendar_client.Credentials, "refresh", _raise_refresh_error)
+
+    with pytest.raises(GoogleCalendarError, match="token refresh failed"):
         await provider.create_event(
             summary="x",
             start=datetime(2024, 8, 13, 14, 0, tzinfo=timezone.utc),

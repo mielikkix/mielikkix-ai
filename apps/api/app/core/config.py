@@ -294,6 +294,41 @@ class Settings(BaseSettings):
     def platform_admin_emails_list(self) -> list[str]:
         return [e.strip().lower() for e in self.platform_admin_emails.split(",") if e.strip()]
 
+    # Mailchimp -- Mielikkix's OWN marketing/lead-gen audience (account
+    # post@mielikkix.no), synced to from the marketing site's "Book a Free
+    # Demo" form (website/src/pages/demo.astro -> POST /api/leads). See
+    # app/services/mailchimp_service.py for the API client and
+    # app/services/lead_service.py for the sync orchestration. Left empty,
+    # is_configured() returns False and lead_service just skips the sync
+    # (logged, not fatal) -- same "lazy failure, not a startup crash" idiom
+    # as google_reviews_client_id/secret above, since most local checkouts
+    # won't have a Mailchimp account to test against.
+    mailchimp_api_key: str = ""
+    # e.g. "us21" -- from the tail of the URL after logging into Mailchimp
+    # (https://usXX.admin.mailchimp.com/...) or Account -> Extras -> API keys.
+    mailchimp_server_prefix: str = ""
+    # The target audience's ID -- Audience -> Settings -> Audience name and
+    # defaults -> "Audience ID". Do NOT guess/invent this value.
+    mailchimp_audience_id: str = ""
+    # Mielikkix's own verified sending identity on this Mailchimp account --
+    # not read directly by mailchimp_service.py (Mailchimp's own campaign
+    # config owns "from" for actual sends, see this feature's setup doc),
+    # kept here so it's one settings-driven value if a future call ever
+    # needs it, rather than a second hardcoded "post@mielikkix.no" literal.
+    mailchimp_from_email: str = "post@mielikkix.no"
+    mailchimp_from_name: str = "Mielikkix"
+    # Which business_id's leads actually get synced to Mailchimp -- MUST be
+    # Mielikkix's own business record (the same one PUBLIC_MIELIKKIX_BUSINESS_ID
+    # in website/.env points the "Book a Free Demo" form at, created by
+    # scripts/setup_local_mielikkix_business.py). Leads table
+    # (app/models/lead.py) is shared by every tenant's own chat widget --
+    # without this gate, a random tenant's own end-customers would get
+    # synced into MIELIKKIX's marketing audience, leaking that tenant's
+    # customer data into an unrelated company's contact list. Left empty
+    # (the honest "not configured yet" default), Mailchimp sync never runs
+    # for anyone.
+    mailchimp_sync_business_id: str = ""
+
     # A Twilio account/number configured with no auth token means
     # agents_voice.py's _assert_valid_twilio_request silently skips signature
     # checking -- fine for a fresh local checkout (nothing configured at

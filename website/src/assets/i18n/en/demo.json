@@ -15,12 +15,19 @@
     "No pressure, no credit card — free plan available either way"
   ],
   "FORM": {
-    "NAME_LABEL": "Your name",
-    "BUSINESS_LABEL": "Business name",
-    "EMAIL_LABEL": "Email",
+    "FIRST_NAME_LABEL": "First name",
+    "LAST_NAME_LABEL": "Last name (optional)",
+    "BUSINESS_LABEL": "Company",
+    "EMAIL_LABEL": "Business email",
     "PHONE_LABEL": "Phone (optional)",
     "WEBSITE_LABEL": "Your website (optional)",
+    "INDUSTRY_LABEL": "Industry",
+    "INDUSTRY_OPTIONS": ["Restaurant", "Retail", "Healthcare", "Real Estate", "Professional Services", "Other"],
+    "INTEREST_LABEL": "What are you interested in?",
+    "INTEREST_OPTIONS": ["AI Chatbot", "AI Voice Agent", "Customer Support", "Review & Reputation", "Other"],
     "MESSAGE_LABEL": "Anything specific you want to see?",
+    "CONSENT_LABEL": "Yes, I'd like to receive Mielikkix product updates, AI automation tips, news and offers by email. You can unsubscribe at any time.",
+    "PRIVACY_LINK": "Read our privacy policy",
     "SUBMIT": "Request My Free Demo"
   },
   "STATUS": {

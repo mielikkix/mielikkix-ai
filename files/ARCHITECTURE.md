@@ -90,6 +90,32 @@ graph TB
 - Triggered by explicit form fill or detected "lead" intent mid-conversation.
 - Stored in `leads` table; optionally emailed to the business via free-tier transactional email.
 
+#### 2.6.1 Mailchimp Sync (marketing site only)
+- The marketing site's own "Book a Free Demo" form (`website/src/pages/demo.astro`) posts to
+  the exact same `POST /api/leads` every tenant's chat widget uses, using Mielikkix's own
+  `business_id` (`PUBLIC_MIELIKKIX_BUSINESS_ID`). `app/services/lead_service.py` gates
+  Mailchimp behavior to that ONE business_id (`MAILCHIMP_SYNC_BUSINESS_ID`) — no other
+  tenant's own end-customer leads are ever sent to Mielikkix's Mailchimp audience.
+- `LeadController` (`app/api/leads.py`) → `LeadService` (`app/services/lead_service.py`) →
+  `MailchimpService` (`app/services/mailchimp_service.py`), the same layering idiom as
+  `calendar_provider.py`/`review_platforms/`.
+- Flow: validate → normalize email (lowercase) → find-or-create the Lead row (dedup by email,
+  marketing business only) → save to DB → best-effort sync to Mailchimp as a background task
+  (add/update contact + merge fields + tags) → DB save always succeeds even if Mailchimp is
+  down or unconfigured (`mailchimp_synced` tracks the outcome; `POST /{id}/sync-mailchimp` is
+  the manual retry).
+- Consent: `marketing_consent` (separate from "requested a demo") is a one-way flag a
+  later, unchecked resubmission can never downgrade back to false or erase the
+  recorded `marketing_consent_at`. A newly-consenting contact is sent to Mailchimp as
+  `status_if_new: "pending"` (never `"subscribed"` directly — that would bypass the
+  audience's Double Opt-In), so Mailchimp itself sends and owns the confirmation email;
+  only Mailchimp ever moves the contact to "Subscribed". A non-consenting contact is
+  `"transactional"`. Neither path ever sends a bare `status` field, so an EXISTING
+  contact's real status (in particular, anyone who previously unsubscribed) is never
+  touched by this sync, no matter what a later submission's checkbox says.
+- See `files/MAILCHIMP_SETUP.md` for the manual Mailchimp account setup this depends on,
+  including how to verify Double Opt-In and unsubscribe-protection by hand.
+
 ### 2.7 Platform Admin Dashboard (`/admin`, React)
 - A private area of the same dashboard SPA, reserved for the MielikkiX operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `apps/dashboard/src/App.tsx`.
 - Identity: the `PLATFORM_ADMIN_EMAILS` env var (comma-separated) is checked against the logged-in user's email — see `require_platform_admin` in `apps/api/app/core/dependencies.py`. Not a DB column, since this is a deployment-level operator concept, not a per-tenant role; logging in still goes through the normal `/login` flow and JWT cookie.
@@ -158,8 +184,13 @@ graph TB
 
 ### Leads (`/api/leads`)
 - `GET ""` — authenticated
-- `POST ""` — public (widget submits directly), rate-limited
+- `POST ""` — public (widget submits directly), rate-limited. Returns `{success, message}`,
+  never the raw lead row. Shared by every tenant's own chat widget AND the marketing site's
+  own "Book a Free Demo" form (`website/src/pages/demo.astro`) — see §2.6 and
+  `files/MAILCHIMP_SETUP.md` for how the latter's leads get synced to Mailchimp.
 - `PATCH /{id}` — authenticated, status update (new/contacted/won/lost)
+- `POST /{id}/sync-mailchimp` — authenticated, manual retry of a lead's Mailchimp sync
+  (see §2.6.1)
 
 ### Analytics (`/api/analytics`)
 - `GET /summary` — conversation/lead/message counts + top questions; field set varies by plan's `analytics_tier` (basic/standard/advanced)

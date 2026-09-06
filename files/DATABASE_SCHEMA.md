@@ -180,11 +180,31 @@ Count against a business is capped by plan (`apps/api/app/core/plans.py`'s `max_
 | business_id | UUID FK | indexed |
 | conversation_id | UUID FK → conversations.id | nullable |
 | name | TEXT | |
-| email | TEXT | nullable |
+| email | TEXT | nullable, indexed |
 | phone | TEXT | nullable |
 | message | TEXT | nullable |
-| status | TEXT | new / contacted / won / lost |
+| status | TEXT | new / contacted / won / lost (generic tenant leads); DEMO_REQUESTED for the marketing site's own leads (see below) |
 | created_at | TIMESTAMPTZ | |
+| first_name | TEXT | nullable — marketing-site leads only, see below |
+| last_name | TEXT | nullable — marketing-site leads only |
+| company | TEXT | nullable — marketing-site leads only |
+| industry | TEXT | nullable — marketing-site leads only; free text, not an enum |
+| interest | TEXT | nullable — marketing-site leads only; free text, not an enum |
+| source | TEXT | nullable — `"WEBSITE"` for marketing-site leads, null for generic tenant leads |
+| marketing_consent | BOOLEAN | default false |
+| marketing_consent_at | TIMESTAMPTZ | nullable |
+| mailchimp_synced | BOOLEAN | default false |
+| mailchimp_contact_id | TEXT | nullable |
+| mailchimp_last_synced_at | TIMESTAMPTZ | nullable |
+
+`first_name`/`last_name`/`company`/`industry`/`interest`/`source`/`marketing_consent*`/`mailchimp_*`
+are only ever populated by the marketing site's "Book a Free Demo" form
+(`website/src/pages/demo.astro`), and only synced to Mailchimp for the ONE
+business_id configured as `MAILCHIMP_SYNC_BUSINESS_ID` (Mielikkix's own
+tenant) — see `apps/api/app/services/lead_service.py`. Every other
+tenant's own chat-widget leads leave these columns null exactly as before
+this feature existed. See `files/MAILCHIMP_SETUP.md` for the full
+Mailchimp integration.
 
 ### `llm_usage_logs`
 | Column | Type | Notes |

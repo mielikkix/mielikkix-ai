@@ -15,12 +15,19 @@
     "Ingen press, ingen kredittkort — gratisplan tilgjengelig uansett"
   ],
   "FORM": {
-    "NAME_LABEL": "Ditt navn",
-    "BUSINESS_LABEL": "Bedriftsnavn",
-    "EMAIL_LABEL": "E-post",
+    "FIRST_NAME_LABEL": "Fornavn",
+    "LAST_NAME_LABEL": "Etternavn (valgfritt)",
+    "BUSINESS_LABEL": "Bedrift",
+    "EMAIL_LABEL": "Jobb-e-post",
     "PHONE_LABEL": "Telefon (valgfritt)",
     "WEBSITE_LABEL": "Nettsiden din (valgfritt)",
+    "INDUSTRY_LABEL": "Bransje",
+    "INDUSTRY_OPTIONS": ["Restaurant", "Butikk", "Helse", "Eiendom", "Profesjonelle tjenester", "Annet"],
+    "INTEREST_LABEL": "Hva er du interessert i?",
+    "INTEREST_OPTIONS": ["AI-chatbot", "AI-taleagent", "Kundeservice", "Anmeldelser og omdømme", "Annet"],
     "MESSAGE_LABEL": "Noe spesifikt du vil se?",
+    "CONSENT_LABEL": "Ja, jeg ønsker å motta produktoppdateringer, AI-automatiseringstips, nyheter og tilbud fra Mielikkix på e-post. Du kan når som helst melde deg av.",
+    "PRIVACY_LINK": "Les personvernerklæringen vår",
     "SUBMIT": "Be om min gratis demo"
   },
   "STATUS": {

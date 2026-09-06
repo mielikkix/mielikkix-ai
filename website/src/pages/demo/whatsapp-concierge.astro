@@ -1,0 +1,129 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PageHero from "../../components/PageHero.astro";
+
+// Not linked from the header nav (see Header.astro), same as the other
+// four live-preview demo pages -- reachable via agents.astro's
+// "WhatsApp Concierge" card.
+//
+// Unlike the other four demos, this one talks to NOTHING real: Mielikkix's
+// WhatsApp Business number is still pending Meta's approval (see project
+// memory / files/FEATURES.md), so there is no backend route to call yet --
+// apps/api has no agents_whatsapp.py. Every reply below is scripted
+// entirely client-side in whatsapp-concierge.js against a small canned
+// keyword list, dressed up as an actual phone screen so a visitor gets a
+// feel for the eventual experience rather than a form or a bare transcript.
+// Once the number is approved, this becomes a real integration behind
+// Meta's WhatsApp Cloud API (a new provider under apps/api/app/rag/providers/
+// or its own module, per this repo's provider-abstraction convention --
+// see the root CLAUDE.md) reusing the same conversation + RAG-grounding
+// engine the other agents already share via packages/agent-core -- this
+// page's own honesty note below says so explicitly, so nobody mistakes the
+// mock for a live channel.
+---
+
+<Layout
+  title="Try Our WhatsApp Concierge"
+  description="An early preview of Mielikkix's AI WhatsApp Concierge -- see how Mieli would answer your customers, right inside WhatsApp."
+  path="/demo/whatsapp-concierge"
+>
+  <div class="mx-auto max-w-[1440px] px-6 pt-8">
+    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+      &larr; Back to AI Agents
+    </a>
+  </div>
+  <PageHero
+    line1="Meet Mielikkix's"
+    line2="WhatsApp Concierge"
+    subheading="An early preview -- see how Mieli would answer your customers, right inside WhatsApp."
+  />
+
+  <section class="mx-auto max-w-lg px-6 py-16">
+    <!-- Phone frame -->
+    <div class="relative mx-auto w-[320px] rounded-[2.5rem] border-[10px] border-slate-900 bg-slate-900 shadow-2xl shadow-slate-400/50">
+      <div class="relative flex h-[640px] flex-col overflow-hidden rounded-[1.6rem] bg-[#efeae2]">
+        <!-- Notch -->
+        <div class="pointer-events-none absolute left-1/2 top-0 z-20 h-5 w-32 -translate-x-1/2 rounded-b-2xl bg-slate-900"></div>
+
+        <!-- WhatsApp-style header -->
+        <div class="z-10 flex shrink-0 items-center gap-2.5 bg-[#008069] px-3 pb-2.5 pt-7 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+          <img src="/images/mieli-avatar.png" alt="Mieli" class="h-9 w-9 shrink-0 rounded-full border border-white/30 object-cover" />
+          <div class="min-w-0 flex-1 leading-tight">
+            <p class="flex items-center gap-1.5 truncate text-[15px] font-semibold">
+              Mielikkix
+              <span class="rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">AI</span>
+            </p>
+            <p id="statusLine" class="text-[11px] text-white/80">online</p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15.75 10.5V6.75a1.125 1.125 0 0 0-1.125-1.125h-9.75A1.125 1.125 0 0 0 3.75 6.75v10.5c0 .621.504 1.125 1.125 1.125h9.75a1.125 1.125 0 0 0 1.125-1.125v-3.75m0-3 4.72-4.72a.75.75 0 0 1 1.28.53v7.94a.75.75 0 0 1-1.28.53L15.75 13.5" />
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] shrink-0 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.25 6.75c0 8.284 6.716 15 15 15h1.5a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106a1.125 1.125 0 0 0-1.173.417l-.97 1.293c-.282.375-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+          </svg>
+          <div class="flex shrink-0 flex-col items-center gap-[3px]">
+            <span class="h-[3px] w-[3px] rounded-full bg-white"></span>
+            <span class="h-[3px] w-[3px] rounded-full bg-white"></span>
+            <span class="h-[3px] w-[3px] rounded-full bg-white"></span>
+          </div>
+        </div>
+
+        <!-- Chat wallpaper -->
+        <div
+          id="chatArea"
+          class="flex-1 overflow-y-auto px-3 py-3"
+          style="background-color:#efeae2; background-image:radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0); background-size:16px 16px;"
+        >
+          <div class="mb-3 flex justify-center">
+            <span class="rounded-md bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-500 shadow-sm">Today</span>
+          </div>
+          <div id="transcript" class="flex flex-col gap-1.5"></div>
+        </div>
+
+        <!-- Quick-reply chips -->
+        <div id="quickReplies" class="flex shrink-0 flex-wrap gap-1.5 border-t border-black/5 bg-[#f0f2f5] px-2.5 py-2 empty:hidden empty:py-0 empty:border-0"></div>
+
+        <!-- Composer -->
+        <form id="composerForm" class="flex shrink-0 items-center gap-2 bg-[#f0f2f5] px-2.5 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 text-[#54656f]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm5.25 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Z" />
+          </svg>
+          <input
+            id="composerInput"
+            type="text"
+            autocomplete="off"
+            placeholder="Message"
+            class="min-w-0 flex-1 rounded-full bg-white px-3.5 py-2 text-[13.5px] text-[#111b21] outline-none placeholder:text-[#8696a0]"
+          />
+          <button
+            id="composerSend"
+            type="submit"
+            aria-label="Send"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#008069] text-white transition-transform hover:scale-105"
+          >
+            <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+            <svg id="sendIcon" xmlns="http://www.w3.org/2000/svg" class="hidden h-[17px] w-[17px]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" />
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
+      Fully mock data -- our WhatsApp Business number is still pending Meta's approval, so this isn't
+      wired to a real WhatsApp conversation yet (see our <a href="/features" class="underline">features
+      page</a> for how the real product works). Every reply above is scripted right in your browser to
+      show what the experience will feel like once the number goes live. When it's approved, this
+      becomes a real integration on Meta's WhatsApp Cloud API, reusing the same conversation engine our
+      other agents already share.
+    </p>
+  </section>
+
+  <script src="/whatsapp-concierge.js" defer></script>
+</Layout>

@@ -19,10 +19,12 @@ form?.addEventListener("submit", async (event) => {
   errorEl?.classList.add("hidden");
 
   const data = new FormData(form);
+  const firstName = (data.get("first_name") || "").toString().trim();
+  const lastName = (data.get("last_name") || "").toString().trim();
   const businessName = (data.get("business") || "").toString().trim();
   const website = (data.get("website") || "").toString().trim();
   const note = (data.get("message") || "").toString().trim();
-  const messageParts = [`Business: ${businessName}`];
+  const messageParts = [];
   if (website) messageParts.push(`Website: ${website}`);
   if (note) messageParts.push(note);
 
@@ -33,10 +35,21 @@ form?.addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         business_id: businessId,
-        name: data.get("name"),
+        // `name` stays required on the shared /api/leads contract (see
+        // apps/api/app/schemas/lead.py) -- derived here so this form
+        // doesn't need its own separate single-name field on top of
+        // first_name/last_name.
+        name: [firstName, lastName].filter(Boolean).join(" "),
+        first_name: firstName,
+        last_name: lastName || undefined,
         email: data.get("email"),
         phone: data.get("phone") || undefined,
-        message: messageParts.join("\n"),
+        company: businessName,
+        industry: data.get("industry") || undefined,
+        interest: data.get("interest") || undefined,
+        message: messageParts.join("\n") || undefined,
+        source: "WEBSITE",
+        marketing_consent: data.get("marketing_consent") === "on",
       }),
     });
 

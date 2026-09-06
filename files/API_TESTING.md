@@ -207,7 +207,8 @@ Then (authenticated):
 
 ## 8. Leads — `/api/leads`
 
-**`POST ""`** is also public (widget submits it directly), needs `business_id` again:
+**`POST ""`** is also public (widget submits it directly), needs `business_id` again. Returns
+`201 {"success": true, "message": "..."}`, never the raw lead row:
 ```json
 {
   "business_id": "PASTE-YOUR-BUSINESS-UUID-HERE",
@@ -220,6 +221,12 @@ Then (authenticated):
 Then authenticated:
 - **`GET ""`** → list it.
 - **`PATCH /{lead_id}`** → `{ "status": "contacted" }` (valid values: `new`, `contacted`, `won`, `lost`).
+- **`POST /{lead_id}/sync-mailchimp`** → manual retry of a failed Mailchimp sync (only does
+  anything for `MAILCHIMP_SYNC_BUSINESS_ID`'s own leads — see `files/MAILCHIMP_SETUP.md`).
+
+Extra fields only Mielikkix's own marketing site sends (`first_name`, `last_name`, `company`,
+`industry`, `interest`, `source`, `marketing_consent`) are accepted but optional — a plain
+widget-shaped payload like the one above still works exactly as before.
 
 ---
 

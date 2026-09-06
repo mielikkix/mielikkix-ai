@@ -48,6 +48,10 @@
       {
         "NAME": "Anmeldelser og omdømme",
         "DESCRIPTION": "Analyserer kundeanmeldelser, identifiserer sentiment, utkaster svar i din tone og flagger saker som trenger oppmerksomhet."
+      },
+      {
+        "NAME": "WhatsApp Concierge",
+        "DESCRIPTION": "Svarer på kundespørsmål og fanger opp leads direkte i WhatsApp -- samtalen kundene dine allerede har åpen."
       }
     ]
   },

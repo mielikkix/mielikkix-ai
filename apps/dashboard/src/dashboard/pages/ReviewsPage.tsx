@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Star, MessageSquare, AlertTriangle, Check, X, RefreshCw, Pencil, Download } from 'lucide-react'
+import { Star, MessageSquare, AlertTriangle, Check, X, RefreshCw, Pencil, Download, Send, Flag } from 'lucide-react'
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
@@ -25,10 +26,27 @@ interface Review {
   requires_response: boolean
   requires_human_review: boolean
   escalation_reason: string | null
+  risk_reasons: string[]
   ai_response: string | null
   response_tone: string | null
   response_status: 'none' | 'draft' | 'approved' | 'rejected' | 'published'
+  published_response: string | null
+  published_at: string | null
   analyzed_at: string | null
+}
+
+interface GoogleReviewsStatus {
+  connected: boolean
+  needs_location: boolean
+  configured: boolean
+  google_account_email?: string | null
+  location_title?: string | null
+  connected_at?: string
+}
+
+interface LocationOption {
+  location_id: string
+  title: string
 }
 
 interface Insights {
@@ -52,6 +70,14 @@ interface Trends {
   insufficient_data: boolean
 }
 
+// Which platforms actually implement ReviewResponsePublisher server-side
+// (see integrations/review_platforms/{google_platform,mock_platform}.py)
+// -- showing a Publish button for anything else (a manually-typed or
+// chat-entered review has no real external reply target) would just
+// produce a guaranteed 400 the moment it's clicked, so it's hidden
+// entirely for those instead.
+const PUBLISHABLE_PLATFORMS = new Set(['google', 'mock'])
+
 const SENTIMENT_COLORS: Record<string, string> = {
   positive: 'bg-emerald-50 text-emerald-700',
   neutral: 'bg-slate-100 text-slate-600',
@@ -71,6 +97,120 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <Card className="text-center">
       <p className="text-2xl font-bold text-slate-900">{value}</p>
       <p className="mt-1 text-sm text-slate-500">{label}</p>
+    </Card>
+  )
+}
+
+// Real per-tenant Google Business Profile connection (see
+// app/api/review_oauth.py) -- the first step of "Google Reviews -> Analyze
+// -> Draft -> Approve -> Publish". Self-contained (owns its own queries/
+// mutations/banner state) rather than threaded through ReviewsPageContent's
+// props, the same reasoning ReviewCard below already follows per-review.
+function GoogleConnectionCard() {
+  const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [banner, setBanner] = useState<'connected' | 'error' | 'choose_location' | null>(null)
+
+  useEffect(() => {
+    const value = searchParams.get('google_reviews')
+    if (value === 'connected' || value === 'error' || value === 'choose_location') {
+      setBanner(value)
+      qc.invalidateQueries({ queryKey: ['review-google-status'] })
+      const next = new URLSearchParams(searchParams)
+      next.delete('google_reviews')
+      setSearchParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const { data: status } = useQuery<GoogleReviewsStatus>({
+    queryKey: ['review-google-status'],
+    queryFn: () => api.get('/businesses/me/reviews/status').then((r) => r.data),
+  })
+
+  const needsLocation = banner === 'choose_location' || status?.needs_location
+
+  const { data: locations } = useQuery<LocationOption[]>({
+    queryKey: ['review-google-locations'],
+    queryFn: () => api.get('/businesses/me/reviews/locations').then((r) => r.data),
+    enabled: !!needsLocation,
+  })
+
+  const selectLocationMut = useMutation({
+    mutationFn: (location: LocationOption) =>
+      api.post('/businesses/me/reviews/select-location', { location_id: location.location_id, title: location.title }),
+    onSuccess: () => {
+      setBanner('connected')
+      qc.invalidateQueries({ queryKey: ['review-google-status'] })
+    },
+  })
+
+  const disconnectMut = useMutation({
+    mutationFn: () => api.delete('/businesses/me/reviews'),
+    onSuccess: () => {
+      setBanner(null)
+      qc.invalidateQueries({ queryKey: ['review-google-status'] })
+    },
+  })
+
+  return (
+    <Card title="Google Business Profile">
+      <div className="space-y-3">
+        {banner === 'error' && <p className="text-sm text-red-600">Couldn't connect Google Business Profile. Please try again.</p>}
+        {needsLocation ? (
+          <>
+            <p className="text-sm text-slate-500">
+              Connected{status?.google_account_email ? ` as ${status.google_account_email}` : ''} -- this account manages more
+              than one location. Choose which one Review &amp; Reputation should use:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(locations ?? []).map((loc) => (
+                <Button
+                  key={loc.location_id}
+                  size="sm"
+                  variant="secondary"
+                  loading={selectLocationMut.isPending}
+                  onClick={() => selectLocationMut.mutate(loc)}
+                >
+                  {loc.title}
+                </Button>
+              ))}
+              {locations?.length === 0 && <p className="text-sm text-slate-400">No locations found on this account.</p>}
+            </div>
+          </>
+        ) : status?.connected ? (
+          <>
+            {banner === 'connected' && <p className="text-sm text-emerald-600">Google Business Profile connected!</p>}
+            <p className="text-sm text-slate-700">
+              Connected{status.google_account_email ? ` as ${status.google_account_email}` : ''}
+              {status.location_title ? ` -- ${status.location_title}` : ''}.
+            </p>
+            <Button variant="secondary" size="sm" loading={disconnectMut.isPending} onClick={() => disconnectMut.mutate()}>
+              Disconnect
+            </Button>
+          </>
+        ) : status && !status.configured ? (
+          <p className="text-sm text-slate-500">
+            Google Business Profile connection isn't set up for this environment yet. Once it's configured, you'll be
+            able to connect your real business listing here.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-500">
+              Connect your business's real Google Business Profile so reviews can be imported, analyzed, and replies
+              published here once approved.
+            </p>
+            <Button
+              size="sm"
+              onClick={() => {
+                window.location.href = `${api.defaults.baseURL}/businesses/me/reviews/authorize`
+              }}
+            >
+              Connect Google Business Profile
+            </Button>
+          </>
+        )}
+      </div>
     </Card>
   )
 }
@@ -107,6 +247,34 @@ function ReviewCard({ review }: { review: Review }) {
   })
   const rejectMut = useMutation({
     mutationFn: () => api.post(`/agents/reviews/${review.id}/reject`),
+    onSuccess: invalidate,
+  })
+  const publishMut = useMutation({
+    mutationFn: () => api.post(`/agents/reviews/${review.id}/publish`),
+    onSuccess: invalidate,
+  })
+  // One customer-facing action for "approve this response and post it live
+  // on the review platform" -- saves an in-progress edit first (so typing
+  // a reply from scratch, or editing the AI draft, and immediately
+  // clicking this Just Works without a separate "Save edit" click), then
+  // reuses the existing approve + publish endpoints exactly as they are.
+  // No new backend endpoint, no second publishing path: this is the same
+  // /approve + /publish this page already calls, just chained in one click.
+  const approveAndPublishMut = useMutation({
+    mutationFn: async () => {
+      if (editedResponse != null && editedResponse !== review.ai_response) {
+        await api.patch(`/agents/reviews/${review.id}/response`, { response_text: editedResponse })
+      }
+      await api.post(`/agents/reviews/${review.id}/approve`)
+      await api.post(`/agents/reviews/${review.id}/publish`)
+    },
+    onSuccess: () => {
+      invalidate()
+      setEditedResponse(null)
+    },
+  })
+  const escalateMut = useMutation({
+    mutationFn: () => api.post(`/agents/reviews/${review.id}/escalate`),
     onSuccess: invalidate,
   })
 
@@ -171,6 +339,11 @@ function ReviewCard({ review }: { review: Review }) {
               {review.escalation_reason && (
                 <div className="md:col-span-2 rounded-lg bg-red-50 px-3 py-2 text-red-700">
                   Escalation reason: <strong>{review.escalation_reason}</strong>
+                  {review.risk_reasons.length > 1 && (
+                    <span className="block text-xs text-red-600">
+                      Also flagged for: {review.risk_reasons.filter((r) => r !== review.escalation_reason).join(', ')}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -181,17 +354,16 @@ function ReviewCard({ review }: { review: Review }) {
           )}
 
           <div>
-            <p className="text-sm font-medium text-slate-500">Suggested response</p>
-            {review.ai_response ? (
-              <textarea
-                className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-800 outline-none focus:border-violet-400"
-                rows={3}
-                value={editedResponse ?? review.ai_response}
-                onChange={(e) => setEditedResponse(e.target.value)}
-              />
-            ) : (
-              <p className="mt-1 text-sm text-slate-400">No response generated yet.</p>
-            )}
+            <p className="text-sm font-medium text-slate-500">
+              {review.ai_response ? 'Suggested response' : 'Write your own response'}
+            </p>
+            <textarea
+              className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-800 outline-none focus:border-violet-400"
+              rows={3}
+              placeholder="No response generated yet -- write your own, or generate an AI draft below."
+              value={editedResponse ?? review.ai_response ?? ''}
+              onChange={(e) => setEditedResponse(e.target.value)}
+            />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <select
                 value={tone}
@@ -215,28 +387,72 @@ function ReviewCard({ review }: { review: Review }) {
                   Save edit
                 </Button>
               )}
-              {review.ai_response && (
+              {(review.ai_response || (editedResponse && editedResponse.trim())) && review.response_status !== 'published' && (
                 <>
-                  <Button
-                    size="sm"
-                    loading={approveMut.isPending}
-                    disabled={review.response_status === 'approved'}
-                    onClick={() => approveMut.mutate()}
-                  >
-                    <Check size={14} className="mr-1" />
-                    {review.response_status === 'approved' ? 'Approved' : 'Approve'}
-                  </Button>
+                  {PUBLISHABLE_PLATFORMS.has(review.platform) ? (
+                    <Button
+                      size="sm"
+                      loading={approveAndPublishMut.isPending}
+                      disabled={review.requires_human_review || !(editedResponse ?? review.ai_response ?? '').trim()}
+                      onClick={() => approveAndPublishMut.mutate()}
+                    >
+                      <Send size={14} className="mr-1" />
+                      {review.response_status === 'approved'
+                        ? `Reply on ${review.platform === 'google' ? 'Google' : review.platform}`
+                        : `Approve & Reply on ${review.platform === 'google' ? 'Google' : review.platform}`}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      loading={approveMut.isPending}
+                      disabled={review.response_status === 'approved'}
+                      onClick={() => approveMut.mutate()}
+                    >
+                      <Check size={14} className="mr-1" />
+                      {review.response_status === 'approved' ? 'Approved' : 'Approve'}
+                    </Button>
+                  )}
                   <Button size="sm" variant="ghost" loading={rejectMut.isPending} onClick={() => rejectMut.mutate()}>
                     <X size={14} className="mr-1" />
                     Reject
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={escalateMut.isPending}
+                    disabled={review.requires_human_review}
+                    onClick={() => escalateMut.mutate()}
+                  >
+                    <Flag size={14} className="mr-1" />
+                    {review.requires_human_review ? 'Escalated' : 'Escalate'}
+                  </Button>
                 </>
               )}
             </div>
-            {review.response_status === 'approved' && (
-              <p className="mt-2 text-xs text-slate-400">
-                Approved -- publishing to {review.platform} isn't connected yet, so post this manually for now.
+            {(publishMut.isError || approveAndPublishMut.isError) && (
+              <p className="mt-2 text-xs font-medium text-red-600">
+                {(approveAndPublishMut.error as any)?.response?.data?.detail ||
+                  (publishMut.error as any)?.response?.data?.detail ||
+                  'Publishing failed -- the approved draft is unchanged, safe to retry.'}
               </p>
+            )}
+            {review.response_status === 'approved' && review.requires_human_review && (
+              <p className="mt-2 text-xs font-medium text-red-600">
+                Flagged for human review -- publishing is disabled. Handle this directly on {review.platform}, or resolve the flag first.
+              </p>
+            )}
+            {review.response_status === 'approved' && !PUBLISHABLE_PLATFORMS.has(review.platform) && (
+              <p className="mt-2 text-xs text-slate-400">
+                Approved -- {review.platform} publishing isn't supported yet, so post this manually for now.
+              </p>
+            )}
+            {review.response_status === 'published' && (
+              <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                <p className="font-medium">
+                  Published to {review.platform}{review.published_at ? ` on ${new Date(review.published_at).toLocaleString()}` : ''}.
+                </p>
+                {review.published_response && <p className="mt-1 text-emerald-800">{review.published_response}</p>}
+              </div>
             )}
           </div>
         </div>
@@ -298,6 +514,22 @@ function ReviewsPageContent() {
     },
   })
 
+  // Reads the SAME cache GoogleConnectionCard's own useQuery already
+  // populates (react-query dedupes by queryKey) -- this component doesn't
+  // own the connection, it just needs to know whether "Import from
+  // Google" is actually usable yet.
+  const { data: googleStatus } = useQuery<GoogleReviewsStatus>({
+    queryKey: ['review-google-status'],
+    queryFn: () => api.get('/businesses/me/reviews/status').then((r) => r.data),
+  })
+  const importGoogleMut = useMutation({
+    mutationFn: () => api.post('/agents/reviews/import', { platform: 'google' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reviews'] })
+      qc.invalidateQueries({ queryKey: ['reviews', 'insights'] })
+    },
+  })
+
   const reputationScore = insights?.average_rating != null ? Math.round((insights.average_rating / 5) * 100) : null
 
   return (
@@ -310,11 +542,26 @@ function ReviewsPageContent() {
             nothing posts anywhere without your approval.
           </p>
         </div>
-        <Button size="sm" variant="secondary" loading={importMut.isPending} onClick={() => importMut.mutate()}>
-          <Download size={16} className="mr-1" />
-          Import sample reviews
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {googleStatus?.connected && (
+            <Button size="sm" loading={importGoogleMut.isPending} onClick={() => importGoogleMut.mutate()}>
+              <Download size={16} className="mr-1" />
+              Import from Google
+            </Button>
+          )}
+          <Button size="sm" variant="secondary" loading={importMut.isPending} onClick={() => importMut.mutate()}>
+            <Download size={16} className="mr-1" />
+            Import sample reviews
+          </Button>
+        </div>
       </div>
+      {importGoogleMut.isError && (
+        <p className="text-sm font-medium text-red-600">
+          {(importGoogleMut.error as any)?.response?.data?.detail || 'Import from Google failed -- please try again.'}
+        </p>
+      )}
+
+      <GoogleConnectionCard />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Reputation score" value={reputationScore != null ? `${reputationScore}` : '-'} />

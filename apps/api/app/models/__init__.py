@@ -13,6 +13,8 @@ from .booking import Booking
 from .calendar_connection import CalendarConnection
 from .seo_draft import SeoDraft
 from .review import Review
+from .review_connection import ReviewConnection
+from .mailchimp_connection import MailchimpConnection
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
@@ -20,5 +22,5 @@ __all__ = [
     "Conversation", "Message", "Lead",
     "PasswordResetToken", "LLMUsageLog",
     "Ticket", "TicketMessage", "Booking", "CalendarConnection",
-    "SeoDraft", "Review",
+    "SeoDraft", "Review", "ReviewConnection", "MailchimpConnection",
 ]

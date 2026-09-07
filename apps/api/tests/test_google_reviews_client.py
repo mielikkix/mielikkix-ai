@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 
 import pytest
 import requests
+from google.auth import exceptions as google_auth_exceptions
 
 from app.integrations import google_reviews_client
 from app.integrations.google_reviews_client import GoogleReviewsClient, GoogleReviewsError
@@ -265,3 +266,104 @@ async def test_platform_publish_response_returns_error_result_not_raising(monkey
 
     assert result.status == "error"
     assert "isn't connected yet" in result.error
+
+
+# --- Expired/revoked refresh token: must degrade to GoogleReviewsError ---
+
+
+@pytest.mark.asyncio
+async def test_fetch_reviews_raises_google_reviews_error_on_expired_refresh_token(monkeypatch):
+    """Confirmed live as a real gap in the sibling google_calendar_client.py
+    before that module's own equivalent fix: an expired/revoked refresh
+    token (e.g. a Google Cloud OAuth app still in "Testing" publishing
+    status, which auto-expires refresh tokens after 7 days) makes
+    credentials.refresh() raise google.auth.exceptions.RefreshError --
+    this must degrade to this module's own GoogleReviewsError, the same as
+    every other failure mode here, not propagate as a raw exception no
+    caller (google_platform.py, review_service.py) knows how to handle."""
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_client_id", "test-client-id")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_client_secret", "test-client-secret")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_refresh_token", "test-refresh-token")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_account_id", "123")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_location_id", "456")
+
+    def _raise_refresh_error(self, request):
+        raise google_auth_exceptions.RefreshError("invalid_grant: Token has been expired or revoked.")
+
+    monkeypatch.setattr(google_reviews_client.Credentials, "refresh", _raise_refresh_error)
+    client = GoogleReviewsClient()
+
+    with pytest.raises(GoogleReviewsError, match="token refresh failed"):
+        await client.fetch_reviews()
+
+
+@pytest.mark.asyncio
+async def test_publish_reply_raises_google_reviews_error_on_expired_refresh_token(monkeypatch):
+    """Same gap as fetch_reviews' own test above, in the other real call
+    this module makes (publishing a reply)."""
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_client_id", "test-client-id")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_client_secret", "test-client-secret")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_refresh_token", "test-refresh-token")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_account_id", "123")
+    monkeypatch.setattr(google_reviews_client.settings, "google_reviews_location_id", "456")
+
+    def _raise_refresh_error(self, request):
+        raise google_auth_exceptions.RefreshError("invalid_grant: Token has been expired or revoked.")
+
+    monkeypatch.setattr(google_reviews_client.Credentials, "refresh", _raise_refresh_error)
+    client = GoogleReviewsClient()
+
+    with pytest.raises(GoogleReviewsError, match="token refresh failed"):
+        await client.publish_reply("r1", "Thanks!")
+
+
+# --- get_accounts() / get_locations() (used by review_oauth.py's callback) ---
+
+
+@pytest.mark.asyncio
+async def test_get_accounts_returns_parsed_account_list(monkeypatch):
+    client = _configure_credentials(monkeypatch)
+    _patch_get(monkeypatch, {"accounts": [{"name": "accounts/123", "accountName": "My Business"}]})
+
+    accounts = await client.get_accounts()
+
+    assert accounts == [{"name": "accounts/123", "accountName": "My Business"}]
+
+
+@pytest.mark.asyncio
+async def test_get_accounts_returns_empty_list_when_none_found(monkeypatch):
+    client = _configure_credentials(monkeypatch)
+    _patch_get(monkeypatch, {"accounts": []})
+
+    assert await client.get_accounts() == []
+
+
+@pytest.mark.asyncio
+async def test_get_accounts_raises_google_reviews_error_on_api_error(monkeypatch):
+    client = _configure_credentials(monkeypatch)
+    fake = _FakeCall([_FakeResponse({"error": {"message": "denied"}}, status_code=403)])
+    monkeypatch.setattr(google_reviews_client.requests, "get", fake)
+
+    with pytest.raises(GoogleReviewsError, match="account lookup failed"):
+        await client.get_accounts()
+
+
+@pytest.mark.asyncio
+async def test_get_locations_returns_parsed_location_list_and_correct_url(monkeypatch):
+    client = _configure_credentials(monkeypatch)
+    fake = _patch_get(monkeypatch, {"locations": [{"name": "accounts/123/locations/456", "title": "Downtown Branch"}]})
+
+    locations = await client.get_locations("accounts/123")
+
+    assert locations == [{"name": "accounts/123/locations/456", "title": "Downtown Branch"}]
+    assert fake.last_url == "https://mybusinessbusinessinformation.googleapis.com/v1/accounts/123/locations"
+
+
+@pytest.mark.asyncio
+async def test_get_locations_raises_google_reviews_error_on_api_error(monkeypatch):
+    client = _configure_credentials(monkeypatch)
+    fake = _FakeCall([_FakeResponse({"error": {"message": "denied"}}, status_code=403)])
+    monkeypatch.setattr(google_reviews_client.requests, "get", fake)
+
+    with pytest.raises(GoogleReviewsError, match="location lookup failed"):
+        await client.get_locations("accounts/123")

@@ -67,19 +67,35 @@ class Review(Base):
     priority = Column(Text, nullable=False, default="low")  # "low" | "medium" | "high" | "critical"
     requires_response = Column(Boolean, nullable=False, default=True)
     requires_human_review = Column(Boolean, nullable=False, default=False)
-    # "legal_threat" | "safety_issue" | "serious_misconduct" | "discrimination"
-    # | "fraud" | "high_reputation_risk" | "repeated_complaint" | "unknown" | null
+    # Single "headline" reason, kept for backward compatibility with every
+    # existing caller/test that already reads this field -- "legal_threat" |
+    # "safety_issue" | "serious_misconduct" | "discrimination" | "fraud" |
+    # "high_reputation_risk" | "repeated_complaint" | "medical_claim" |
+    # "privacy_issue" | "harassment_threat" | "financial_dispute" | "unknown" | null.
     escalation_reason = Column(Text, nullable=True)
+    # Every risk reason the analysis found (same vocabulary as
+    # escalation_reason above), not just the one headline reason -- a
+    # review can raise more than one flag at once (e.g. a safety complaint
+    # that's ALSO a refund dispute). escalation_reason stays the single
+    # most important one for anything that only reads that field; this is
+    # the fuller list for anything that needs it (see review_service.py's
+    # own RISK_REASONS and _run_analysis). Nullable/default-list, same
+    # "prompt-level vocabulary, not a DB enum" reasoning as topics above.
+    risk_reasons = Column(JSON, nullable=True, default=list)
     analyzed_at = Column(DateTime(timezone=True), nullable=True)
 
     # --- Response (drafted, never auto-published -- see this agent's
     # CLAUDE.md "Human approval" section) ---
     ai_response = Column(Text, nullable=True)
     response_tone = Column(Text, nullable=True)
-    # "none" | "draft" | "approved" | "rejected" | "published" -- "published"
-    # is reserved for a future ReviewResponsePublisher integration (see
-    # integrations/review_platforms/base.py); nothing sets it today.
+    # "none" | "draft" | "approved" | "rejected" | "published"
     response_status = Column(Text, nullable=False, default="none")
+    # Snapshot of exactly what was actually sent to the platform -- kept
+    # separate from ai_response so a later edit/regenerate (which
+    # overwrites ai_response) can never retroactively change what the
+    # record says was published. Null until publish_response() succeeds.
+    published_response = Column(Text, nullable=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(

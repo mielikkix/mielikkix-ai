@@ -39,9 +39,12 @@ class _ReviewOut(BaseModel):
     requires_response: bool
     requires_human_review: bool
     escalation_reason: str | None
+    risk_reasons: list[str]
     ai_response: str | None
     response_tone: str | None
     response_status: str
+    published_response: str | None
+    published_at: str | None
     analyzed_at: str | None
 
     @classmethod
@@ -65,9 +68,12 @@ class _ReviewOut(BaseModel):
             requires_response=review.requires_response,
             requires_human_review=review.requires_human_review,
             escalation_reason=review.escalation_reason,
+            risk_reasons=review.risk_reasons or [],
             ai_response=review.ai_response,
             response_tone=review.response_tone,
             response_status=review.response_status,
+            published_response=review.published_response,
+            published_at=review.published_at.isoformat() if review.published_at else None,
             analyzed_at=review.analyzed_at.isoformat() if review.analyzed_at else None,
         )
 
@@ -227,6 +233,56 @@ def reject_response(
     _require_enabled(business)
     try:
         review = review_service.reject_response(db, str(current_user.business_id), review_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _ReviewOut.from_orm_review(review)
+
+
+@router.post("/{review_id}/publish", response_model=_ReviewOut)
+async def publish_response(
+    review_id: str,
+    current_user: User = Depends(get_current_user),
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    """The final step of this agent's Human approval workflow -- see
+    review_service.publish_response's own docstring for exactly which
+    states this refuses to publish from (not approved, already published,
+    flagged for human review, no real platform reference) and why. 400 for
+    any of those (the request itself is invalid right now); 502 only when
+    the platform call was actually attempted and failed, since that's a
+    genuinely retryable upstream failure, not a caller mistake.
+    """
+    _require_enabled(business)
+    try:
+        review = await review_service.publish_response(db, str(current_user.business_id), review_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except review_service.PublishFailedError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return _ReviewOut.from_orm_review(review)
+
+
+class _EscalateRequest(BaseModel):
+    reason: str | None = None
+
+
+@router.post("/{review_id}/escalate", response_model=_ReviewOut)
+def escalate_response(
+    review_id: str,
+    body: _EscalateRequest = _EscalateRequest(),
+    current_user: User = Depends(get_current_user),
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    """A human explicitly flagging a review for their own team's
+    attention -- see review_service.escalate_response's own docstring.
+    Never publishes, never changes response_status; only ever raises
+    requires_human_review, which publish_response() already refuses to
+    publish through."""
+    _require_enabled(business)
+    try:
+        review = review_service.escalate_response(db, str(current_user.business_id), review_id, body.reason)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _ReviewOut.from_orm_review(review)

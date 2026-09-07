@@ -289,6 +289,20 @@ class Settings(BaseSettings):
     # your location.
     google_reviews_account_id: str = ""
     google_reviews_location_id: str = ""
+    # The real per-tenant OAuth client (a business's OWN Google Business
+    # Profile connection, review_oauth.py) -- a SEPARATE "Web application"
+    # OAuth Client ID, same relationship google_calendar_oauth_client_id/
+    # secret above has to google_calendar_client_id/secret: this one is
+    # reused for every tenant's connection, only the resulting refresh
+    # token (stored encrypted per business, see
+    # models/review_connection.py) differs per tenant. Can live in the
+    # same Google Cloud project as google_reviews_client_id/secret above,
+    # or a different one -- either way it must be its own "Web
+    # application" type client (not the Desktop-app one), since a
+    # refresh token can only be refreshed with the client_id/secret of
+    # whichever OAuth client actually issued it.
+    google_reviews_oauth_client_id: str = ""
+    google_reviews_oauth_client_secret: str = ""
 
     @property
     def platform_admin_emails_list(self) -> list[str]:
@@ -328,6 +342,20 @@ class Settings(BaseSettings):
     # (the honest "not configured yet" default), Mailchimp sync never runs
     # for anyone.
     mailchimp_sync_business_id: str = ""
+
+    # Mailchimp -- the SEPARATE per-tenant Email Marketing Agent OAuth
+    # connection (app/api/mailchimp_oauth.py). A genuinely different
+    # concern from the six settings directly above: those gate Mielikkix's
+    # OWN lead sync to Mielikkix's OWN Mailchimp account via a static API
+    # key; these are the OAuth Client ID/Secret for a Mailchimp "app" a
+    # Mielikkix CUSTOMER connects their OWN Mailchimp account through.
+    # Register this app at https://admin.mailchimp.com/account/oauth2/
+    # (Account -> Extras -> Registered Apps) -- see files/
+    # MAILCHIMP_OAUTH_SETUP.md for the full setup, including the exact
+    # redirect URI to register. Left empty, mailchimp_oauth.py's /authorize
+    # returns a clean 503 instead of a broken OAuth redirect.
+    mailchimp_oauth_client_id: str = ""
+    mailchimp_oauth_client_secret: str = ""
 
     # A Twilio account/number configured with no auth token means
     # agents_voice.py's _assert_valid_twilio_request silently skips signature

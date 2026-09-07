@@ -48,6 +48,12 @@ class PlanFeatures:
     # Gates Review & Reputation's analyze/respond/import routes
     # (app/api/agents_reviews.py) -- see plan_service.require_feature.
     review_reputation_enabled: bool
+    # Gates the Email Marketing Agent's per-tenant Mailchimp OAuth
+    # connection (app/api/mailchimp_oauth.py) -- see plan_service.
+    # require_feature. Unrelated to settings.mailchimp_sync_business_id's
+    # lead-sync feature, which isn't plan-gated at all (it only ever
+    # applies to Mielikkix's own business record).
+    email_marketing_enabled: bool
 
 
 @dataclass(frozen=True)
@@ -98,6 +104,7 @@ PLANS: dict[str, Plan] = {
             booking_enabled=False,
             seo_copywriter_enabled=False,
             review_reputation_enabled=False,
+            email_marketing_enabled=False,
         ),
     ),
     "basic": Plan(
@@ -128,6 +135,7 @@ PLANS: dict[str, Plan] = {
             booking_enabled=False,
             seo_copywriter_enabled=False,
             review_reputation_enabled=False,
+            email_marketing_enabled=False,
         ),
     ),
     "business": Plan(
@@ -158,6 +166,7 @@ PLANS: dict[str, Plan] = {
             booking_enabled=True,
             seo_copywriter_enabled=True,
             review_reputation_enabled=True,
+            email_marketing_enabled=True,
         ),
     ),
     "growth": Plan(
@@ -188,6 +197,7 @@ PLANS: dict[str, Plan] = {
             booking_enabled=True,
             seo_copywriter_enabled=True,
             review_reputation_enabled=True,
+            email_marketing_enabled=True,
         ),
     ),
 }

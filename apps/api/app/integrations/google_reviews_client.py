@@ -25,6 +25,7 @@ from datetime import datetime
 from typing import Optional
 
 import requests
+from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
@@ -77,6 +78,24 @@ def _build_credentials(client_id: str, client_secret: str, refresh_token: str) -
     )
 
 
+def _refresh(credentials: Credentials) -> None:
+    """Wraps credentials.refresh(Request()) so an expired/revoked refresh
+    token (e.g. a Google Cloud OAuth app still in "Testing" publishing
+    status, which auto-expires refresh tokens after 7 days) raises this
+    module's own GoogleReviewsError instead of a raw
+    google.auth.exceptions.RefreshError -- every caller of the *_sync
+    functions below (review_platforms/google_platform.py, and eventually
+    review_oauth.py's account/location lookup) only knows how to handle
+    GoogleReviewsError. Confirmed live as a real gap in the sibling
+    google_calendar_client.py before that module's own equivalent fix; this
+    one was written the same way and gets the same fix before it ever
+    ships against a real, expiring token."""
+    try:
+        credentials.refresh(Request())
+    except google_auth_exceptions.GoogleAuthError as exc:
+        raise GoogleReviewsError(f"Google Reviews token refresh failed: {exc}") from exc
+
+
 # Google's v4 API returns star ratings as this enum, not a number --
 # STAR_RATING_UNSPECIFIED (a review with no rating, rare but allowed by the
 # API) maps to None rather than 0, so this agent's own "rating: Optional[int]"
@@ -116,7 +135,7 @@ def _fetch_reviews_sync(
     this module's docstring for why the async wrapper below runs this in
     asyncio.to_thread instead of calling it directly."""
     credentials = _build_credentials(client_id, client_secret, refresh_token)
-    credentials.refresh(Request())
+    _refresh(credentials)
 
     all_reviews: list[dict] = []
     page_token: Optional[str] = None
@@ -148,7 +167,7 @@ def _get_review_sync(
     _fetch_reviews_sync's docstring above for why this runs in
     asyncio.to_thread rather than being called directly."""
     credentials = _build_credentials(client_id, client_secret, refresh_token)
-    credentials.refresh(Request())
+    _refresh(credentials)
 
     try:
         http_response = requests.get(
@@ -181,7 +200,7 @@ def _publish_reply_sync(
     why the only caller of this (review_platforms/google_platform.py's
     publish_response) is never reached until response_status == "approved"."""
     credentials = _build_credentials(client_id, client_secret, refresh_token)
-    credentials.refresh(Request())
+    _refresh(credentials)
 
     try:
         http_response = requests.put(
@@ -193,6 +212,63 @@ def _publish_reply_sync(
         http_response.raise_for_status()
     except requests.RequestException as exc:
         raise GoogleReviewsError(f"Google Reviews reply failed: {exc}") from exc
+
+
+# Account Management / Business Information APIs -- separate REST
+# hosts/versions from the v4 reviews endpoints above, used only to let a
+# business PICK which of their own Business Profile accounts/locations to
+# connect (review_oauth.py's callback). Promoted here from what was
+# previously only inline, one-off logic in scripts/connect_google_reviews.py
+# so the real per-tenant OAuth callback can call the exact same lookup as a
+# normal client method, instead of duplicating the requests.get() calls a
+# second time.
+_ACCOUNT_MANAGEMENT_BASE = "https://mybusinessaccountmanagement.googleapis.com/v1"
+_BUSINESS_INFORMATION_BASE = "https://mybusinessbusinessinformation.googleapis.com/v1"
+
+
+def _list_accounts_sync(client_id: str, client_secret: str, refresh_token: str) -> list[dict]:
+    """Every Business Profile account (not location yet) this login can
+    manage -- e.g. [{"name": "accounts/123", "accountName": "My Business"}].
+    Same two-step "list accounts, then list locations under the chosen
+    one" shape scripts/connect_google_reviews.py already walks through
+    interactively; this is that same shape as a reusable, non-interactive
+    client call."""
+    credentials = _build_credentials(client_id, client_secret, refresh_token)
+    _refresh(credentials)
+
+    try:
+        http_response = requests.get(
+            f"{_ACCOUNT_MANAGEMENT_BASE}/accounts",
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            timeout=_REQUEST_TIMEOUT_SECONDS,
+        )
+        http_response.raise_for_status()
+    except requests.RequestException as exc:
+        raise GoogleReviewsError(f"Google Reviews account lookup failed: {exc}") from exc
+
+    return http_response.json().get("accounts", [])
+
+
+def _list_locations_sync(client_id: str, client_secret: str, refresh_token: str, account_name: str) -> list[dict]:
+    """Every location under one already-chosen account -- e.g.
+    [{"name": "accounts/123/locations/456", "title": "Downtown Branch"}].
+    `account_name` is the full resource name (the "name" field from
+    _list_accounts_sync's own results), not just the trailing numeric ID."""
+    credentials = _build_credentials(client_id, client_secret, refresh_token)
+    _refresh(credentials)
+
+    try:
+        http_response = requests.get(
+            f"{_BUSINESS_INFORMATION_BASE}/{account_name}/locations",
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            params={"readMask": "title,name"},
+            timeout=_REQUEST_TIMEOUT_SECONDS,
+        )
+        http_response.raise_for_status()
+    except requests.RequestException as exc:
+        raise GoogleReviewsError(f"Google Reviews location lookup failed: {exc}") from exc
+
+    return http_response.json().get("locations", [])
 
 
 async def _bounded(func, *args):
@@ -264,4 +340,16 @@ class GoogleReviewsClient:
             self.location_id,
             external_review_id,
             reply_text,
+        )
+
+    async def get_accounts(self) -> list[dict]:
+        """Used only by review_oauth.py's callback (account/location picker
+        step), never by review_service.py's normal analyze/respond/publish
+        flow -- this account_id/location_id aren't needed yet at this point,
+        so self.account_id/self.location_id are simply unused for this call."""
+        return await _bounded(_list_accounts_sync, self.client_id, self.client_secret, self.refresh_token)
+
+    async def get_locations(self, account_name: str) -> list[dict]:
+        return await _bounded(
+            _list_locations_sync, self.client_id, self.client_secret, self.refresh_token, account_name
         )

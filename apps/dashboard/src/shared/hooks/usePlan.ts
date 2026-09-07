@@ -32,6 +32,7 @@ export interface PlanFeatures {
   booking_enabled: boolean
   seo_copywriter_enabled: boolean
   review_reputation_enabled: boolean
+  email_marketing_enabled: boolean
 }
 
 export interface PlanStatus {

@@ -11,6 +11,7 @@ import { DocumentsPage } from './dashboard/pages/DocumentsPage'
 import { ProductsPage } from './dashboard/pages/ProductsPage'
 import { SeoPage } from './dashboard/pages/SeoPage'
 import { ReviewsPage } from './dashboard/pages/ReviewsPage'
+import { EmailMarketingPage } from './dashboard/pages/EmailMarketingPage'
 import { LeadsPage } from './dashboard/pages/LeadsPage'
 import { ConversationsPage } from './dashboard/pages/ConversationsPage'
 import { SettingsPage } from './dashboard/pages/SettingsPage'
@@ -141,6 +142,14 @@ export function App() {
         element={
           <RequireAuth>
             <DashboardLayout><ReviewsPage /></DashboardLayout>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/dashboard/email-marketing"
+        element={
+          <RequireAuth>
+            <DashboardLayout><EmailMarketingPage /></DashboardLayout>
           </RequireAuth>
         }
       />

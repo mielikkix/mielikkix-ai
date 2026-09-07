@@ -9,6 +9,9 @@ NotImplementedError.
 
 from typing import Optional
 
+from sqlalchemy.orm import Session
+
+from ...core.config import settings
 from .base import ExternalReview, PublishResult, ReviewPlatform, ReviewResponsePublisher
 
 # Every platform this agent is meant to eventually support (see this
@@ -28,7 +31,9 @@ _REAL_PLATFORM_REQUIREMENTS = {
 }
 
 
-def get_review_platform(platform: str) -> Optional[ReviewPlatform]:
+def get_review_platform(
+    platform: str, db: Optional[Session] = None, business_id: Optional[str] = None
+) -> Optional[ReviewPlatform]:
     """Returns None for a platform name this function doesn't recognize at
     all. Raises NotImplementedError (not a silent no-op, and not a fake
     response) for a real platform name that isn't connected yet -- this
@@ -45,6 +50,18 @@ def get_review_platform(platform: str) -> Optional[ReviewPlatform]:
     failure" GoogleCalendarProvider already uses -- see
     google_reviews_client.py's own docstring for exactly what's missing
     when that happens.
+
+    `db`/`business_id` (both optional, same "no-args means the global demo/
+    legacy config" convention calendar_provider.get_calendar_provider()
+    uses): when both are given AND that business has a real
+    ReviewConnection row (see review_oauth.py), "google" resolves to a
+    GoogleReviewsPlatform built from THAT business's own decrypted
+    credentials instead of the global settings.google_reviews_* values --
+    the real per-tenant path. Falls back to the global config if either
+    argument is omitted or the business has no connection yet, which is
+    exactly what keeps the public demo (review_service.run_public_demo,
+    no business at all) and any existing caller that only passes a bare
+    platform name working unchanged.
     """
     if platform == "mock":
         from .mock_platform import MockReviewPlatform
@@ -53,6 +70,36 @@ def get_review_platform(platform: str) -> Optional[ReviewPlatform]:
     if platform == "google":
         from .google_platform import GoogleReviewsPlatform
 
+        if db is not None and business_id is not None:
+            from ..google_reviews_client import GoogleReviewsClient
+            from ...core.encryption import decrypt
+            from ...models.review_connection import ReviewConnection
+
+            connection = db.query(ReviewConnection).filter(ReviewConnection.business_id == business_id).first()
+            # A connection that hasn't finished picking a location yet
+            # (location_id still null -- see models/review_connection.py)
+            # is treated the same as no connection at all: falls through to
+            # the global settings.google_reviews_* below, which itself
+            # fails fast with a clear "isn't connected yet" GoogleReviewsError
+            # rather than silently querying the wrong location.
+            if connection is not None and connection.location_id is not None:
+                return GoogleReviewsPlatform(
+                    GoogleReviewsClient(
+                        refresh_token=decrypt(connection.refresh_token_encrypted),
+                        account_id=connection.account_id,
+                        location_id=connection.location_id,
+                        # The per-tenant Web-application OAuth client (same
+                        # one review_oauth.py's Flow uses), NOT the global
+                        # Desktop-app settings.google_reviews_client_id/
+                        # secret -- a refresh token can only be refreshed
+                        # with the client_id/secret of whichever OAuth
+                        # client actually issued it, same reasoning
+                        # calendar_provider.py's own per-tenant branch
+                        # documents.
+                        client_id=settings.google_reviews_oauth_client_id,
+                        client_secret=settings.google_reviews_oauth_client_secret,
+                    )
+                )
         return GoogleReviewsPlatform()
     if platform in _REAL_PLATFORM_REQUIREMENTS:
         raise NotImplementedError(

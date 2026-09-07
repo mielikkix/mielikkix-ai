@@ -26,9 +26,20 @@ from mielikkix_agent_core.config import get_settings as get_agent_core_settings
 
 from ..models.business import Business
 from ..models.review import Review
-from ..integrations.review_platforms import ExternalReview, get_review_platform
+from ..integrations.review_platforms import ExternalReview, ReviewResponsePublisher, get_review_platform
 
 logger = logging.getLogger(__name__)
+
+
+class PublishFailedError(Exception):
+    """Raised when publish_response() calls a real (or mock) platform and
+    that call itself fails -- distinct from a ValueError, which means the
+    review was never even eligible to publish (not approved, already
+    published, flagged for human review, ...). Callers (agents_reviews.py)
+    map this to a 502: the request was valid, the upstream call failed.
+    Never raised in a way that marks response_status as "published" --
+    the approved draft is always left untouched so a retry can simply call
+    publish_response() again."""
 
 # Review & Reputation's model tier: OpenAI's cheap/fast tier
 # (settings.openai_mini_model, default gpt-4o-mini) -- per this task's own
@@ -53,7 +64,15 @@ SENTIMENTS = ["positive", "neutral", "negative", "mixed"]
 PRIORITIES = ["low", "medium", "high", "critical"]
 ESCALATION_REASONS = [
     "legal_threat", "safety_issue", "serious_misconduct", "discrimination",
-    "fraud", "high_reputation_risk", "repeated_complaint", "unknown",
+    "fraud", "high_reputation_risk", "repeated_complaint",
+    # Added for the Google Reviews -> Analyze -> Draft -> Approve -> Publish
+    # production workflow's own explicit risk list (medical claims, privacy
+    # issues, harassment/threats, refund/financial disputes) -- these used to
+    # fall back to "unknown" or the nearest of the categories above; now
+    # each has its own honest label so a human reviewing an escalated
+    # review sees what actually triggered it.
+    "medical_claim", "privacy_issue", "harassment_threat", "financial_dispute",
+    "unknown",
 ]
 RESPONSE_TONES = ["professional", "friendly", "warm", "luxury", "casual", "concise", "empathetic"]
 
@@ -79,6 +98,11 @@ class AnalysisResult:
     requires_human_review: bool
     escalation_reason: Optional[str]
     review_language: Optional[str]
+    # Every risk reason found, not just the single "headline" one above --
+    # see models/review.py's own comment on why both fields exist. Always
+    # a list (possibly empty), never None, so callers never need a null
+    # check before iterating it.
+    risk_reasons: list[str] = field(default_factory=list)
 
 
 # The review text is placed inside clear delimiters in the USER message
@@ -117,7 +141,10 @@ _ANALYSIS_SYSTEM_PROMPT_TEMPLATE = (
     '"priority": "<one of: {priorities}>", '
     '"requires_response": <true|false -- does this review deserve a public reply at all?>, '
     '"requires_human_review": <true|false -- see escalation guidance below>, '
-    '"escalation_reason": "<one of: {escalation_reasons}, or null if requires_human_review is false>", '
+    '"escalation_reason": "<the single MOST important one of: {escalation_reasons}, '
+    'or null if requires_human_review is false>", '
+    '"risk_reasons": [<0 or more of: {escalation_reasons} -- EVERY reason that applies, '
+    'not just the single most important one; empty list if requires_human_review is false>], '
     '"review_language": "<ISO 639-1 code of the language the review is written in, e.g. \\"en\\", \\"no\\">"}}\n\n'
     "priority guidance: \"low\" for simple positive feedback needing no real "
     "action; \"medium\" for a normal complaint that deserves a reply; \"high\" "
@@ -127,8 +154,14 @@ _ANALYSIS_SYSTEM_PROMPT_TEMPLATE = (
     "or real viral/reputation risk.\n\n"
     "requires_human_review guidance: set true for anything \"critical\" "
     "priority, or any complaint serious enough that an automated reply "
-    "alone would be inappropriate. Do NOT attempt to resolve a legal or "
-    "safety issue yourself -- flag it (escalation_reason) instead."
+    "alone would be inappropriate -- this explicitly includes a legal "
+    "threat, a safety complaint, a discrimination allegation, a medical "
+    "claim (e.g. an allergic reaction, an injury, a health/safety incident), "
+    "a privacy issue (e.g. a customer's personal data was exposed or "
+    "misused), harassment or a threat directed at a person, a serious "
+    "accusation against staff, or a refund/financial dispute. Do NOT "
+    "attempt to resolve any of these yourself -- flag them "
+    "(escalation_reason/risk_reasons) instead."
 )
 
 
@@ -172,13 +205,23 @@ async def _run_analysis(business: Business, review_text: str) -> AnalysisResult:
         escalation_reason = data.get("escalation_reason")
         if escalation_reason is not None and escalation_reason not in ESCALATION_REASONS:
             escalation_reason = "unknown"
-        # A "critical" priority always gets a reason -- even if the model
-        # returned requires_human_review=false/escalation_reason=null for
-        # it (the requires_human_review override two lines below already
-        # forces escalation either way), a human landing on an escalated
-        # review with no stated reason at all isn't useful.
-        if escalation_reason is None and priority == "critical":
+        risk_reasons = [r for r in data.get("risk_reasons", []) if isinstance(r, str) and r in ESCALATION_REASONS]
+        requires_human_review = bool(data.get("requires_human_review", False)) or priority == "critical"
+        # A "critical" priority (or any requires_human_review) always gets
+        # at least one reason -- even if the model returned
+        # requires_human_review=false/escalation_reason=null for it (the
+        # requires_human_review override above already forces escalation
+        # either way), a human landing on an escalated review with no
+        # stated reason at all isn't useful.
+        if requires_human_review and escalation_reason is None:
             escalation_reason = "unknown"
+        if requires_human_review and not risk_reasons:
+            risk_reasons = [escalation_reason]
+        # Keep the two fields consistent with each other -- escalation_reason
+        # is always included in risk_reasons if either is set, so a caller
+        # that only reads one of the two fields never sees a contradiction.
+        elif escalation_reason is not None and escalation_reason not in risk_reasons:
+            risk_reasons = [escalation_reason, *risk_reasons]
         return AnalysisResult(
             sentiment=sentiment,
             sentiment_score=float(data.get("sentiment_score", 0.0)),
@@ -194,8 +237,9 @@ async def _run_analysis(business: Business, review_text: str) -> AnalysisResult:
             # flag critical reviews for human review, but a "critical"
             # priority forces it here regardless of what the model itself
             # returned for this flag.
-            requires_human_review=bool(data.get("requires_human_review", False)) or priority == "critical",
+            requires_human_review=requires_human_review,
             escalation_reason=escalation_reason,
+            risk_reasons=risk_reasons,
             review_language=data.get("review_language"),
         )
     except (json.JSONDecodeError, TypeError, ValueError, KeyError) as exc:
@@ -229,6 +273,7 @@ async def analyze_review(db: Session, business_id: str, review_id: str, force: b
         review.requires_human_review = True
         review.priority = review.priority or "medium"
         review.escalation_reason = "unknown"
+        review.risk_reasons = ["unknown"]
         review.analyzed_at = datetime.now(timezone.utc)
         db.commit()
         return review
@@ -243,6 +288,7 @@ async def analyze_review(db: Session, business_id: str, review_id: str, force: b
     review.requires_response = analysis.requires_response
     review.requires_human_review = analysis.requires_human_review
     review.escalation_reason = analysis.escalation_reason
+    review.risk_reasons = analysis.risk_reasons
     review.review_language = analysis.review_language or review.review_language
     review.analyzed_at = datetime.now(timezone.utc)
     db.commit()
@@ -377,6 +423,7 @@ def _analysis_result_from_review(review: Review) -> AnalysisResult:
         requires_response=review.requires_response,
         requires_human_review=review.requires_human_review,
         escalation_reason=review.escalation_reason,
+        risk_reasons=review.risk_reasons or [],
         review_language=review.review_language,
     )
 
@@ -490,6 +537,87 @@ def reject_response(db: Session, business_id: str, review_id: str) -> Review:
     return review
 
 
+async def publish_response(db: Session, business_id: str, review_id: str) -> Review:
+    """The final step of this agent's Human approval workflow (see this
+    agent's CLAUDE.md) -- posts the approved response as this business's
+    real public reply on the review's own platform (Google today; "mock"
+    for dev/testing -- see integrations/review_platforms/mock_platform.py's
+    own publish_response). Only ever called on a response that has
+    already reached response_status == "approved"; never marks anything
+    "published" unless the real (or mock) platform call actually
+    succeeded, so a failed publish always leaves the approved draft
+    intact for a straightforward retry rather than silently losing it.
+
+    Raises ValueError for anything that makes this review simply
+    ineligible to publish right now (never published, not approved,
+    already published, flagged for human review, no real platform to
+    publish to) -- these are caller/state errors, not upstream failures,
+    and agents_reviews.py maps them to a 400. Raises PublishFailedError
+    only when the platform call itself was actually attempted and failed
+    -- agents_reviews.py maps that to a 502 instead, since the request was
+    valid and simply needs a retry once the underlying issue clears.
+    """
+    review = db.query(Review).filter(Review.id == review_id, Review.business_id == business_id).first()
+    if review is None:
+        raise ValueError("Review not found")
+    if review.response_status == "published":
+        raise ValueError("This response has already been published")
+    if review.response_status != "approved":
+        raise ValueError("Response must be approved before it can be published")
+    if review.requires_human_review:
+        # Belt-and-suspenders, same idiom the "critical" priority
+        # server-enforcement in _run_analysis already uses: even if a
+        # human mistakenly clicked Approve on a flagged review, this tool
+        # still refuses to auto-publish it -- see this agent's own product
+        # spec, "Sensitive/high-risk reviews should NOT automatically
+        # publish" (legal threats, safety complaints, discrimination,
+        # medical claims, privacy issues, harassment, serious accusations,
+        # financial disputes, or anything else requires_human_review
+        # ended up true for). Handling one of these has to happen
+        # directly on the platform itself, outside this tool, by design.
+        raise ValueError(
+            f"This review is flagged for human review (reason: {review.escalation_reason or 'unknown'}) "
+            "and cannot be auto-published here -- handle it directly on the review platform instead."
+        )
+    if not review.ai_response:
+        raise ValueError("No response to publish -- generate one first")
+    if not review.external_review_id:
+        raise ValueError("This review has no external platform reference to publish a reply to")
+
+    provider = get_review_platform(review.platform, db, business_id)
+    if provider is None or not isinstance(provider, ReviewResponsePublisher):
+        raise ValueError(f"Publishing isn't supported for platform {review.platform!r} yet")
+
+    result = await provider.publish_response(review.external_review_id, review.ai_response)
+    if result.status != "published":
+        raise PublishFailedError(result.error or "Publishing failed for an unknown reason")
+
+    review.response_status = "published"
+    review.published_response = review.ai_response
+    review.published_at = datetime.now(timezone.utc)
+    db.commit()
+    logger.info("review_published review_id=%s platform=%s", review_id, review.platform)
+    return review
+
+
+def escalate_response(db: Session, business_id: str, review_id: str, reason: Optional[str] = None) -> Review:
+    """A human explicitly flagging a review for their own team's attention
+    -- distinct from the AI's own automatic escalation in _run_analysis
+    (requires_human_review can already be true before this is ever
+    called). Never publishes, never changes response_status -- this only
+    ever raises the flag, the same one publish_response() checks, so an
+    escalated review is immediately protected from accidental publishing
+    regardless of what response_status it's in."""
+    review = db.query(Review).filter(Review.id == review_id, Review.business_id == business_id).first()
+    if review is None:
+        raise ValueError("Review not found")
+    review.requires_human_review = True
+    review.escalation_reason = reason or review.escalation_reason or "unknown"
+    db.commit()
+    logger.info("review_escalated_by_human review_id=%s reason=%s", review_id, review.escalation_reason)
+    return review
+
+
 def list_reviews(
     db: Session,
     business_id: str,
@@ -544,7 +672,7 @@ async def import_reviews(db: Session, business_id: str, platform: str) -> list[R
     constraint) rather than relying on a database error to catch a repeat
     import.
     """
-    provider = get_review_platform(platform)
+    provider = get_review_platform(platform, db, business_id)
     if provider is None:
         raise ValueError(f"Unknown review platform: {platform!r}")
 

@@ -293,6 +293,187 @@ def test_edit_response_keeps_status_as_draft(client, business, set_plan, monkeyp
     assert body["response_status"] == "draft"
 
 
+# --- Publish (Google Reviews -> Analyze -> Draft -> Approve -> Publish) ---
+#
+# Uses platform="mock" imported reviews (real external_review_id, e.g.
+# "mock-1") rather than a manually-typed one -- MockReviewPlatform also
+# implements ReviewResponsePublisher (see mock_platform.py's own comment
+# on why), so this exercises the real publish_response() code path end to
+# end without needing real Google credentials, same "Google-shaped review
+# data -> ... -> mock publishing" flow this agent's own product spec asks
+# for as the dev/test story.
+
+
+def _import_one_mock_review(client, headers) -> str:
+    """Uses the real HTTP import endpoint (platform="mock") rather than
+    calling review_service.import_reviews directly -- TestClient already
+    drives FastAPI's async routes synchronously, so this needs no asyncio
+    boilerplate of its own, unlike a test that calls an async service
+    function directly (see test_import_reviews_deduplicates_by_external_id
+    above for that pattern instead)."""
+    imported = client.post("/api/agents/reviews/import", json={"platform": "mock"}, headers=headers).json()
+    return imported[0]["id"]
+
+
+def test_publish_requires_an_approved_response(client, business, set_plan, monkeypatch, db_session):
+    set_plan(business["business_id"], "business")
+    review_id = _import_one_mock_review(client, business["headers"])
+
+    resp = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    assert resp.status_code == 400
+    assert "approved" in resp.json()["detail"].lower()
+
+
+def test_publish_succeeds_for_an_approved_mock_review(client, business, set_plan, monkeypatch, db_session):
+    set_plan(business["business_id"], "business")
+    review_id = _import_one_mock_review(client, business["headers"])
+    # Analyze explicitly FIRST, with its own mocked chat() -- generate-
+    # response below would otherwise auto-analyze using whichever mock is
+    # active at that moment (see _mock_response_text's own
+    # monkeypatch.setattr, which replaces the SAME attribute
+    # _mock_analysis just set), so setting analysis up this way keeps the
+    # two LLM calls' mocks from clobbering each other.
+    _mock_analysis(monkeypatch, sentiment="positive", priority="low", requires_human_review=False)
+    client.post(f"/api/agents/reviews/{review_id}/analyze", headers=business["headers"])
+    _mock_response_text(monkeypatch, "Thank you so much!")
+    client.post(f"/api/agents/reviews/{review_id}/generate-response", json={}, headers=business["headers"])
+    client.post(f"/api/agents/reviews/{review_id}/approve", headers=business["headers"])
+
+    resp = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["response_status"] == "published"
+    assert body["published_response"] == "Thank you so much!"
+    assert body["published_at"] is not None
+
+
+def test_publish_twice_is_rejected_not_double_posted(client, business, set_plan, monkeypatch, db_session):
+    set_plan(business["business_id"], "business")
+    review_id = _import_one_mock_review(client, business["headers"])
+    _mock_analysis(monkeypatch, sentiment="positive", priority="low", requires_human_review=False)
+    client.post(f"/api/agents/reviews/{review_id}/analyze", headers=business["headers"])
+    _mock_response_text(monkeypatch, "Thank you!")
+    client.post(f"/api/agents/reviews/{review_id}/generate-response", json={}, headers=business["headers"])
+    client.post(f"/api/agents/reviews/{review_id}/approve", headers=business["headers"])
+    first = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+    assert first.status_code == 200
+
+    second = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    assert second.status_code == 400
+    assert "already been published" in second.json()["detail"].lower()
+
+
+def test_publish_blocked_for_a_review_requiring_human_review_even_if_approved(
+    client, business, set_plan, monkeypatch, db_session
+):
+    set_plan(business["business_id"], "business")
+    review_id = _import_one_mock_review(client, business["headers"])
+    _mock_analysis(
+        monkeypatch,
+        sentiment="negative",
+        priority="critical",
+        requires_human_review=True,
+        escalation_reason="safety_issue",
+    )
+    _mock_response_text(monkeypatch, "We take this seriously.")
+    client.post(f"/api/agents/reviews/{review_id}/generate-response", json={}, headers=business["headers"])
+    approve_resp = client.post(f"/api/agents/reviews/{review_id}/approve", headers=business["headers"])
+    assert approve_resp.json()["response_status"] == "approved"  # a human CAN still approve...
+
+    resp = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    # ...but publish refuses regardless, per this agent's own product rule:
+    # "Sensitive/high-risk reviews should NOT automatically publish."
+    assert resp.status_code == 400
+    assert "flagged for human review" in resp.json()["detail"].lower()
+
+
+def test_publish_not_supported_for_a_manually_entered_review(client, business, set_plan, monkeypatch):
+    set_plan(business["business_id"], "business")
+    create_resp = client.post("/api/agents/reviews", json={"review_text": "Great!"}, headers=business["headers"])
+    review_id = create_resp.json()["id"]
+    _mock_analysis(monkeypatch, sentiment="positive", priority="low")
+    _mock_response_text(monkeypatch, "Thanks!")
+    client.post(f"/api/agents/reviews/{review_id}/generate-response", json={}, headers=business["headers"])
+    client.post(f"/api/agents/reviews/{review_id}/approve", headers=business["headers"])
+
+    resp = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    # A manually-typed review has no real external platform reply target.
+    assert resp.status_code == 400
+
+
+def test_publish_failure_leaves_the_approved_draft_intact_for_retry(client, business, set_plan, monkeypatch, db_session):
+    from app.integrations.review_platforms.base import PublishResult
+
+    set_plan(business["business_id"], "business")
+    review_id = _import_one_mock_review(client, business["headers"])
+    _mock_analysis(monkeypatch, sentiment="positive", priority="low", requires_human_review=False)
+    client.post(f"/api/agents/reviews/{review_id}/analyze", headers=business["headers"])
+    _mock_response_text(monkeypatch, "Thank you!")
+    client.post(f"/api/agents/reviews/{review_id}/generate-response", json={}, headers=business["headers"])
+    client.post(f"/api/agents/reviews/{review_id}/approve", headers=business["headers"])
+
+    from app.integrations.review_platforms.mock_platform import MockReviewPlatform
+
+    async def _failing_publish(self, external_review_id, response_text):
+        return PublishResult(status="error", error="Simulated platform outage")
+
+    monkeypatch.setattr(MockReviewPlatform, "publish_response", _failing_publish)
+
+    resp = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    assert resp.status_code == 502
+    assert "Simulated platform outage" in resp.json()["detail"]
+    # The approved draft is untouched -- confirmed by fetching the review
+    # again and checking it's still "approved", not stuck in a broken state.
+    get_resp = client.get("/api/agents/reviews", headers=business["headers"])
+    matching = [r for r in get_resp.json() if r["id"] == review_id][0]
+    assert matching["response_status"] == "approved"
+
+
+# --- Escalate (a human explicitly flagging a review) ---
+
+
+def test_escalate_sets_requires_human_review(client, business, set_plan):
+    set_plan(business["business_id"], "business")
+    create_resp = client.post("/api/agents/reviews", json={"review_text": "Fine."}, headers=business["headers"])
+    review_id = create_resp.json()["id"]
+
+    resp = client.post(f"/api/agents/reviews/{review_id}/escalate", json={"reason": "financial_dispute"}, headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["requires_human_review"] is True
+    assert body["escalation_reason"] == "financial_dispute"
+
+
+def test_escalate_blocks_a_previously_approved_response_from_publishing(client, business, set_plan, monkeypatch, db_session):
+    set_plan(business["business_id"], "business")
+    review_id = _import_one_mock_review(client, business["headers"])
+    _mock_analysis(monkeypatch, sentiment="positive", priority="low", requires_human_review=False)
+    client.post(f"/api/agents/reviews/{review_id}/analyze", headers=business["headers"])
+    _mock_response_text(monkeypatch, "Thanks!")
+    client.post(f"/api/agents/reviews/{review_id}/generate-response", json={}, headers=business["headers"])
+    client.post(f"/api/agents/reviews/{review_id}/approve", headers=business["headers"])
+
+    client.post(f"/api/agents/reviews/{review_id}/escalate", headers=business["headers"])
+    resp = client.post(f"/api/agents/reviews/{review_id}/publish", headers=business["headers"])
+
+    assert resp.status_code == 400
+
+
+def test_escalate_unknown_review_404s(client, business, set_plan):
+    set_plan(business["business_id"], "business")
+
+    resp = client.post("/api/agents/reviews/00000000-0000-0000-0000-000000000000/escalate", headers=business["headers"])
+
+    assert resp.status_code == 404
+
+
 # --- Prompt injection: review content must never override system instructions ---
 
 

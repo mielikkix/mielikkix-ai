@@ -17,10 +17,13 @@ repeated complaint (waiting time, appearing twice, to exercise trend
 detection), and one non-English review (to exercise language matching).
 """
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from .base import ExternalReview, ReviewPlatform
+from .base import ExternalReview, PublishResult, ReviewPlatform, ReviewResponsePublisher
+
+logger = logging.getLogger(__name__)
 
 _NOW = datetime.now(timezone.utc)
 
@@ -94,7 +97,18 @@ MOCK_REVIEWS: list[ExternalReview] = [
 ]
 
 
-class MockReviewPlatform(ReviewPlatform):
+class MockReviewPlatform(ReviewPlatform, ReviewResponsePublisher):
+    """Also implements ReviewResponsePublisher (unlike a real not-yet-built
+    platform, e.g. Yelp) specifically so the full Google Reviews -> Analyze
+    -> Draft -> Approve -> Publish workflow can be exercised end to end in
+    dev/tests without any real Google credentials -- see this agent's own
+    product spec, "Mock/development mode": "This allows us to test:
+    Google-shaped review data -> normalization -> AI analysis -> draft
+    generation -> approval -> mock publishing." publish_response here never
+    calls any real API; it only logs clearly that this was a MOCK publish,
+    so a `docker compose logs` search can never mistake one for a real
+    Google publish."""
+
     async def fetch_reviews(self, since: Optional[datetime] = None) -> list[ExternalReview]:
         if since is None:
             return list(MOCK_REVIEWS)
@@ -102,3 +116,7 @@ class MockReviewPlatform(ReviewPlatform):
 
     async def get_review(self, external_id: str) -> Optional[ExternalReview]:
         return next((r for r in MOCK_REVIEWS if r.external_id == external_id), None)
+
+    async def publish_response(self, external_review_id: str, response_text: str) -> PublishResult:
+        logger.info("MOCK publish (no real API call) external_review_id=%s", external_review_id)
+        return PublishResult(status="published", platform_response_id=f"mock-published-{external_review_id}")

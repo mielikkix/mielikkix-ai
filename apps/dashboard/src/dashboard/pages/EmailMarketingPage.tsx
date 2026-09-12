@@ -35,6 +35,7 @@ function errorDetail(err: unknown, fallback: string): string {
 }
 
 function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null; onSelected: () => void }) {
+  const qc = useQueryClient()
   const {
     data: audiences,
     isLoading,
@@ -50,7 +51,10 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
   const selectMut = useMutation({
     mutationFn: (audience: MailchimpAudience) =>
       api.post('/businesses/me/mailchimp/select-audience', { audience_id: audience.id, name: audience.name }),
-    onSuccess: onSelected,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mailchimp-status'] })
+      onSelected()
+    },
   })
 
   if (isLoading) {

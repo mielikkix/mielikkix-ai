@@ -23,6 +23,11 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
 // Only renders once a real Plausible account/domain exists (see .env.example) --
 // no PUBLIC_PLAUSIBLE_DOMAIN means no third-party script and no tracking request.
 const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
+
+// Same inactive-until-configured convention as Plausible above -- no
+// PUBLIC_GA_MEASUREMENT_ID means no gtag script and no tracking request.
+// GA4 for mielikkix.ai only; mielikkix.com/.no are untouched.
+const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
 ---
 
 <!doctype html>
@@ -58,6 +63,20 @@ const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
 
     {plausibleDomain && (
       <script is:inline data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script>
+    )}
+
+    {gaMeasurementId && (
+      <>
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}></script>
+        <!--
+          gtag's own config call needs to run as inline JS, which the CSP
+          (public/.htaccess) doesn't allow without 'unsafe-inline' -- so,
+          same reasoning as the /demo/*.js files (see ARCHITECTURE.md), the
+          bootstrap logic lives in an external file and just reads the ID
+          off this tag's own data attribute.
+        -->
+        <script is:inline src="/ga4-init.js" data-ga-id={gaMeasurementId}></script>
+      </>
     )}
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased" data-page={page}>

@@ -76,6 +76,15 @@ async def exchange_code_for_token(client_id: str, client_secret: str, redirect_u
     }
     async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
         try:
+            print(
+                "MAILCHIMP TOKEN DEBUG:",
+                {
+                    "client_id": client_id,
+                    "redirect_uri": redirect_uri,
+                    "code_present": bool(code),
+                    "secret_present": bool(client_secret),
+                },
+            )
             response = await client.post(MAILCHIMP_TOKEN_URL, data=payload)
         except httpx.RequestError as exc:
             raise MailchimpClientError(f"Mailchimp token exchange request failed: {exc.__class__.__name__}") from exc

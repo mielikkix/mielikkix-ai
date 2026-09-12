@@ -105,6 +105,12 @@ let the two drift.
 - **Analytics scaffolding is in `Layout.astro` but inactive** — a Plausible snippet is wired up
   behind `PUBLIC_PLAUSIBLE_DOMAIN`; it renders nothing until that env var is set to a real domain
   registered with a Plausible account. Sign up, add the var to `.env.production`, redeploy.
+- **GA4 scaffolding is also in `Layout.astro` but inactive** — a gtag snippet (loader script +
+  `public/ga4-init.js`, kept external for the same CSP reason as the `/demo/*.js` files) is wired
+  up behind `PUBLIC_GA_MEASUREMENT_ID` (see `.env.example`); it renders nothing until that env var
+  is set to a real GA4 Measurement ID. The CSP in `public/.htaccess` already allowlists
+  `www.googletagmanager.com` (script-src) and `www.google-analytics.com`/`www.googletagmanager.com`
+  (connect-src) for when it's turned on. website/-only — mielikkix.com/.no are not wired up.
 - **No testimonials/social proof yet** — the home page has a placeholder social-proof strip
   ("Built for retail shops, clinics, restaurants...") instead of real customer logos/quotes, since
   MielikkiX doesn't have paying customers yet. Replace once available — don't fabricate

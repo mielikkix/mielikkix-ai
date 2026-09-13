@@ -1,4 +1,4 @@
-# MielikkiX — High-Level Project Document
+# Mielikkix — High-Level Project Document
 
 ## 1. Vision
 

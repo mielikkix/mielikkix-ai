@@ -94,7 +94,7 @@ export function LeadsPage() {
           </Card>
         ))}
         {leads.length === 0 && (
-          <div className="text-center py-12 text-slate-400 text-base">No leads yet. They'll appear here when visitors contact you.</div>
+          <div className="text-center py-12 text-slate-400 text-base">No leads yet. They'll appear here when visitors contact you — never miss a customer.</div>
         )}
       </div>
     </div>

@@ -112,7 +112,7 @@ export function ConversationsPage() {
           </Card>
         ))}
         {conversations.length === 0 && (
-          <div className="text-center py-12 text-slate-400 text-base">No conversations yet.</div>
+          <div className="text-center py-12 text-slate-400 text-base">No conversations yet. They'll appear here as soon as a customer messages your widget — never miss a customer.</div>
         )}
       </div>
     </div>

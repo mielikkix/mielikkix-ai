@@ -25,7 +25,7 @@ export function AuthLayout({
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <a href={MARKETING_URL} className="text-xl font-bold tracking-tight text-slate-900">
-            Mielikki<span className="text-brand-500">X</span>
+            Mielikki<span className="brand-gradient-text">X</span>
           </a>
           <nav className="flex items-center gap-6">
             {navLinks.map((link) => (
@@ -45,7 +45,7 @@ export function AuthLayout({
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 px-6 py-6 text-sm text-slate-400 sm:flex-row sm:justify-between">
-          <span>&copy; {year} MielikkiX</span>
+          <span>&copy; {year} Mielikkix</span>
           <div className="flex gap-4">
             <a href={MARKETING_URL} className="hover:text-brand-600">Home</a>
             {navLinks.map((link) => (

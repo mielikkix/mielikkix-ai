@@ -1,16 +1,16 @@
 {
   "SEO": {
     "TITLE": "AI Chat Widget for Every Business",
-    "DESCRIPTION": "MielikkiX gives your business a branded AI chat widget that answers customer questions from your own FAQs, documents, and catalog — day or night. Free plan available."
+    "DESCRIPTION": "Never Miss a Customer — Mielikkix gives your business a branded AI chat widget that answers customer questions from your own FAQs, documents, and catalog — day or night. Free plan available."
   },
   "HERO": {
     "EYEBROW": "Never Miss a Customer",
     "TITLE": "AI chat widget for your business website",
     "SUBTITLE": "Create an AI chatbot trained on your own FAQs, documents, and catalog — add it to your site in one line, and let it answer customers, capture leads, and drive sales, 24/7.",
-    "IMAGE_ALT": "MielikkiX AI chat widget answering a customer's question about opening hours and pricing"
+    "IMAGE_ALT": "Mielikkix AI chat widget answering a customer's question about opening hours and pricing"
   },
   "SOCIAL_PROOF": {
-    "TEXT": "Whether you run a retail store, e-commerce business, clinic, restaurant, hotel, real estate agency, or any service business, MielikkiX helps you engage visitors instantly, capture qualified leads, and grow your business with AI-powered conversations."
+    "TEXT": "Whether you run a retail store, e-commerce business, clinic, restaurant, hotel, real estate agency, or any service business, Mielikkix helps you engage visitors instantly, capture qualified leads, and grow your business with AI-powered conversations."
   },
   "AUDIENCE_SEGMENTS": {
     "HEADING_PLAIN": "Built for",
@@ -41,10 +41,10 @@
     ]
   },
   "FEATURES_SECTION": {
-    "HEADING_PLAIN": "Everything you need,",
-    "HEADING_ACCENT": "nothing you don't",
+    "HEADING_PLAIN": "A chat widget that",
+    "HEADING_ACCENT": "knows your business",
     "SUBHEADING": "An AI-powered chat widget built for your business, with a simple dashboard to manage customers, conversations, and analytics.",
-    "VIDEO_ALT": "Walkthrough of the MielikkiX dashboard — conversations, leads, and analytics",
+    "VIDEO_ALT": "Walkthrough of the Mielikkix dashboard — conversations, leads, and analytics",
     "SEE_ALL_LINK": "See all features →"
   },
   "BENTO": {

@@ -1,4 +1,4 @@
-# MielikkiX — Features Built So Far
+# Mielikkix — Features Built So Far
 
 A snapshot of what's actually implemented and verified working, as of this point in development. Useful as source material for promotional/marketing copy — everything listed here is real and tested, not aspirational.
 

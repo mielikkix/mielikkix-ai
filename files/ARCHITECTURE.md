@@ -1,4 +1,4 @@
-# MielikkiX — Architecture Document
+# Mielikkix — Architecture Document
 
 ## 1. System Overview
 
@@ -117,7 +117,7 @@ graph TB
   including how to verify Double Opt-In and unsubscribe-protection by hand.
 
 ### 2.7 Platform Admin Dashboard (`/admin`, React)
-- A private area of the same dashboard SPA, reserved for the MielikkiX operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `apps/dashboard/src/App.tsx`.
+- A private area of the same dashboard SPA, reserved for the Mielikkix operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `apps/dashboard/src/App.tsx`.
 - Identity: the `PLATFORM_ADMIN_EMAILS` env var (comma-separated) is checked against the logged-in user's email — see `require_platform_admin` in `apps/api/app/core/dependencies.py`. Not a DB column, since this is a deployment-level operator concept, not a per-tenant role; logging in still goes through the normal `/login` flow and JWT cookie.
 - Shows: all registered businesses and their plan/status (`/admin/businesses`), a per-business drill-down (`/admin/businesses/{id}`), a platform KPI overview (`/admin`), and Groq LLM token usage (`/admin/usage`, backed by §2.8 below).
 - Every backend route lives under `/api/admin` and is protected once at the router level by `require_platform_admin`, so nothing added later can be left unprotected.

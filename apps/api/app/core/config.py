@@ -42,7 +42,7 @@ _ROOT_ENV_FILE = _find_root_env_file()
 
 
 class Settings(BaseSettings):
-    app_name: str = "MielikkiX API"
+    app_name: str = "Mielikkix API"
     debug: bool = False
 
     database_url: str = "postgresql://mielikkix:mielikkix@localhost:5432/mielikkix"

@@ -52,7 +52,7 @@ function mount() {
   const apiBaseUrl = script?.dataset.apiUrl || DEFAULT_API_BASE_URL
 
   if (!businessId) {
-    console.warn('[MielikkiX] Missing data-business attribute on widget script tag.')
+    console.warn('[Mielikkix] Missing data-business attribute on widget script tag.')
     return
   }
 

@@ -1,4 +1,4 @@
-# MielikkiX — Which LLM Model Powers Which Feature
+# Mielikkix — Which LLM Model Powers Which Feature
 
 A reference for exactly which provider/model each feature actually calls, why,
 and how to change it. Two separate systems exist — don't confuse them:

@@ -206,6 +206,29 @@ tenant's own chat-widget leads leave these columns null exactly as before
 this feature existed. See `files/MAILCHIMP_SETUP.md` for the full
 Mailchimp integration.
 
+### `mailchimp_connections` (Email Marketing Agent — per-tenant OAuth)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| business_id | UUID FK → businesses.id | unique, indexed — one row per business |
+| access_token_encrypted | TEXT | required, encrypted at rest via `core/encryption.py`; Mailchimp OAuth issues only an access token, no refresh token (it never expires) |
+| server_prefix | TEXT | required — the account's data-center prefix (e.g. `"us21"`) from the OAuth metadata call; every Marketing API call goes to `https://{server_prefix}.api.mailchimp.com` |
+| account_name | TEXT | nullable, best-effort — captured once at OAuth-connect time for display |
+| login_email | TEXT | nullable, best-effort — same as above |
+| audience_id | TEXT | nullable — null until the tenant completes the separate "select an audience" step |
+| audience_name | TEXT | nullable — cached for display only, never the source of truth over `audience_id` |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+| connected_at | TIMESTAMPTZ | |
+
+This is a **completely separate system** from the `leads.mailchimp_*` columns above: it's a
+*tenant's own* connected Mailchimp account (per-business OAuth), not Mielikkix's single
+global lead-sync account. Neither table/flow is ever read by the other's code — see
+`apps/api/app/models/mailchimp_connection.py` and `apps/api/app/api/mailchimp_oauth.py`.
+As of this writing, only connecting an account and reading/selecting its audiences is
+implemented — no campaign/send functionality (no models, routes, or tables for it exist yet).
+See `files/MAILCHIMP_OAUTH_SETUP.md` for the full per-tenant OAuth integration.
+
 ### `llm_usage_logs`
 | Column | Type | Notes |
 |---|---|---|

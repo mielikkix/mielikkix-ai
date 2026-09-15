@@ -116,6 +116,33 @@ graph TB
 - See `files/MAILCHIMP_SETUP.md` for the manual Mailchimp account setup this depends on,
   including how to verify Double Opt-In and unsubscribe-protection by hand.
 
+#### 2.6.2 Email Marketing Agent — per-tenant Mailchimp OAuth
+- A completely separate system from §2.6.1: a *tenant* connects their own Mailchimp account
+  (not Mielikkix's own), gated by the `email_marketing_enabled` plan feature flag
+  (`apps/api/app/core/plans.py`). Routes live under `/api/businesses/me/mailchimp`
+  (`apps/api/app/api/mailchimp_oauth.py`), following the same signed-`state`/tenant-resolution
+  shape as `calendar_oauth.py`/`review_oauth.py`, but with genuinely different OAuth mechanics
+  (no refresh token; an extra post-exchange metadata call to learn the account's data-center
+  prefix) — see that file's own docstring for the specifics, verified against Mailchimp's OAuth
+  guide rather than assumed from Google's shape.
+- Flow: `GET /authorize` (302 to Mailchimp's consent screen) → `GET /callback` (exchanges
+  `code`, fetches metadata, encrypts the token, upserts `MailchimpConnection`) → `GET /status` →
+  `GET /audiences` + `POST /select-audience` (a separate step after connecting, since Mailchimp
+  has no meaningful default audience) → `DELETE` to disconnect. Reconnecting overwrites the
+  same row (unique `business_id`) rather than creating a duplicate.
+- The connected account's token is stored encrypted (`MailchimpConnection.access_token_encrypted`,
+  `apps/api/app/models/mailchimp_connection.py`) — see `files/DATABASE_SCHEMA.md`.
+- `GET /audiences` is routed through the provider abstraction
+  (`apps/api/app/integrations/email_marketing_providers/`, an ABC + `get_email_marketing_provider()`
+  factory, same idiom as §2.5's LLM providers / `calendar_provider.py`) rather than calling
+  `MailchimpClient` directly. `/authorize` and `/callback` are NOT — they're Mailchimp-specific
+  OAuth handshake mechanics the abstraction deliberately doesn't cover (there's no connected
+  account yet at that point). `resend` is listed as a future second provider but raises
+  `NotImplementedError` — not built.
+- **No campaign/send functionality exists anywhere in the codebase** (no models, routes, or
+  stubs) — as of this writing, this feature only covers connecting an account and selecting an
+  audience. See `files/MAILCHIMP_OAUTH_SETUP.md` for the full per-tenant OAuth integration.
+
 ### 2.7 Platform Admin Dashboard (`/admin`, React)
 - A private area of the same dashboard SPA, reserved for the Mielikkix operator (not a tenant/business role) — reachable at `/admin` alongside the existing `/dashboard` routes, gated by `RequireAdmin` in `apps/dashboard/src/App.tsx`.
 - Identity: the `PLATFORM_ADMIN_EMAILS` env var (comma-separated) is checked against the logged-in user's email — see `require_platform_admin` in `apps/api/app/core/dependencies.py`. Not a DB column, since this is a deployment-level operator concept, not a per-tenant role; logging in still goes through the normal `/login` flow and JWT cookie.
@@ -191,6 +218,15 @@ graph TB
 - `PATCH /{id}` — authenticated, status update (new/contacted/won/lost)
 - `POST /{id}/sync-mailchimp` — authenticated, manual retry of a lead's Mailchimp sync
   (see §2.6.1)
+
+### Email Marketing — Mailchimp OAuth (`/api/businesses/me/mailchimp`) — authenticated, see §2.6.2
+- `GET /authorize` — 302 redirect to Mailchimp's OAuth consent screen; `403` if the business's
+  plan lacks `email_marketing_enabled`, `503` if OAuth isn't configured server-side
+- `GET /callback` — public (Mailchimp redirects the browser here with `code`/`state`), not tenant-authenticated by cookie
+- `GET /status` — `{connected, configured, account_name?, login_email?, audience_id?, audience_name?, connected_at?}`
+- `GET /audiences` — live Mailchimp `GET /lists` call via the connected account; `404` if not connected yet
+- `POST /select-audience` — `{audience_id, name}`, persists/overwrites the chosen audience; `404` if not connected yet
+- `DELETE ""` — disconnects (deletes the tenant's `MailchimpConnection` row)
 
 ### Analytics (`/api/analytics`)
 - `GET /summary` — conversation/lead/message counts + top questions; field set varies by plan's `analytics_tier` (basic/standard/advanced)

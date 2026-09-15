@@ -50,12 +50,19 @@ def _patch_metadata(monkeypatch, metadata=None, exc=None):
 
 
 def _patch_client(monkeypatch, audiences=None, exc=None):
+    """Patches MailchimpClient at its defining module (app.integrations.
+    mailchimp_client), not on mailchimp_oauth -- the /audiences route no
+    longer constructs a MailchimpClient itself, it goes through
+    get_email_marketing_provider() (see mailchimp_oauth.py), which imports
+    MailchimpClient locally from its own module at call time."""
+    from app.integrations import mailchimp_client as mailchimp_client_module
+
     fake_client = MagicMock()
     if exc:
         fake_client.list_audiences = AsyncMock(side_effect=exc)
     else:
         fake_client.list_audiences = AsyncMock(return_value=audiences if audiences is not None else [])
-    monkeypatch.setattr(mailchimp_oauth, "MailchimpClient", MagicMock(return_value=fake_client))
+    monkeypatch.setattr(mailchimp_client_module, "MailchimpClient", MagicMock(return_value=fake_client))
     return fake_client
 
 
@@ -237,7 +244,10 @@ def test_callback_reconnect_overwrites_existing_connection(client, business, db_
 # --- /status --------------------------------------------------------------
 
 
-def test_status_when_not_connected(client, business):
+def test_status_when_not_connected(client, business, monkeypatch):
+    monkeypatch.setattr(settings, "mailchimp_oauth_client_id", "")
+    monkeypatch.setattr(settings, "mailchimp_oauth_client_secret", "")
+
     resp = client.get("/api/businesses/me/mailchimp/status", headers=business["headers"])
 
     assert resp.status_code == 200
@@ -452,7 +462,9 @@ def test_reconnect_after_disconnect_works(client, business, db_session, monkeypa
 # --- tenant isolation ---------------------------------------------------
 
 
-def test_mailchimp_status_is_tenant_scoped(client, business, signup, db_session):
+def test_mailchimp_status_is_tenant_scoped(client, business, signup, db_session, monkeypatch):
+    monkeypatch.setattr(settings, "mailchimp_oauth_client_id", "")
+    monkeypatch.setattr(settings, "mailchimp_oauth_client_secret", "")
     other = signup()
     connection = MailchimpConnection(
         business_id=other["business_id"], access_token_encrypted=encrypt("tok"), server_prefix="us21",

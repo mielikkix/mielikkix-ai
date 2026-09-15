@@ -57,10 +57,10 @@ from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..core.database import get_db
 from ..core.dependencies import get_current_business, get_current_user
-from ..core.encryption import decrypt, encrypt
+from ..core.encryption import encrypt
+from ..integrations.email_marketing_providers import EmailMarketingProviderError, get_email_marketing_provider
 from ..integrations.mailchimp_client import (
     MAILCHIMP_AUTHORIZE_URL,
-    MailchimpClient,
     MailchimpClientError,
     exchange_code_for_token,
     fetch_metadata,
@@ -237,18 +237,24 @@ async def list_audiences(
     whenever the business wants to change their selection. 404s if there's
     no connection yet at all (nothing to list audiences for), distinct
     from an empty list (a real account with zero audiences, a normal state
-    the frontend should render as a clean empty state, not an error)."""
-    connection = db.query(MailchimpConnection).filter(MailchimpConnection.business_id == business.id).first()
-    if connection is None:
+    the frontend should render as a clean empty state, not an error).
+
+    Routed through get_email_marketing_provider() (app/integrations/
+    email_marketing_providers/) rather than constructing a MailchimpClient
+    directly -- this is the one operation here the provider ABC actually
+    covers (post-connection account/audience reads); /authorize and
+    /callback are Mailchimp-specific OAuth handshake mechanics the ABC
+    deliberately does not abstract (see base.py's own docstring)."""
+    provider = get_email_marketing_provider("mailchimp", db, business.id)
+    if provider is None:
         raise HTTPException(status_code=404, detail="No Mailchimp connection yet -- connect first.")
 
-    client = MailchimpClient(access_token=decrypt(connection.access_token_encrypted), server_prefix=connection.server_prefix)
     try:
-        audiences = await client.list_audiences()
-    except MailchimpClientError as exc:
+        audiences = await provider.list_audiences()
+    except EmailMarketingProviderError as exc:
         raise HTTPException(status_code=502, detail="Couldn't reach Mailchimp -- please try again shortly.") from exc
 
-    return [{"id": a["id"], "name": a["name"], "member_count": a["member_count"]} for a in audiences]
+    return [{"id": a.id, "name": a.name, "member_count": a.member_count} for a in audiences]
 
 
 class _SelectAudienceRequest(BaseModel):

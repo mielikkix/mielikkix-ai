@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from . import mailchimp_service
 from .mailchimp_service import MailchimpError, MailchimpRateLimitError, MergeFields
 from ..core.config import settings
+from ..core.database import SessionLocal
 from ..models.conversation import Conversation
 from ..models.lead import Lead
 from ..schemas.lead import LeadCreate
@@ -207,3 +208,29 @@ async def sync_lead_to_mailchimp(db: Session, lead: Lead) -> None:
     lead.mailchimp_contact_id = contact_id
     lead.mailchimp_last_synced_at = datetime.now(timezone.utc)
     db.commit()
+
+
+async def sync_lead_to_mailchimp_background(lead_id: str) -> None:
+    """Background-task entry point for POST /api/leads (see api/leads.py)
+    -- runs after the response is already sent, so it opens its OWN DB
+    session and re-fetches the lead by id, rather than reusing the
+    request's injected session/ORM object. Same convention document_
+    service.crawl_and_ingest_website already establishes for its own
+    background worker, for the same reason (see that function's own
+    comment): the request's session is closed (get_db's `finally: db.
+    close()`) by the time a background task actually runs, and committing
+    against a closed/detached session silently persists nothing -- no
+    exception, no error logged, just a lead that Mailchimp actually
+    accepted but this app's own mailchimp_synced/mailchimp_contact_id
+    never recorded. (The test suite's own db_session fixture doesn't
+    close its session between requests, which is exactly why this bug
+    didn't show up in tests -- only against a real server.)"""
+    db = SessionLocal()
+    try:
+        lead = db.query(Lead).filter(Lead.id == lead_id).first()
+        if lead is None:
+            logger.warning("Mailchimp background sync skipped: lead %s no longer exists", lead_id)
+            return
+        await sync_lead_to_mailchimp(db, lead)
+    finally:
+        db.close()

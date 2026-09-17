@@ -31,6 +31,39 @@ def _no_real_email_provider(monkeypatch):
     monkeypatch.setattr(settings, "resend_api_key", "")
 
 
+@pytest.fixture(autouse=True)
+def _use_test_db_for_background_mailchimp_sync(monkeypatch, db_session):
+    """sync_lead_to_mailchimp_background (see lead_service.py) opens its
+    own SessionLocal() since it runs after the request's own session is
+    closed (same reasoning document_service.crawl_and_ingest_website's own
+    tests already establish, see test_website_crawl.py's use_test_db_for_
+    crawl) -- redirect that to the test's isolated session so a lead
+    created via `client.post("/api/leads", ...)` in these tests is found
+    by the background sync too, instead of looking it up against the real
+    dev database (settings.database_url) where it doesn't exist. Autouse
+    here (unlike the crawl tests' opt-in fixture) because nearly every
+    test in this file depends on the background sync actually running
+    against the same data it just created.
+
+    Wrapped so `.close()` is a no-op: sync_lead_to_mailchimp_background
+    correctly closes ITS OWN session when done (that's the actual
+    production fix), but here that session IS db_session -- letting a
+    background sync mid-test tear down the one session every other part
+    of the test (including a later assertion, or a second POST /api/leads
+    in the same test) still needs would detach every object it holds,
+    the same "finally: pass, not db.close()" reasoning conftest.py's own
+    override_get_db already uses for the request-scoped dependency."""
+
+    class _NoCloseSession:
+        def __getattr__(self, name):
+            return getattr(db_session, name)
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(lead_service, "SessionLocal", lambda: _NoCloseSession())
+
+
 def _make_marketing(monkeypatch, business_id: str):
     """Marks `business_id` as settings.mailchimp_sync_business_id (the one
     tenant whose leads get synced) AND satisfies mailchimp_service.is_configured()
@@ -126,6 +159,37 @@ def test_duplicate_email_on_marketing_business_updates_existing_lead(client, bus
     assert leads[0].message == "Following up on my earlier request"
 
 
+def test_resubmitting_a_consenting_lead_updates_the_existing_mailchimp_contact(client, business, db_session, monkeypatch):
+    """PUT /lists/{id}/members/{hash} is Mailchimp's own "add or update"
+    endpoint -- a consenting lead who resubmits the demo form (e.g. with a
+    corrected company name) must re-sync to the SAME Mailchimp contact
+    with the NEW field values, not just get skipped as "already synced"."""
+    _make_marketing(monkeypatch, business["business_id"])
+    add_or_update, _ = _mock_mailchimp(monkeypatch, contact_id="contact-existing")
+
+    payload = {
+        "business_id": business["business_id"],
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "company": "Acme Inc",
+        "marketing_consent": True,
+    }
+    client.post("/api/leads", json=payload)
+    assert add_or_update.call_count == 1
+
+    payload["company"] = "Acme Corp"  # corrected on resubmission
+    client.post("/api/leads", json=payload)
+
+    assert add_or_update.call_count == 2
+    second_call_merge_fields = add_or_update.call_args_list[1].args[1]
+    assert second_call_merge_fields.company == "Acme Corp"
+
+    lead = db_session.query(Lead).filter(Lead.business_id == business["business_id"]).first()
+    assert lead.company == "Acme Corp"
+    assert lead.mailchimp_synced is True
+    assert lead.mailchimp_contact_id == "contact-existing"
+
+
 def test_duplicate_email_on_a_normal_tenant_still_creates_a_new_lead_each_time(client, business, db_session):
     """Regression guard: a normal tenant's chat widget (any business_id
     other than settings.mailchimp_sync_business_id) must keep its
@@ -163,6 +227,53 @@ def test_mailchimp_success_marks_lead_synced(client, business, db_session, monke
     lead = db_session.query(Lead).filter(Lead.business_id == business["business_id"]).first()
     assert lead.mailchimp_synced is True
     assert lead.mailchimp_contact_id == "contact-abc"
+    assert lead.mailchimp_last_synced_at is not None
+
+
+@pytest.mark.asyncio
+async def test_background_sync_looks_up_and_persists_from_just_a_lead_id(client, business, db_session, monkeypatch):
+    """Regression test for a real bug found via manual testing against a
+    live (non-TestClient) server: the ORIGINAL api/leads.py wiring
+    scheduled background_tasks.add_task(lead_service.sync_lead_to_
+    mailchimp, db, lead) -- the REQUEST's own session and ORM object.
+    Against a real server, by the time that background task actually ran,
+    the request's session was already closed (production's real get_db()
+    does `finally: db.close()`), so `lead.mailchimp_synced = True; db.
+    commit()` silently committed nothing -- no exception, "successful"
+    still logged, but the leads table kept showing mailchimp_synced=false
+    even though the real Mailchimp PUT had genuinely succeeded (200).
+
+    This file's own `client`/`db_session` fixtures never close the
+    session between a request and its background tasks (see conftest.py's
+    override_get_db `finally: pass`), so this exact bug could never
+    reproduce inside this test suite -- confirmed instead by hand against
+    a real running uvicorn process (real Mailchimp call, real Postgres
+    row inspected before and after the fix).
+
+    What this automated test actually locks in: sync_lead_to_mailchimp_
+    background takes ONLY a lead_id (never a caller-supplied session or
+    ORM object -- the actual shape of the fix), looks the lead up itself,
+    and persists the result -- proven here by calling it directly, the
+    same way api/leads.py's background task does, and confirming the
+    change is visible through this test's own session afterward.
+    """
+    _make_marketing(monkeypatch, business["business_id"])
+    _mock_mailchimp(monkeypatch, contact_id="contact-bg")
+
+    lead = Lead(
+        business_id=business["business_id"], name="Background Sync", email="bg-sync@example.com",
+        marketing_consent=True, status="new",
+    )
+    db_session.add(lead)
+    db_session.commit()
+    db_session.refresh(lead)
+    lead_id = str(lead.id)
+
+    await lead_service.sync_lead_to_mailchimp_background(lead_id)
+
+    db_session.refresh(lead)
+    assert lead.mailchimp_synced is True
+    assert lead.mailchimp_contact_id == "contact-bg"
     assert lead.mailchimp_last_synced_at is not None
 
 

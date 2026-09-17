@@ -47,8 +47,19 @@ def create_lead(request: Request, body: LeadCreate, background_tasks: Background
     # would otherwise silently prevent every task queued after it from
     # ever running. sync_lead_to_mailchimp is written to never raise past
     # itself (see its own docstring), so it's the safe one to put first.
+    #
+    # sync_lead_to_mailchimp_background, not sync_lead_to_mailchimp
+    # directly, and a plain lead id, not this request's own `db`/`lead`
+    # objects -- a background task runs after the response is already
+    # sent, by which point this request's injected session is closed
+    # (get_db's `finally: db.close()`). Passing the closed session/a
+    # detached ORM object through let the sync call Mailchimp for real but
+    # silently fail to persist mailchimp_synced afterward -- no exception,
+    # just a lead that stayed "unsynced" in this app's own records forever
+    # despite actually being synced. See sync_lead_to_mailchimp_
+    # background's own docstring.
     if lead_service.is_marketing_business(body.business_id):
-        background_tasks.add_task(lead_service.sync_lead_to_mailchimp, db, lead)
+        background_tasks.add_task(lead_service.sync_lead_to_mailchimp_background, str(lead.id))
 
     business = db.query(Business).filter(Business.id == body.business_id).first()
     biz_settings = db.query(BusinessSettings).filter(BusinessSettings.business_id == body.business_id).first()

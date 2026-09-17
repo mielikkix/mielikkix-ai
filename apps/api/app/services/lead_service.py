@@ -155,7 +155,25 @@ async def sync_lead_to_mailchimp(db: Session, lead: Lead) -> None:
     failed request -- see this integration's design brief, 'Mailchimp
     failure does not lose a lead.' Failures are logged and leave
     mailchimp_synced False for a later manual retry
-    (POST /api/leads/{id}/sync-mailchimp)."""
+    (POST /api/leads/{id}/sync-mailchimp).
+
+    Requires lead.marketing_consent -- the checkbox on demo.astro is
+    unchecked by default, and a lead who left it unchecked must never
+    have their email address sent to Mailchimp at all, not even as a
+    "transactional" (non-marketed-to) contact. This is a deliberate
+    product decision, and a narrowing of this integration's original
+    design: earlier, a non-consenting lead was still synced as
+    "transactional" (see MergeFields/add_or_update_contact's own comments
+    on that status) so Mielikkix could still fulfil the demo request
+    through Mailchimp-side tooling without ever marketing to them. That
+    middle ground no longer applies here -- no consent means no Mailchimp
+    call, full stop. The check is here (not just at the call site in
+    api/leads.py) so it also protects the manual retry endpoint
+    (POST /api/leads/{id}/sync-mailchimp), which calls this function
+    directly."""
+    if not lead.marketing_consent:
+        logger.info("Mailchimp sync skipped for lead %s: no marketing consent", lead.id)
+        return
     if not lead.email:
         logger.info("Mailchimp sync skipped for lead %s: no email on file", lead.id)
         return

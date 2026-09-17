@@ -176,7 +176,10 @@ def test_mailchimp_failure_still_returns_success_and_keeps_lead_unsynced(client,
 
     resp = client.post(
         "/api/leads",
-        json={"business_id": business["business_id"], "name": "Jane Doe", "email": "jane@example.com"},
+        # marketing_consent: True -- otherwise the Mailchimp call is
+        # skipped before ever reaching mailchimp_service, and this
+        # wouldn't actually exercise the failure path it's named for.
+        json={"business_id": business["business_id"], "name": "Jane Doe", "email": "jane@example.com", "marketing_consent": True},
     )
 
     assert resp.status_code == 201
@@ -196,7 +199,7 @@ def test_mailchimp_rate_limit_does_not_retry_in_request(client, business, db_ses
 
     resp = client.post(
         "/api/leads",
-        json={"business_id": business["business_id"], "name": "Jane Doe", "email": "jane@example.com"},
+        json={"business_id": business["business_id"], "name": "Jane Doe", "email": "jane@example.com", "marketing_consent": True},
     )
 
     assert resp.status_code == 201
@@ -206,12 +209,23 @@ def test_mailchimp_rate_limit_does_not_retry_in_request(client, business, db_ses
 
 
 # --- Test 8 & 9: marketing consent ------------------------------------------
+#
+# NOTE: sync_lead_to_mailchimp now skips the Mailchimp call ENTIRELY when
+# marketing_consent is false (see lead_service.py's own docstring on this
+# -- a deliberate narrowing of the original design, where a non-consenting
+# lead was still synced as a Mailchimp "transactional" contact). Tests
+# below that exercise an actual Mailchimp call now explicitly opt in with
+# marketing_consent: True.
 
-def test_marketing_consent_false_is_sent_as_non_marketing(client, business, monkeypatch):
+def test_marketing_consent_false_skips_mailchimp_entirely(client, business, monkeypatch):
+    """Superseded the old 'sent as non-marketing (transactional)'
+    behavior -- see this file's own note above. A lead who left the
+    consent box unchecked must never have their email sent to Mailchimp
+    at all, not even as a non-marketed-to contact."""
     _make_marketing(monkeypatch, business["business_id"])
-    add_or_update, _ = _mock_mailchimp(monkeypatch)
+    add_or_update, add_tags = _mock_mailchimp(monkeypatch)
 
-    client.post(
+    resp = client.post(
         "/api/leads",
         json={
             "business_id": business["business_id"],
@@ -221,7 +235,9 @@ def test_marketing_consent_false_is_sent_as_non_marketing(client, business, monk
         },
     )
 
-    assert add_or_update.await_args.args[2] is False
+    assert resp.status_code == 201
+    add_or_update.assert_not_called()
+    add_tags.assert_not_called()
 
 
 def test_marketing_consent_true_is_sent_as_marketing(client, business, monkeypatch):
@@ -360,6 +376,78 @@ def test_mailchimp_payload_never_carries_a_bare_status_for_a_marketing_lead(clie
     assert captured.get("status_if_new") == "pending"
 
 
+# --- Step 3 (auto-enroll demo bookers): the three scenarios asked for -------
+#
+# 1. Opt-in checked -> lead created -> Mailchimp sync made, with the right
+#    audience id (settings.mailchimp_audience_id, via _make_marketing) and
+#    the right contact fields -- end-to-end at the httpx boundary (same
+#    _FakeClient idiom as test_mailchimp_payload_never_carries_a_bare_
+#    status_for_a_marketing_lead above), not just "some mock was called",
+#    so this actually proves the real audience id lands in the request URL.
+# 2. Opt-in unchecked -> lead created -> Mailchimp sync NOT made (see
+#    test_marketing_consent_false_skips_mailchimp_entirely above).
+# 3. Mailchimp call fails, opt-in checked -> demo booking still succeeds
+#    (see test_mailchimp_failure_still_returns_success_and_keeps_lead_
+#    unsynced above, now updated to actually exercise this path).
+
+
+def test_consenting_demo_lead_syncs_to_the_configured_audience_with_contact_fields(client, business, db_session, monkeypatch):
+    from unittest.mock import AsyncMock
+
+    _make_marketing(monkeypatch, business["business_id"])
+    captured_url = {}
+    captured_body = {}
+
+    async def fake_put(url, **kwargs):
+        captured_url["value"] = url
+        captured_body.update(kwargs.get("json", {}))
+        return type("R", (), {"status_code": 200, "json": lambda self: {"id": "contact-1"}})()
+
+    class _FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        put = staticmethod(fake_put)
+
+    monkeypatch.setattr(lead_service.mailchimp_service.httpx, "AsyncClient", lambda **_: _FakeClient())
+    add_tags = AsyncMock()
+    monkeypatch.setattr(lead_service.mailchimp_service, "add_tags_to_contact", add_tags)
+
+    resp = client.post(
+        "/api/leads",
+        json={
+            "business_id": business["business_id"],
+            "name": "Jane Doe",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane@example.com",
+            "company": "Acme Inc",
+            "phone": "+47 555 0100",
+            "industry": "Restaurant",
+            "interest": "AI Voice Agent",
+            "marketing_consent": True,
+        },
+    )
+
+    assert resp.status_code == 201
+    # settings.mailchimp_audience_id is "test-audience" (see _make_marketing)
+    # -- this is Mielikkix's OWN single-account audience, not a per-tenant
+    # Option A campaign audience (those are two separate integrations, see
+    # lead_service.py's own module docstring).
+    assert "/lists/test-audience/members/" in captured_url["value"]
+    assert captured_body["email_address"] == "jane@example.com"
+    assert captured_body["merge_fields"] == {
+        "FNAME": "Jane", "LNAME": "Doe", "COMPANY": "Acme Inc",
+        "PHONE": "+47 555 0100", "INDUSTRY": "Restaurant", "INTEREST": "AI Voice Agent",
+    }
+    lead = db_session.query(Lead).filter(Lead.business_id == business["business_id"]).first()
+    assert lead.mailchimp_synced is True
+    add_tags.assert_awaited_once()
+
+
 # --- Test 10 & 11: tags -----------------------------------------------------
 
 def test_interest_tag_is_applied(client, business, monkeypatch):
@@ -373,6 +461,7 @@ def test_interest_tag_is_applied(client, business, monkeypatch):
             "name": "Jane Doe",
             "email": "jane@example.com",
             "interest": "AI Voice Agent",
+            "marketing_consent": True,
         },
     )
 
@@ -392,6 +481,7 @@ def test_industry_tag_is_applied(client, business, monkeypatch):
             "name": "Jane Doe",
             "email": "jane@example.com",
             "industry": "Restaurant",
+            "marketing_consent": True,
         },
     )
 
@@ -440,7 +530,10 @@ def test_manual_mailchimp_retry_endpoint_syncs_lead(client, business, db_session
     _make_marketing(monkeypatch, business["business_id"])
     _mock_mailchimp(monkeypatch, contact_id="retried-contact")
 
-    lead = Lead(business_id=business["business_id"], name="Jane Doe", email="jane@example.com")
+    # marketing_consent=True -- otherwise sync_lead_to_mailchimp now skips
+    # the call before this endpoint has anything to retry (see that
+    # function's own docstring).
+    lead = Lead(business_id=business["business_id"], name="Jane Doe", email="jane@example.com", marketing_consent=True)
     db_session.add(lead)
     db_session.commit()
     db_session.refresh(lead)
@@ -449,3 +542,19 @@ def test_manual_mailchimp_retry_endpoint_syncs_lead(client, business, db_session
 
     assert resp.status_code == 200, resp.text
     assert resp.json()["mailchimp_synced"] is True
+
+
+def test_manual_mailchimp_retry_endpoint_skips_without_consent(client, business, db_session, monkeypatch):
+    _make_marketing(monkeypatch, business["business_id"])
+    add_or_update, _ = _mock_mailchimp(monkeypatch)
+
+    lead = Lead(business_id=business["business_id"], name="Jane Doe", email="jane@example.com", marketing_consent=False)
+    db_session.add(lead)
+    db_session.commit()
+    db_session.refresh(lead)
+
+    resp = client.post(f"/api/leads/{lead.id}/sync-mailchimp", headers=business["headers"])
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["mailchimp_synced"] is False
+    add_or_update.assert_not_called()

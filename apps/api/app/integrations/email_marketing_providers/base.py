@@ -8,15 +8,18 @@ platforms) -- an ABC + a get_*_provider() factory. Mailchimp is the first
 future second provider (see this package's __init__.py) -- deliberately
 NOT implemented yet.
 
-Phase 1 scope only: this ABC covers connecting an account and reading its
-audiences. It deliberately does NOT define any campaign/send methods yet
--- adding abstract methods for behavior that doesn't exist yet would be
-speculative, not abstraction. Extend this ABC when campaign functionality
-is actually built, in a later phase.
+Phase 1 scope was connecting an account and reading its audiences. Phase 2
+(campaigns) added create_campaign/set_campaign_content/send_test_email/
+send_campaign/schedule_campaign/get_campaign/get_campaign_report --
+Mailchimp is the system of record for the campaign itself (drafts, sends,
+and reports on it natively via its own Campaigns API); this app never
+duplicates that with its own per-recipient send loop or delivery tracking.
+See app/services/campaign_service.py for how these are actually used.
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 
@@ -43,6 +46,39 @@ class EmailAudience:
     member_count: int
 
 
+@dataclass
+class CampaignInfo:
+    """A campaign's current state on the provider's own side -- generic
+    across providers the same way EmailAudience is, but for now every
+    field here mirrors Mailchimp's own vocabulary directly (see
+    MailchimpClient.get_campaign's own docstring on `status`) rather than
+    inventing a parallel one, since Mailchimp is the only real provider
+    that exists today."""
+
+    id: str
+    status: str
+    emails_sent: int
+    send_time: Optional[str]
+    archive_url: Optional[str]
+
+
+@dataclass
+class CampaignReport:
+    """Aggregated send results for a campaign that has actually sent --
+    read-only, computed by the provider itself (Mailchimp's own /reports
+    endpoint), never by this app aggregating per-recipient rows (there are
+    none to aggregate -- see this package's own Phase 2 note above)."""
+
+    emails_sent: int
+    opens_total: int
+    unique_opens: int
+    open_rate: float
+    click_rate: float
+    unsubscribed: int
+    hard_bounces: int
+    soft_bounces: int
+
+
 class EmailMarketingProvider(ABC):
     @abstractmethod
     async def get_account_info(self) -> EmailAccountInfo:
@@ -63,10 +99,57 @@ class EmailMarketingProvider(ABC):
         connected account (e.g. deleted on the provider's own side after
         being selected here)."""
 
+    @abstractmethod
+    async def create_campaign(
+        self, audience_id: str, subject: str, from_name: Optional[str] = None, reply_to: Optional[str] = None
+    ) -> CampaignInfo:
+        """Creates a new campaign on the provider, targeting audience_id.
+        Content is set separately (see set_campaign_content) -- a
+        freshly-created campaign has none yet. Returns the provider's own
+        CampaignInfo so the caller can persist its id (needed for every
+        later call on this campaign)."""
+
+    @abstractmethod
+    async def set_campaign_content(self, campaign_id: str, html: str) -> None:
+        """Sets/replaces this campaign's HTML body. Callable again to
+        edit a campaign's content before it sends."""
+
+    @abstractmethod
+    async def send_test_email(self, campaign_id: str, test_emails: list[str]) -> None:
+        """Sends a real test message for this campaign to the given
+        addresses -- lets a human review actual rendered content before
+        approving/sending for real. Never counts as the real send."""
+
+    @abstractmethod
+    async def send_campaign(self, campaign_id: str) -> None:
+        """The real, irreversible send -- immediately, to this campaign's
+        full targeted audience. Only ever called after an explicit human
+        approval (see campaign_service.py's own approve/send split)."""
+
+    @abstractmethod
+    async def schedule_campaign(self, campaign_id: str, schedule_time: datetime) -> None:
+        """Schedules this campaign to send at a future time. Unlike a
+        locally-scheduled job, the provider itself is what fires the send
+        at that time -- no local scheduler/cron is required for this to
+        actually happen."""
+
+    @abstractmethod
+    async def get_campaign(self, campaign_id: str) -> CampaignInfo:
+        """This campaign's current state, read live from the provider --
+        used to refresh a locally-cached Campaign.status (see
+        campaign_service.py) without duplicating delivery tracking here."""
+
+    @abstractmethod
+    async def get_campaign_report(self, campaign_id: str) -> CampaignReport:
+        """Aggregated send results, read live from the provider. Only
+        meaningful once a campaign has actually sent -- raises
+        EmailMarketingProviderError for one that hasn't (see
+        MailchimpClient.get_campaign_report's own docstring)."""
+
 
 class EmailMarketingProviderError(Exception):
     """Raised for any provider-level failure (auth, network, not found).
     Provider-specific exceptions (e.g. MailchimpClientError) are caught and
     re-raised as this at the provider-implementation boundary, so callers
-    (mailchimp_oauth.py) only ever need to catch one exception type
-    regardless of which provider is connected."""
+    (mailchimp_oauth.py, campaign_service.py) only ever need to catch one
+    exception type regardless of which provider is connected."""

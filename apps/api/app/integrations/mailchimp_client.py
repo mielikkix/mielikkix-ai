@@ -32,6 +32,8 @@ directly rather than trusted from an `api_endpoint` field.
 """
 
 import logging
+from datetime import datetime, timezone
+from typing import Optional
 
 import httpx
 
@@ -42,6 +44,16 @@ _REQUEST_TIMEOUT_SECONDS = 10
 MAILCHIMP_AUTHORIZE_URL = "https://login.mailchimp.com/oauth2/authorize"
 MAILCHIMP_TOKEN_URL = "https://login.mailchimp.com/oauth2/token"
 MAILCHIMP_METADATA_URL = "https://login.mailchimp.com/oauth2/metadata"
+
+# Mailchimp requires every campaign to carry a working unsubscribe link --
+# verified against their own help docs (https://mailchimp.com/help/the-
+# unsubscribe-merge-tag/): "*|UNSUB|*" is the documented merge tag, and
+# Mailchimp only auto-adds its own footer with one if the content doesn't
+# already include a link of some kind. Content set through set_campaign_
+# content() that has no unsubscribe link of its own gets this tag appended
+# automatically (see that method) rather than letting Mailchimp's send
+# validation reject it later with "does not have a link to unsubscribe".
+UNSUBSCRIBE_MERGE_TAG = "*|UNSUB|*"
 
 
 class MailchimpClientError(Exception):
@@ -59,6 +71,23 @@ def _raise_for_response(response: httpx.Response, action: str) -> None:
             action, response.status_code, response.text[:500],
         )
         raise MailchimpClientError(f"Mailchimp API error during {action}: HTTP {response.status_code}")
+
+
+def _campaign_dict(data: dict) -> dict:
+    """Shared normalization for any Mailchimp response that represents a
+    Campaign object (create_campaign's response and get_campaign's are the
+    same shape) -- read defensively (`.get()`, never assumed) the same way
+    every other response in this module is, so a caller (email_marketing_
+    providers/mailchimp_provider.py's _campaign_info) can rely on `id`/
+    `status`/`emails_sent` always being present regardless of which of
+    these two calls produced the raw dict."""
+    return {
+        "id": data["id"],
+        "status": data.get("status"),
+        "emails_sent": data.get("emails_sent", 0),
+        "send_time": data.get("send_time"),
+        "archive_url": data.get("archive_url"),
+    }
 
 
 async def exchange_code_for_token(client_id: str, client_secret: str, redirect_uri: str, code: str) -> str:
@@ -166,4 +195,178 @@ class MailchimpClient:
             "id": data["id"],
             "name": data.get("name", "(untitled audience)"),
             "member_count": (data.get("stats") or {}).get("member_count", 0),
+        }
+
+    # --- Campaigns (Mailchimp is the system of record for the campaign
+    # itself here -- it drafts, sends, and reports on it natively; this
+    # app never re-sends per-recipient itself). Endpoint paths/fields below
+    # verified against Mailchimp's own Marketing API docs (mailchimp.com/
+    # developer/marketing/api/campaigns/, /campaign-content/, /reports/),
+    # not assumed. ------------------------------------------------------
+
+    async def create_campaign(
+        self,
+        audience_id: str,
+        subject: str,
+        from_name: Optional[str] = None,
+        reply_to: Optional[str] = None,
+    ) -> dict:
+        """POST /campaigns -- creates a "regular" campaign targeting this
+        audience (Mailchimp's own term for a one-off, non-A/B, non-RSS
+        campaign). Content is set separately (see set_campaign_content) --
+        Mailchimp's API splits a campaign's metadata/settings from its
+        HTML/plain-text body into two calls, a brand-new campaign always
+        starts with none. Returns the same normalized dict shape get_
+        campaign() does (see _campaign_dict) -- callers read `id` (needed
+        for every subsequent call) and `status` (always "save" immediately
+        after creation).
+
+        IMPORTANT, verified against Mailchimp's actual settings schema and
+        multiple real request examples (no `from_email` field exists in
+        `settings` at all): there is no way to set the sending FROM email
+        address per campaign through this API. Mailchimp always sends
+        from the connected audience's own "Campaign Defaults" from_email
+        (configured inside Mailchimp itself, tied to a domain that
+        account has verified) -- `from_name` and `reply_to` are the only
+        sender-identity fields this call can actually override. A
+        business's chosen display from_email (this app's own Campaign.
+        from_email field) is stored for reference only; it is never sent
+        to Mailchimp, and never overrides the audience's real sending
+        address."""
+        url = f"{self._api_base()}/campaigns"
+        settings: dict = {"subject_line": subject, "title": subject}
+        if from_name:
+            settings["from_name"] = from_name
+        if reply_to:
+            settings["reply_to"] = reply_to
+        payload = {"type": "regular", "recipients": {"list_id": audience_id}, "settings": settings}
+
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.post(url, headers=self._headers(), json=payload)
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp create campaign request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "create campaign")
+        return _campaign_dict(response.json())
+
+    async def set_campaign_content(self, campaign_id: str, html: str) -> dict:
+        """PUT /campaigns/{campaign_id}/content -- sets the campaign's HTML
+        body. If the given HTML doesn't already reference the required
+        unsubscribe merge tag (see UNSUBSCRIBE_MERGE_TAG above), a minimal
+        footer containing it is appended automatically -- Mailchimp
+        rejects a send later with "does not have a link to unsubscribe"
+        otherwise, and failing that validation only at send time (after a
+        human already approved this campaign) would be a worse experience
+        than always ensuring it's present here."""
+        body = html
+        if UNSUBSCRIBE_MERGE_TAG not in html:
+            body = (
+                f"{html}\n"
+                f'<p style="font-size:11px;color:#888;text-align:center;">'
+                f'<a href="{UNSUBSCRIBE_MERGE_TAG}">Unsubscribe</a></p>'
+            )
+        url = f"{self._api_base()}/campaigns/{campaign_id}/content"
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.put(url, headers=self._headers(), json={"html": body})
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp set campaign content request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "set campaign content")
+        return response.json()
+
+    async def send_test_email(self, campaign_id: str, test_emails: list[str], send_type: str = "html") -> None:
+        """POST /campaigns/{campaign_id}/actions/test -- send_type is
+        "html" or "plaintext" (Mailchimp's own documented values)."""
+        url = f"{self._api_base()}/campaigns/{campaign_id}/actions/test"
+        payload = {"test_emails": test_emails, "send_type": send_type}
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.post(url, headers=self._headers(), json=payload)
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp send test email request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "send test email")
+
+    async def send_campaign(self, campaign_id: str) -> None:
+        """POST /campaigns/{campaign_id}/actions/send -- no request body.
+        Sends immediately to the campaign's full audience; Mailchimp
+        returns 204 on success. This is a real, irreversible send -- the
+        caller (campaign_service.py) only ever reaches this after an
+        explicit human approval."""
+        url = f"{self._api_base()}/campaigns/{campaign_id}/actions/send"
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.post(url, headers=self._headers())
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp send campaign request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "send campaign")
+
+    async def schedule_campaign(self, campaign_id: str, schedule_time: datetime) -> None:
+        """POST /campaigns/{campaign_id}/actions/schedule -- schedule_time
+        must be ISO 8601 UTC (verified against Mailchimp's own docs, e.g.
+        "2026-04-01T14:00:00+00:00"). Unlike this app's abandoned Option B
+        design, Mailchimp itself is what actually fires the send at that
+        time -- no local scheduler/cron is needed for this to work."""
+        url = f"{self._api_base()}/campaigns/{campaign_id}/actions/schedule"
+        payload = {"schedule_time": schedule_time.astimezone(timezone.utc).isoformat()}
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.post(url, headers=self._headers(), json=payload)
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp schedule campaign request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "schedule campaign")
+
+    async def get_campaign(self, campaign_id: str) -> dict:
+        """GET /campaigns/{campaign_id} -- `status` is one of Mailchimp's
+        own documented values: "save" | "paused" | "schedule" | "sending" |
+        "sent" | "canceled" | "canceling" | "archived" (verified against
+        Mailchimp's docs). campaign_service.py passes this straight
+        through as this app's own Campaign.status once a campaign has
+        actually been created in Mailchimp, rather than inventing a
+        parallel status vocabulary that could drift from it."""
+        url = f"{self._api_base()}/campaigns/{campaign_id}"
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.get(url, headers=self._headers())
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp get campaign request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "get campaign")
+        return _campaign_dict(response.json())
+
+    async def get_campaign_report(self, campaign_id: str) -> dict:
+        """GET /reports/{campaign_id} -- only meaningful once a campaign
+        has actually sent; Mailchimp 404s this for anything still in
+        draft/scheduled, which surfaces here as a normal
+        MailchimpClientError (callers should only call this once
+        get_campaign's own status is "sending"/"sent"). Nested `opens`/
+        `clicks`/`bounces` objects are read defensively (`.get()`,
+        default 0/0.0) -- same "never assume a nested field beyond what's
+        actually documented" discipline this module's own docstring
+        already follows for the OAuth metadata response."""
+        url = f"{self._api_base()}/reports/{campaign_id}"
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+            try:
+                response = await client.get(url, headers=self._headers())
+            except httpx.RequestError as exc:
+                raise MailchimpClientError(f"Mailchimp get campaign report request failed: {exc.__class__.__name__}") from exc
+
+        _raise_for_response(response, "get campaign report")
+        data = response.json()
+        opens = data.get("opens") or {}
+        clicks = data.get("clicks") or {}
+        bounces = data.get("bounces") or {}
+        return {
+            "emails_sent": data.get("emails_sent", 0),
+            "opens_total": opens.get("opens_total", 0),
+            "unique_opens": opens.get("unique_opens", 0),
+            "open_rate": opens.get("open_rate", 0.0),
+            "click_rate": clicks.get("click_rate", 0.0),
+            "unsubscribed": data.get("unsubscribed", 0),
+            "hard_bounces": bounces.get("hard_bounces", 0),
+            "soft_bounces": bounces.get("soft_bounces", 0),
         }

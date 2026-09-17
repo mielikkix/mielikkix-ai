@@ -16,7 +16,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from .base import EmailAccountInfo, EmailAudience, EmailMarketingProvider, EmailMarketingProviderError
+from .base import CampaignInfo, CampaignReport, EmailAccountInfo, EmailAudience, EmailMarketingProvider, EmailMarketingProviderError
 
 PROVIDER_NAMES = ["mailchimp", "resend"]
 
@@ -69,6 +69,8 @@ def get_email_marketing_provider(
 
 
 __all__ = [
+    "CampaignInfo",
+    "CampaignReport",
     "EmailAccountInfo",
     "EmailAudience",
     "EmailMarketingProvider",

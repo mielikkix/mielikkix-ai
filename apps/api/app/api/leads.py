@@ -22,7 +22,7 @@ def list_leads(current_user: User = Depends(get_current_user), db: Session = Dep
     return (
         db.query(Lead)
         .filter(Lead.business_id == current_user.business_id)
-        .order_by(Lead.created_at.desc())
+        .order_by(Lead.updated_at.desc())
         .all()
     )
 

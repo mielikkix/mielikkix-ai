@@ -74,6 +74,7 @@ class LeadOut(BaseModel):
     message: Optional[str]
     status: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     company: Optional[str] = None

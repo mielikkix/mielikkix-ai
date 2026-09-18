@@ -159,6 +159,60 @@ def test_duplicate_email_on_marketing_business_updates_existing_lead(client, bus
     assert leads[0].message == "Following up on my earlier request"
 
 
+def test_resubmitting_a_lead_bumps_updated_at_but_not_created_at(client, business, db_session, monkeypatch):
+    """A repeat demo-form submission from the same email updates the
+    EXISTING lead row rather than creating a new one (see the dedup test
+    above) -- without updated_at, that change was invisible in the
+    dashboard's Leads list, which sorts by created_at (never changes on
+    an update), making a genuinely-just-updated lead look untouched."""
+    _make_marketing(monkeypatch, business["business_id"])
+    _mock_mailchimp(monkeypatch)
+
+    payload = {"business_id": business["business_id"], "name": "Jane Doe", "email": "jane@example.com"}
+    client.post("/api/leads", json=payload)
+    lead = db_session.query(Lead).filter(Lead.business_id == business["business_id"]).first()
+    original_created_at = lead.created_at
+    original_updated_at = lead.updated_at
+    assert original_updated_at is not None
+
+    payload["message"] = "Following up on my earlier request"
+    client.post("/api/leads", json=payload)
+
+    db_session.refresh(lead)
+    assert lead.created_at == original_created_at
+    assert lead.updated_at > original_updated_at
+
+
+def test_list_leads_includes_updated_at(client, business):
+    client.post("/api/leads", json={"business_id": business["business_id"], "name": "Jane Doe", "email": "jane2@example.com"})
+
+    resp = client.get("/api/leads", headers=business["headers"])
+
+    assert resp.status_code == 200
+    assert resp.json()[0]["updated_at"] is not None
+
+
+def test_list_leads_sorts_by_updated_at_not_created_at(client, business, db_session):
+    """An older lead that gets touched (e.g. a status change via PATCH)
+    should float to the top of the list, not stay buried under newer,
+    untouched leads -- that's the whole point of tracking updated_at."""
+    client.post(
+        "/api/leads", json={"business_id": business["business_id"], "name": "Older Lead", "email": "older@example.com"}
+    )
+    client.post(
+        "/api/leads", json={"business_id": business["business_id"], "name": "Newer Lead", "email": "newer@example.com"}
+    )
+    older = db_session.query(Lead).filter(Lead.email == "older@example.com").first()
+
+    client.patch(f"/api/leads/{older.id}", json={"status": "contacted"}, headers=business["headers"])
+
+    resp = client.get("/api/leads", headers=business["headers"])
+
+    assert resp.status_code == 200
+    emails = [lead["email"] for lead in resp.json()]
+    assert emails[0] == "older@example.com"
+
+
 def test_resubmitting_a_consenting_lead_updates_the_existing_mailchimp_contact(client, business, db_session, monkeypatch):
     """PUT /lists/{id}/members/{hash} is Mailchimp's own "add or update"
     endpoint -- a consenting lead who resubmits the demo form (e.g. with a

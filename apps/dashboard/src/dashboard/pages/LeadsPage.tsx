@@ -13,6 +13,7 @@ interface Lead {
   message: string | null
   status: string
   created_at: string
+  updated_at: string | null
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -57,7 +58,14 @@ export function LeadsPage() {
                 {lead.message && (
                   <p className="mt-2 text-base text-slate-600 bg-slate-50 rounded-lg px-3 py-2">{lead.message}</p>
                 )}
-                <p className="mt-2 text-sm text-slate-400">{new Date(lead.created_at).toLocaleString()}</p>
+                <p className="mt-2 text-sm text-slate-400">
+                  Created {new Date(lead.created_at).toLocaleString()}
+                  {lead.updated_at && (
+                    <>
+                      {' · '}Last updated {new Date(lead.updated_at).toLocaleString()}
+                    </>
+                  )}
+                </p>
               </div>
               <div className="relative flex items-center gap-2">
                 <span className={clsx('text-sm px-2 py-1 rounded-full font-medium', STATUS_COLORS[lead.status] || STATUS_COLORS.new)}>

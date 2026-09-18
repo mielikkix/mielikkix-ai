@@ -18,6 +18,21 @@ class Lead(Base):
     message = Column(Text, nullable=True)
     status = Column(Text, default="new")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    # When this row last actually changed -- e.g. a repeat "Book a Free
+    # Demo" submission from the same email (create_or_update_lead's own
+    # dedup-by-email upsert) updates the EXISTING row rather than creating
+    # a new one, and without this column that update was invisible: the
+    # dashboard's Leads list sorts by created_at, so an updated old lead
+    # never moved and looked untouched even seconds after a fresh
+    # resubmission actually changed it. onupdate fires automatically on
+    # any UPDATE (create_or_update_lead's re-assignment of every field
+    # every call, the Mailchimp sync's own mailchimp_synced/contact_id
+    # writeback, and PATCH /api/leads/{id}'s status change all bump this).
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     # Everything below is nullable and only ever populated by the marketing
     # site's "Book a Free Demo" form (website/src/pages/demo.astro), gated

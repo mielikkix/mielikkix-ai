@@ -17,6 +17,8 @@ from .review_connection import ReviewConnection
 from .mailchimp_connection import MailchimpConnection
 from .campaign import Campaign
 from .agent_access import BusinessAgentAccess
+from .seo_website import SeoWebsite
+from .seo_audit import SeoAudit, SeoCrawledPage, SeoFinding, SeoKeywordOpportunity
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
@@ -26,4 +28,5 @@ __all__ = [
     "Ticket", "TicketMessage", "Booking", "CalendarConnection",
     "SeoDraft", "Review", "ReviewConnection", "MailchimpConnection",
     "Campaign", "BusinessAgentAccess",
+    "SeoWebsite", "SeoAudit", "SeoCrawledPage", "SeoFinding", "SeoKeywordOpportunity",
 ]

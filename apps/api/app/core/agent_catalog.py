@@ -45,3 +45,10 @@ AGENTS: dict[str, AgentProduct] = {
 # on the purchase UI.
 THREE_PACK_PRICE_USD = 129
 FULL_CREW_PRICE_USD = 249
+
+# Default cap on how many SeoWebsite rows one business may register (see
+# models/seo_website.py) -- independent of any chat-widget plan limit.
+# Business.seo_website_limit_override (see models/business.py) raises this
+# for a specific agency-style account without touching the default for
+# everyone else.
+DEFAULT_SEO_WEBSITE_LIMIT = 10

@@ -12,7 +12,7 @@ from .core.config import settings
 from .core.cors import PublicRouteCORSMiddleware
 from .core.database import Base, engine
 from .core.limiter import limiter
-from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support, agents_seo, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, campaigns
+from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support, agents_seo, agents_seo_audit, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, campaigns
 
 # Without this, every module's logger.info() call (e.g. agents_voice.py's
 # own tool-call tracing) is silently dropped -- Python's root logger
@@ -84,6 +84,9 @@ app.include_router(agents_voice.router)
 app.include_router(agents_booking.router)
 app.include_router(agents_support.router)
 app.include_router(agents_seo.router)
+app.include_router(agents_seo_audit.router)
+app.include_router(agents_seo_audit.audits_router)
+app.include_router(agents_seo_audit.findings_router)
 app.include_router(agents_reviews.router)
 app.include_router(calendar_oauth.router)
 app.include_router(review_oauth.router)

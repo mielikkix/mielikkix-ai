@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, Boolean, JSON, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from ..core.database import Base
@@ -22,6 +22,13 @@ class Business(Base):
     # False/None since no plan grants them by default.
     api_access_addon = Column(Boolean, default=False)
     api_key = Column(Text, nullable=True)
+    # Per-business override for SeoWebsite's default registration cap (see
+    # app/core/agent_catalog.py's DEFAULT_SEO_WEBSITE_LIMIT and
+    # services/seo_website_service.py) -- null means "use the default",
+    # same admin-sets-it-directly shape as api_access_addon above, for the
+    # rare agency-style account that legitimately needs more websites than
+    # the default allows.
+    seo_website_limit_override = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),

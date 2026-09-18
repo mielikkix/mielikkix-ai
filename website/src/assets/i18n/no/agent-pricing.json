@@ -1,0 +1,113 @@
+{
+  "SEO": {
+    "TITLE": "Priser for AI-agenter",
+    "DESCRIPTION": "Reelle priser for Mielikkix' AI-agenter, med SEO-revisjon og optimalisering som den første -- en teknisk og innholdsmessig SEO-revisjon med engangsbetaling og en prioritert handlingsplan."
+  },
+  "PAGE_HERO": {
+    "LINE1": "AI-agenter,",
+    "LINE2": "enkelt priset",
+    "SUBHEADING": "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan -- betal én gang, ingen abonnement nødvendig."
+  },
+  "MOST_POPULAR_BADGE": "⭐ Mest populær",
+  "SEO_AUDIT": {
+    "HEADING": "SEO-revisjon og optimalisering",
+    "SUBHEADING": "En reell gjennomgang av nettsiden din -- robots.txt, sitemap, kanoniske URL-er, titler, metabeskrivelser, overskrifter, tynt og duplisert innhold, og alt-tekst på bilder -- omgjort til en prioritert handlingsplan på ren norsk med et AI-skrevet sammendrag. Betal én gang, kjør nye revisjoner på den samme nettsiden når som helst for å følge fremgangen.",
+    "TIERS": [
+      {
+        "NAME": "SEO-revisjon",
+        "PRICE_USD": 1050,
+        "PRICE_NOTE": "",
+        "PERIOD": "engangsbeløp",
+        "TAGLINE": "En fokusert teknisk revisjon for en liten nettside.",
+        "CTA": "Kom i gang",
+        "FEATURED": false,
+        "FEATURES": [
+          "Opptil 25 sider gjennomgått",
+          "Tekniske SEO-funn",
+          "Innholdsmessige SEO-funn",
+          "Prioritert handlingsplan",
+          "AI-skrevet sammendrag",
+          "Ubegrensede nye revisjoner på denne nettsiden"
+        ]
+      },
+      {
+        "NAME": "SEO-revisjon og optimalisering",
+        "PRICE_USD": 1580,
+        "PRICE_NOTE": "",
+        "PERIOD": "engangsbeløp",
+        "TAGLINE": "Vår mest populære revisjon, for en voksende nettside.",
+        "CTA": "Kom i gang",
+        "FEATURED": true,
+        "FEATURES": [
+          "Opptil 100 sider gjennomgått",
+          "Tekniske SEO-funn",
+          "Innholdsmessige SEO-funn",
+          "Prioritert handlingsplan",
+          "AI-skrevet sammendrag",
+          "Ubegrensede nye revisjoner på denne nettsiden"
+        ]
+      },
+      {
+        "NAME": "Profesjonell SEO-revisjon og optimalisering",
+        "PRICE_USD": 3170,
+        "PRICE_NOTE": "Fra",
+        "PERIOD": "engangsbeløp",
+        "TAGLINE": "For større, mer komplekse nettsider.",
+        "CTA": "Kom i gang",
+        "FEATURED": false,
+        "FEATURES": [
+          "Opptil 500 sider gjennomgått",
+          "Tekniske SEO-funn",
+          "Innholdsmessige SEO-funn",
+          "Prioritert handlingsplan",
+          "AI-skrevet sammendrag",
+          "Endelig pris avtales ut fra størrelsen på nettsiden din",
+          "Ubegrensede nye revisjoner på denne nettsiden"
+        ]
+      }
+    ]
+  },
+  "ONGOING": {
+    "HEADING": "Vil du at vi fortsetter å optimalisere hver måned?",
+    "SUBHEADING": "Løpende SEO -- vi følger opp nye revisjonsresultater på nettsiden din og handler fortløpende på det agenten finner.",
+    "PRICE_NOTE": "Fra",
+    "PRICE_USD": 838,
+    "PERIOD": "/mnd, tilpasset nettsiden din",
+    "CTA": "Ta kontakt"
+  },
+  "OTHER_AGENTS": {
+    "HEADING": "Flere Force Crew-agenter",
+    "SUBHEADING": "Talerresepsjonist, bookingassistent, supporttriage, omdømme og anmeldelser, og e-postmarkedsføring -- tilpasset pris basert på bedriften din.",
+    "ITEMS": ["Talerresepsjonist", "Bookingassistent", "Supporttriage", "Omdømme og anmeldelser", "E-postmarkedsføring"],
+    "CTA": "Ta kontakt"
+  },
+  "FAQ": {
+    "HEADING": "Vanlige spørsmål om agentpriser",
+    "ITEMS": [
+      {
+        "Q": "Hva er forskjellen mellom de tre SEO-revisjonsnivåene?",
+        "A": "Hvor mange sider av nettsiden din som gjennomgås i én revisjon -- 25, 100 eller 500. Alle nivåer kjører de samme tekniske og innholdsmessige sjekkene og gir samme type prioriterte handlingsplan; større nettsider trenger bare flere gjennomgåtte sider for å få et fullstendig bilde."
+      },
+      {
+        "Q": "Kan jeg kjøre revisjonen på nytt senere?",
+        "A": "Ja. Betalingen din dekker ubegrensede revisjoner på den nettsiden fremover, slik at du kan kjøre en ny etter at du har gjort endringer og se poengsummen din forbedres."
+      },
+      {
+        "Q": "Fikser agenten problemene for meg?",
+        "A": "Den gir deg en prioritert handlingsplan på ren norsk -- hva du bør fikse først, hvorfor det er viktig, og hvor krevende hver fiks er. Selve den ferdige teksten (titler, metabeskrivelser, alt-tekst) genereres av vår SEO-tekstforfatter-agent; ingenting publiseres noensinne på nettsiden din uten at du har sett gjennom og godkjent det."
+      },
+      {
+        "Q": "Hva om jeg har mer enn én nettside?",
+        "A": "Hver engangspris dekker én nettside. Har du flere nettsider -- eller ønsker du at vi tar oss av det løpende -- ta kontakt, så avtaler vi omfanget."
+      },
+      {
+        "Q": "Hvor lang tid tar det å kjøre en revisjon?",
+        "A": "Noen få minutter for de fleste nettsider, avhengig av hvor mange sider som gjennomgås. Du ser status på revisjonen oppdateres fortløpende etter at den starter."
+      }
+    ]
+  },
+  "CTA": {
+    "HEADING": "Usikker på hvilket nivå som passer?",
+    "SUBHEADING": "Book en gratis demo, så hjelper vi deg å velge riktig revisjon for nettsiden din."
+  }
+}

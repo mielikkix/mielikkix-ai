@@ -1,36 +1,37 @@
 import asyncio
-import ipaddress
 import os
 import json
-import socket
 import uuid
 from typing import List
-from urllib.parse import urljoin, urlparse
-from urllib.robotparser import RobotFileParser
-from xml.etree import ElementTree
-import httpx
 from sqlalchemy.orm import Session
 from fastapi import UploadFile, HTTPException
 from ..models.document import Document, DocumentChunk
 from ..core.config import settings
 from ..core.database import SessionLocal
 from ..rag.embeddings import embed_texts
-from . import plan_service
+from . import plan_service, web_crawl
+# The SSRF guard, robots/sitemap parsing, and page-discovery crawler used to
+# be defined here; extracted to web_crawl.py in Stage 2 of apps/agents/
+# seo-copywriter/CLAUDE.md so the SEO Audit & Optimization agent's own
+# crawler reuses this exact hardened fetch path instead of a second
+# implementation. Re-exported under their old names so every existing call
+# site and test in this module keeps working unchanged.
+from .web_crawl import (
+    assert_public_url as _assert_public_url,
+    discover_website_pages,
+    discover_sitemap_urls as _discover_sitemap_urls,
+    discover_by_crawling as _discover_by_crawling,
+    fetch_sitemap_xml as _fetch_sitemap_xml,
+    get_robot_parser as _get_robot_parser,
+    looks_like_page as _looks_like_page,
+    site_root as _site_root,
+    CRAWL_USER_AGENT,
+    MAX_CRAWL_PAGES,
+    MAX_FETCH_BYTES as MAX_URL_FETCH_BYTES,
+)
 
 
 ALLOWED_TYPES = {"pdf", "docx", "txt", "csv", "xlsx", "url"}
-MAX_URL_FETCH_BYTES = 5 * 1024 * 1024
-
-# Hard operational ceiling on a single "import my whole website" crawl,
-# independent of the business's plan (which caps total documents overall,
-# but could be unlimited on higher tiers -- this still bounds how much work
-# one crawl request can trigger).
-MAX_CRAWL_PAGES = 40
-CRAWL_USER_AGENT = "MielikkixBot/1.0"
-_NON_PAGE_EXTENSIONS = (
-    ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".ico",
-    ".zip", ".mp4", ".mp3", ".css", ".js", ".xml", ".json", ".woff", ".woff2",
-)
 
 
 def _extract_text(path: str, file_type: str) -> str:
@@ -94,179 +95,16 @@ def _chunk_text(text: str, size: int, overlap: int) -> List[str]:
     return chunks
 
 
-def _assert_public_url(url: str) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
-        raise HTTPException(status_code=400, detail="Only http/https URLs are supported")
-    if not parsed.hostname:
-        raise HTTPException(status_code=400, detail="Invalid URL")
-
-    # Basic SSRF guard: a business owner could otherwise point this at
-    # localhost/internal services/cloud metadata endpoints. Resolve the
-    # hostname and reject anything that isn't a genuine public address.
-    try:
-        resolved_ip = socket.gethostbyname(parsed.hostname)
-    except socket.gaierror:
-        raise HTTPException(status_code=400, detail="Could not resolve URL host")
-
-    ip = ipaddress.ip_address(resolved_ip)
-    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
-        raise HTTPException(status_code=400, detail="URLs pointing to private/internal addresses are not allowed")
-
-
-def _site_root(url: str) -> str:
-    parsed = urlparse(url)
-    return f"{parsed.scheme}://{parsed.netloc}"
-
-
-async def _get_robot_parser(base_url: str) -> RobotFileParser:
-    parser = RobotFileParser()
-    robots_url = urljoin(base_url + "/", "robots.txt")
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            resp = await client.get(robots_url, headers={"User-Agent": CRAWL_USER_AGENT})
-        if resp.status_code >= 400:
-            parser.parse([])  # no robots.txt -- allow everything
-        else:
-            parser.parse(resp.text.splitlines())
-    except httpx.HTTPError:
-        parser.parse([])  # unreachable robots.txt -- fail open, same as "not present"
-    return parser
-
-
-def _looks_like_page(url: str) -> bool:
-    path = urlparse(url).path.lower()
-    if any(path.endswith(ext) for ext in _NON_PAGE_EXTENSIONS):
-        return False
-    return True
-
-
-async def _fetch_sitemap_xml(sitemap_url: str, _depth: int = 0) -> List[str]:
-    """Fetches and parses one sitemap file at an already-complete URL --
-    follows one level of <sitemapindex> nesting. Best-effort: returns []
-    on any failure rather than raising, since a missing/broken sitemap
-    just means falling back to a link crawl."""
-    if _depth > 1:  # one level of sitemap-index nesting is enough
-        return []
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(sitemap_url, headers={"User-Agent": CRAWL_USER_AGENT})
-        if resp.status_code >= 400 or not resp.text.strip():
-            return []
-        root = ElementTree.fromstring(resp.content)
-    except (httpx.HTTPError, ElementTree.ParseError):
-        return []
-
-    tag = root.tag.lower()
-    if tag.endswith("sitemapindex"):
-        nested = [el.text.strip() for el in root.iter() if el.tag.lower().endswith("loc") and el.text]
-        urls: List[str] = []
-        for nested_url in nested[:5]:  # bounded -- don't chase an unbounded index
-            urls.extend(await _fetch_sitemap_xml(nested_url, _depth + 1))
-            if len(urls) >= MAX_CRAWL_PAGES:
-                break
-        return urls
-    return [el.text.strip() for el in root.iter() if el.tag.lower().endswith("loc") and el.text]
-
-
-async def _discover_sitemap_urls(base_url: str) -> List[str]:
-    """base_url is a site root (e.g. https://example.com) -- resolves it to
-    /sitemap.xml once, then hands off to _fetch_sitemap_xml for the actual
-    fetch+parse(+nested-index-following)."""
-    sitemap_url = urljoin(base_url + "/", "sitemap.xml")
-    return await _fetch_sitemap_xml(sitemap_url)
-
-
-async def _discover_by_crawling(base_url: str, max_pages: int = MAX_CRAWL_PAGES) -> List[str]:
-    from bs4 import BeautifulSoup
-
-    domain = urlparse(base_url).netloc
-    seen = {base_url}
-    queue = [(base_url, 0)]
-    found: List[str] = []
-
-    async with httpx.AsyncClient(timeout=10) as client:
-        while queue and len(found) < max_pages:
-            url, depth = queue.pop(0)
-            try:
-                _assert_public_url(url)
-                resp = await client.get(url, headers={"User-Agent": CRAWL_USER_AGENT})
-            except (httpx.HTTPError, HTTPException):
-                continue
-            if resp.status_code >= 400 or "text/html" not in resp.headers.get("content-type", ""):
-                continue
-            found.append(url)
-            if depth >= 2:
-                continue
-            soup = BeautifulSoup(resp.text, "html.parser")
-            for a in soup.find_all("a", href=True):
-                link = urljoin(url, a["href"]).split("#")[0]
-                parsed = urlparse(link)
-                if parsed.netloc != domain or link in seen or not _looks_like_page(link):
-                    continue
-                seen.add(link)
-                if len(seen) <= max_pages * 4:  # bound queue growth on link-heavy pages
-                    queue.append((link, depth + 1))
-    return found
-
-
-async def discover_website_pages(url: str) -> List[str]:
-    """Sitemap first, link-crawl fallback; filtered by robots.txt and capped
-    at MAX_CRAWL_PAGES either way."""
-    _assert_public_url(url)
-    base_url = _site_root(url)
-
-    candidates = await _discover_sitemap_urls(base_url)
-    if not candidates:
-        candidates = await _discover_by_crawling(base_url)
-
-    robots = await _get_robot_parser(base_url)
-    seen = set()
-    pages: List[str] = []
-    for page_url in candidates:
-        if page_url in seen or not _looks_like_page(page_url):
-            continue
-        seen.add(page_url)
-        if urlparse(page_url).netloc != urlparse(base_url).netloc:
-            continue
-        if not robots.can_fetch(CRAWL_USER_AGENT, page_url):
-            continue
-        pages.append(page_url)
-        if len(pages) >= MAX_CRAWL_PAGES:
-            break
-    return pages
-
-
 async def _fetch_url_text(url: str) -> str:
     from bs4 import BeautifulSoup
 
-    # Redirects are followed manually (never via httpx's follow_redirects)
-    # and each hop is re-validated with _assert_public_url. Otherwise a
-    # business-controlled public URL could 302 to a private/internal
-    # address or cloud metadata endpoint and have that response ingested —
-    # the one-time check on the original URL wouldn't catch that.
-    max_redirects = 5
-    current_url = url
-    async with httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
-        for _ in range(max_redirects + 1):
-            _assert_public_url(current_url)
-            try:
-                resp = await client.get(current_url, headers={"User-Agent": "MielikkixBot/1.0"})
-            except httpx.HTTPError:
-                raise HTTPException(status_code=400, detail="Could not fetch that URL")
-            if resp.is_redirect:
-                location = resp.headers.get("location")
-                if not location:
-                    raise HTTPException(status_code=400, detail="Invalid redirect response")
-                current_url = str(httpx.URL(current_url).join(location))
-                continue
-            break
-        else:
-            raise HTTPException(status_code=400, detail="Too many redirects")
+    # fetch_with_redirects already re-validates every redirect hop with
+    # assert_public_url (see web_crawl.py) -- a business-controlled public
+    # URL could otherwise 302 to a private/internal address or cloud
+    # metadata endpoint and have that response ingested.
+    resp, _chain = await web_crawl.fetch_with_redirects(url, max_bytes=MAX_URL_FETCH_BYTES)
     if resp.status_code >= 400:
         raise HTTPException(status_code=400, detail=f"URL returned status {resp.status_code}")
-    if len(resp.content) > MAX_URL_FETCH_BYTES:
-        raise HTTPException(status_code=400, detail="Page is too large")
 
     soup = BeautifulSoup(resp.text, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):

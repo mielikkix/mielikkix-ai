@@ -2,6 +2,8 @@
   "NAV": {
     "FEATURES": "Features",
     "PRICING": "Pricing",
+    "PRICING_CHATBOT": "Chat Widget",
+    "PRICING_AGENTS": "AI Agents",
     "AGENTS": "Agents"
   },
   "BUTTONS": {

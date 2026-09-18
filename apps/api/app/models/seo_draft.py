@@ -18,6 +18,11 @@ class SeoDraft(Base):
     business_id is carried here too, even though it's derivable via
     product_id -> Product.business_id, so a tenant-scoped list query
     doesn't need a join for the common case of "show me my drafts".
+
+    finding_id is nullable and set only when a draft was generated FROM an
+    SEO Audit finding (see this agent's CLAUDE.md, Phase 12) -- a draft
+    generated from the original product-picker flow leaves it null exactly
+    as before this column existed.
     """
 
     __tablename__ = "seo_drafts"
@@ -25,6 +30,7 @@ class SeoDraft(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id"), nullable=False, index=True)
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False, index=True)
+    finding_id = Column(UUID(as_uuid=True), ForeignKey("seo_findings.id", ondelete="SET NULL"), nullable=True, index=True)
     draft_description = Column(Text, nullable=False)
     draft_seo_title = Column(Text, nullable=False)
     draft_meta_description = Column(Text, nullable=False)
@@ -32,3 +38,4 @@ class SeoDraft(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     product = relationship("Product")
+    finding = relationship("SeoFinding")

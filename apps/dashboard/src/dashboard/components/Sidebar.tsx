@@ -9,7 +9,7 @@ const nav = [
   { to: '/dashboard/faqs', icon: BookOpen, label: 'FAQs', color: 'text-emerald-500' },
   { to: '/dashboard/documents', icon: FileText, label: 'Documents', color: 'text-amber-500' },
   { to: '/dashboard/products', icon: ShoppingBag, label: 'Products', color: 'text-indigo-500' },
-  { to: '/dashboard/seo', icon: Sparkles, label: 'SEO Copywriter', color: 'text-fuchsia-500' },
+  { to: '/dashboard/seo', icon: Sparkles, label: 'SEO', color: 'text-fuchsia-500' },
   { to: '/dashboard/reviews', icon: Star, label: 'Review & Reputation', color: 'text-yellow-500' },
   { to: '/dashboard/email-marketing', icon: Mail, label: 'Email Marketing', color: 'text-rose-500' },
   { to: '/dashboard/leads', icon: Users, label: 'Leads', color: 'text-pink-500' },

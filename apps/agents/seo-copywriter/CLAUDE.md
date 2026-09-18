@@ -140,25 +140,25 @@ Phase 12) so a draft generated from "Generate SEO Title" on a specific
 finding is traceable back to what it fixes; drafts generated from the
 existing product-picker flow leave it null exactly as today.
 
-### Entitlement/plan decisions needing your input before Stage 1 (see section D/E below)
+### Entitlement/plan decisions (resolved) and still-open ones
 
-1. Is the full audit feature gated by the existing
-   `seo_copywriter_enabled`, or does it need its own flag (e.g.
-   `seo_audit_enabled`) on a higher tier? Auditing 10 websites is a much
-   bigger deliverable than bulk product-copy generation.
-2. Does `SeoWebsite` need its own count limit (a `max_seo_websites` on
-   `PlanLimits`, or an add-on like `Business.api_access_addon`), given the
-   stated 13+-website agency use case almost certainly exceeds normal
-   per-tenant plan tiers?
-3. Phase 9 (Core Web Vitals) needs a real data source — Google PageSpeed
-   Insights API is free (quota-limited) and the natural first choice; needs
-   an API key in `.env`. Confirm before Stage 8.
-4. Phase 14 (keyword opportunities) has **no real search-volume/CPC/
-   competition data source connected anywhere in this repo.** Without
-   budget for DataForSEO/Ahrefs/SEMrush/etc., that stage ships keyword
-   *ideas* only, with volume/CPC/competition always literally labeled "Not
-   available" — confirm that's acceptable before Stage 9, or scope a data
-   source.
+1. **Resolved.** Every Force agent (including this one) is sold standalone
+   via `BusinessAgentAccess`/`agent_access_service.py`
+   (`seo_audit_optimization` key) — never bundled into the chat-widget
+   plan. See this section's earlier "Standalone agent billing" writeup.
+2. **Resolved.** `SeoWebsite` has its own limit, independent of
+   `PlanLimits.max_websites`: `DEFAULT_SEO_WEBSITE_LIMIT = 10`
+   (`app/core/agent_catalog.py`), raised per-business via
+   `Business.seo_website_limit_override` for the 13+-website agency case.
+3. **Still open.** Phase 9 (Core Web Vitals) needs a real data source —
+   Google PageSpeed Insights API is free (quota-limited) and the natural
+   first choice; needs an API key in `.env`. Confirm before Stage 8.
+4. **Still open.** Phase 14 (keyword opportunities) has **no real search-
+   volume/CPC/competition data source connected anywhere in this repo.**
+   Without budget for DataForSEO/Ahrefs/SEMrush/etc., that stage ships
+   keyword *ideas* only, with volume/CPC/competition always literally
+   labeled "Not available" — confirmed acceptable; revisit only if a
+   client asks for real numbers.
 
 ### Deterministic vs. LLM — hard boundary (Phase 18)
 
@@ -180,20 +180,63 @@ matters* and *drafts the fix*, both always subject to approval.
 
 ### Staged implementation order (commit after each stage; regression-test the Copywriter every time)
 
-1. **Architecture + DB** — `SeoWebsite`, `SeoAudit`, `SeoCrawledPage`,
-   `SeoFinding` models + migration; CRUD API for websites.
-2. **Crawler extraction** — pull the shared fetch/SSRF/robots/sitemap layer
-   out of `document_service.py` into a module both it and SEO import;
-   per-page structured extraction (title/meta/headings/canonical/links/
-   images) on top of it.
-3. **Technical SEO analyzer** — robots.txt/sitemap/canonical/meta-robots/
-   indexability rules, fixed severities.
-4. **On-page analyzer** — titles, meta descriptions, headings, thin/
-   duplicate content signals, image alt checks, internal-link counts.
-5. **Audit dashboard** — health scores (labeled as internal diagnostic,
-   not a ranking score), findings list, drill-down.
-6. **Recommendation engine** — LLM explanation pass + prioritized action
-   plan (Phase 11's Priority 1/2/3 structure), structured-JSON validated.
+1. **DONE — Architecture + DB.** `SeoWebsite`, `SeoAudit`, `SeoCrawledPage`,
+   `SeoFinding`, `SeoKeywordOpportunity` models + migration
+   (`a7d3f9c1e6b8`); CRUD API for websites
+   (`app/api/agents_seo_audit.py`, `app/services/seo_website_service.py`).
+   Also resolved the two entitlement/limit questions below: agent access
+   goes through `agent_access_service` (`seo_audit_optimization` key,
+   see the "Standalone agent billing" section above), and
+   `Business.seo_website_limit_override` + `DEFAULT_SEO_WEBSITE_LIMIT`
+   (10, in `app/core/agent_catalog.py`) resolve the website-count-limit
+   question. 13 tests in `tests/test_seo_websites.py`.
+2. **DONE — Crawler extraction.** `app/services/web_crawl.py` now holds
+   the shared fetch/SSRF/robots/sitemap layer (`document_service.py`
+   re-exports the old names, unaffected); `app/services/
+   seo_page_analyzer.py` does per-page structured extraction (title/meta/
+   canonical/meta-robots/headings/links/images/`content_hash`) on top of
+   `web_crawl.fetch_with_redirects`. `app/services/seo_audit_service.py`
+   orchestrates the crawl into `SeoCrawledPage` rows via `run_audit`
+   (a `BackgroundTasks` worker, same shape as `crawl_and_ingest_website`).
+   41 tests (`test_web_crawl.py`, `test_seo_page_analyzer.py`,
+   `test_seo_audits.py`).
+3. **DONE — Technical SEO analyzer.** `app/services/
+   seo_technical_analyzer.py` — robots.txt (missing/blocks-entire-site/
+   missing sitemap declaration), sitemap (missing/blocked-by-robots
+   conflict), and per-page (broken page, long redirect chain, noindex,
+   canonical) checks, all fixed-severity. Wired into `run_audit`, sets
+   `SeoAudit.health_technical`. 22 unit + 9 integration tests.
+4. **DONE — On-page analyzer.** `app/services/seo_onpage_analyzer.py` —
+   title/meta-description length checks, missing H1 (high) vs. multiple H1
+   (informational, per this file's own "don't assume it's wrong" rule),
+   thin content, image alt-text counts, and cross-page duplicate title/
+   meta/content checks (content duplication via a real SHA-256
+   `content_hash` of each page's cleaned text, not guessed). Shared
+   `FindingDraft`/`health_score` factored into `seo_finding_common.py`.
+   Sets `SeoAudit.health_on_page`. 21 unit + 3 integration tests.
+5. **DONE — Audit dashboard.** `seo_audit_service.overall_health` (average
+   of whichever `health_*` categories have actually run — never treats an
+   unrun category as 0) and `finding_severity_counts` (real counts, zero-
+   filled) surfaced on every `SeoAuditOut` response. Dashboard's
+   `SeoHealthPanel` shows the composite score (explicitly captioned "not a
+   Google ranking signal"), a per-category tile row, and clickable
+   severity counts that drill into `FindingsList` filtered by that
+   severity. 8 tests (`test_seo_audit_summary.py`).
+6. **DONE — Recommendation engine.** `app/services/
+   seo_recommendation_service.py` — the FIRST LLM call in this pipeline.
+   `build_action_plan()` is entirely deterministic: groups an audit's
+   `SeoFinding` rows by `rule_code` into one item per issue type (all
+   affected URLs listed together), maps severity → Priority 1/2/3 and two
+   fixed lookup tables → `expected_benefit`/`implementation_difficulty` —
+   no LLM guessing on those fields. `generate_executive_summary()` is the
+   one LLM call: a 3-5 sentence narrative fed ONLY the audit's own real
+   counts/issue labels (`json_mode`, validated, returns `None` — never a
+   fabricated placeholder — on any parse/call failure). Stored on
+   `SeoAudit.executive_summary` (migration `c4f8a2b6e1d3`). New endpoint
+   `GET .../audits/{id}/action-plan`. Dashboard shows the summary inline
+   on `SeoHealthPanel` and a new "Action Plan" tab grouped by priority.
+   23 tests (`test_seo_recommendation_service.py`,
+   `test_seo_recommendation_integration.py`).
 7. **Integrate existing Copywriter** — "Generate SEO Title/Meta/Alt Text/
    Content Improvement/Internal Linking Suggestion" actions on a finding,
    writing into (extended) `SeoDraft`; SEO Draft Workspace UI (Phase 13).
@@ -208,13 +251,15 @@ matters* and *drafts the fix*, both always subject to approval.
 
 ### UI (Phase 1/20)
 
-Sidebar nav item stays a single entry (currently `/dashboard/seo`, labeled
-"SEO Copywriter" in `Sidebar.tsx`) — relabel to **"SEO"** once Stage 5
-lands, with in-page tabs: **Websites | Audits | Recommendations |
-Content** (Content = today's existing product-picker/draft-review flow,
-unchanged, just relocated under a tab). No new nav item, no new top-level
-route family beyond what's needed for deep-linking a specific audit
-(`/dashboard/seo/audits/:id`) once Stage 5 exists.
+**Done through Stage 5.** Sidebar nav item is a single entry
+(`/dashboard/seo`, relabeled "SEO" in `Sidebar.tsx`), with in-page tabs:
+**Websites** (register/list/delete + per-website "Run audit" +
+`SeoHealthPanel`: overall score, per-category tiles, severity-count
+drill-down, findings list with an "Ignore" action) and **Content** (the
+original product-picker/draft-review flow, unchanged). No new nav item.
+A **Recommendations** tab (Stage 6) and deep-linkable
+`/dashboard/seo/audits/:id` route are still open, not yet needed since
+everything so far lives inline on the Websites tab.
 
 ### Testing (Phase 23)
 

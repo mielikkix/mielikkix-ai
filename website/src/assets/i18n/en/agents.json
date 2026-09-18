@@ -1,7 +1,7 @@
 {
   "SEO": {
     "TITLE": "AI Agents for Your Business",
-    "DESCRIPTION": "AI Chatbot, Voice Receptionist, and Booking Assistant -- ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
+    "DESCRIPTION": "AI Chatbot, Voice Receptionist, Booking Assistant, and SEO Audit & Optimize -- ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
   },
   "HERO": {
     "LINE1": "AI Agents Built",
@@ -32,6 +32,12 @@
         "DESCRIPTION": "An AI booking assistant that helps customers schedule appointments and manage booking-related conversations.",
         "STATUS": "Live Demo",
         "CTA": "Try Booking Assistant"
+      },
+      {
+        "NAME": "SEO Audit & Optimize",
+        "DESCRIPTION": "A real crawl of your website, turned into a prioritized, plain-language action plan -- technical SEO, on-page issues, and an AI-written summary of what to fix first.",
+        "STATUS": "New",
+        "CTA": "See Pricing"
       }
     ]
   },
@@ -67,10 +73,6 @@
       {
         "NAME": "Email Marketing",
         "DESCRIPTION": "Create personalized campaigns, follow-ups, and customer communication workflows."
-      },
-      {
-        "NAME": "SEO & Content",
-        "DESCRIPTION": "Generate optimized content, product descriptions, and metadata."
       },
       {
         "NAME": "Feedback & Surveys",

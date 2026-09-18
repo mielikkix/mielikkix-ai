@@ -30,8 +30,10 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app.core.agent_catalog import AGENTS
 from app.core.database import SessionLocal
 from app.models.business import Business
+from app.services import agent_access_service
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 MARKETING_DIR = REPO_ROOT / "marketing"
@@ -63,6 +65,20 @@ def _bump_plan_to_unlimited(business_id: str) -> None:
         biz.plan = "business"
         biz.status = "active"
         db.commit()
+    finally:
+        db.close()
+
+
+def _grant_all_agents(business_id: str) -> None:
+    """This IS Mielikkix's own business record -- the one account meant to
+    have every Force agent active, since agents are otherwise always sold
+    separately from the chat-widget plan (see agent_access_service.py's
+    own module docstring). Granted directly the same way _bump_plan_to_
+    unlimited above is -- no payment processor exists to go through."""
+    db = SessionLocal()
+    try:
+        for agent_key in AGENTS:
+            agent_access_service.grant_agent_access(db, business_id, agent_key)
     finally:
         db.close()
 
@@ -99,6 +115,9 @@ def main():
 
         _bump_plan_to_unlimited(business_id)
         print("  plan bumped to unlimited document uploads (local dev only)")
+
+        _grant_all_agents(business_id)
+        print("  all Force agents granted (this is Mielikkix's own business record)")
 
         print("Queuing a crawl of the real public mielikkix.ai site ...")
         resp = client.post(

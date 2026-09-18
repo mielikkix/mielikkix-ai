@@ -21,6 +21,13 @@ class AdminBusinessPlanUpdate(BaseModel):
     plan: Literal["free", "basic", "business", "growth"]
 
 
+class AdminAgentAccessUpdate(BaseModel):
+    # Same "no payment processor yet, admin sets it directly" reasoning as
+    # AdminBusinessPlanUpdate above, but for a Force agent purchase instead
+    # of the chat-widget plan -- see agent_access_service.py.
+    active: bool
+
+
 class AdminBusinessListItem(BaseModel):
     id: UUID
     name: str
@@ -84,6 +91,7 @@ class AdminBusinessDetailOut(BaseModel):
     plan_limits: PlanLimitsOut
     usage: Dict[str, int]
     features: Dict[str, bool | str]
+    agent_access: Dict[str, bool]
 
     faqs: int
     leads: int

@@ -17,8 +17,8 @@ from app.services import campaign_service
 from app.services.campaign_service import CampaignSendError
 
 
-def _entitle(business, set_plan):
-    set_plan(business["business_id"], "business")
+def _entitle(business, grant_agent):
+    grant_agent(business["business_id"], "email_marketing")
 
 
 # --- entitlement gating ---------------------------------------------------
@@ -39,8 +39,8 @@ def test_create_campaign_requires_login(client):
 # --- CRUD (real DB, no Mailchimp involved) --------------------------------
 
 
-def test_create_and_get_campaign(client, business, set_plan):
-    _entitle(business, set_plan)
+def test_create_and_get_campaign(client, business, grant_agent):
+    _entitle(business, grant_agent)
 
     create_resp = client.post(
         "/api/businesses/me/campaigns", headers=business["headers"],
@@ -55,8 +55,8 @@ def test_create_and_get_campaign(client, business, set_plan):
     assert get_resp.json()["subject"] == "Hello"
 
 
-def test_get_nonexistent_campaign_404s(client, business, set_plan):
-    _entitle(business, set_plan)
+def test_get_nonexistent_campaign_404s(client, business, grant_agent):
+    _entitle(business, grant_agent)
 
     resp = client.get(
         "/api/businesses/me/campaigns/00000000-0000-0000-0000-000000000000", headers=business["headers"]
@@ -65,10 +65,10 @@ def test_get_nonexistent_campaign_404s(client, business, set_plan):
     assert resp.status_code == 404
 
 
-def test_list_campaigns_scoped_to_tenant(client, business, signup, set_plan):
-    _entitle(business, set_plan)
+def test_list_campaigns_scoped_to_tenant(client, business, signup, grant_agent):
+    _entitle(business, grant_agent)
     other = signup()
-    set_plan(other["business_id"], "business")
+    grant_agent(other["business_id"], "email_marketing")
     client.post("/api/businesses/me/campaigns", headers=other["headers"], json={"subject": "Not yours"})
 
     resp = client.get("/api/businesses/me/campaigns", headers=business["headers"])
@@ -77,10 +77,10 @@ def test_list_campaigns_scoped_to_tenant(client, business, signup, set_plan):
     assert resp.json() == []
 
 
-def test_get_another_tenants_campaign_404s(client, business, signup, set_plan):
-    _entitle(business, set_plan)
+def test_get_another_tenants_campaign_404s(client, business, signup, grant_agent):
+    _entitle(business, grant_agent)
     other = signup()
-    set_plan(other["business_id"], "business")
+    grant_agent(other["business_id"], "email_marketing")
     other_campaign = client.post("/api/businesses/me/campaigns", headers=other["headers"], json={"subject": "Not yours"}).json()
 
     resp = client.get(f"/api/businesses/me/campaigns/{other_campaign['id']}", headers=business["headers"])
@@ -88,8 +88,8 @@ def test_get_another_tenants_campaign_404s(client, business, signup, set_plan):
     assert resp.status_code == 404
 
 
-def test_update_draft_campaign(client, business, set_plan):
-    _entitle(business, set_plan)
+def test_update_draft_campaign(client, business, grant_agent):
+    _entitle(business, grant_agent)
     campaign_id = client.post("/api/businesses/me/campaigns", headers=business["headers"], json={"subject": "Old"}).json()["id"]
 
     resp = client.patch(f"/api/businesses/me/campaigns/{campaign_id}", headers=business["headers"], json={"subject": "New"})
@@ -98,8 +98,8 @@ def test_update_draft_campaign(client, business, set_plan):
     assert resp.json()["subject"] == "New"
 
 
-def test_approve_campaign_missing_fields_returns_400(client, business, set_plan):
-    _entitle(business, set_plan)
+def test_approve_campaign_missing_fields_returns_400(client, business, grant_agent):
+    _entitle(business, grant_agent)
     campaign_id = client.post("/api/businesses/me/campaigns", headers=business["headers"], json={"subject": "Old"}).json()["id"]
 
     resp = client.post(f"/api/businesses/me/campaigns/{campaign_id}/approve", headers=business["headers"])
@@ -107,8 +107,8 @@ def test_approve_campaign_missing_fields_returns_400(client, business, set_plan)
     assert resp.status_code == 400
 
 
-def test_approve_campaign_success(client, business, set_plan):
-    _entitle(business, set_plan)
+def test_approve_campaign_success(client, business, grant_agent):
+    _entitle(business, grant_agent)
     campaign_id = client.post(
         "/api/businesses/me/campaigns", headers=business["headers"],
         json={"subject": "Hi", "body_html": "<p>hi</p>", "reply_to": "owner@acme.com", "mailchimp_audience_id": "aud1"},
@@ -130,8 +130,8 @@ def _make_campaign(client, business):
     ).json()["id"]
 
 
-def test_send_campaign_value_error_maps_to_400(client, business, set_plan, monkeypatch):
-    _entitle(business, set_plan)
+def test_send_campaign_value_error_maps_to_400(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
     monkeypatch.setattr(campaign_service, "send_campaign", AsyncMock(side_effect=ValueError("not approved")))
 
@@ -141,8 +141,8 @@ def test_send_campaign_value_error_maps_to_400(client, business, set_plan, monke
     assert resp.json()["detail"] == "not approved"
 
 
-def test_send_campaign_upstream_failure_maps_to_502(client, business, set_plan, monkeypatch):
-    _entitle(business, set_plan)
+def test_send_campaign_upstream_failure_maps_to_502(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
     monkeypatch.setattr(campaign_service, "send_campaign", AsyncMock(side_effect=CampaignSendError("mailchimp down")))
 
@@ -152,8 +152,8 @@ def test_send_campaign_upstream_failure_maps_to_502(client, business, set_plan, 
     assert resp.json()["detail"] == "mailchimp down"
 
 
-def test_send_campaign_success_returns_updated_campaign(client, business, set_plan, monkeypatch, db_session):
-    _entitle(business, set_plan)
+def test_send_campaign_success_returns_updated_campaign(client, business, grant_agent, monkeypatch, db_session):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
 
     async def _fake_send(db, business_id, cid):
@@ -175,8 +175,8 @@ def test_send_campaign_success_returns_updated_campaign(client, business, set_pl
     assert resp.json()["mailchimp_campaign_id"] == "camp1"
 
 
-def test_schedule_campaign_maps_errors(client, business, set_plan, monkeypatch):
-    _entitle(business, set_plan)
+def test_schedule_campaign_maps_errors(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
     monkeypatch.setattr(campaign_service, "schedule_campaign", AsyncMock(side_effect=ValueError("must be in the future")))
     future = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
@@ -188,8 +188,8 @@ def test_schedule_campaign_maps_errors(client, business, set_plan, monkeypatch):
     assert resp.status_code == 400
 
 
-def test_send_test_email_maps_errors(client, business, set_plan, monkeypatch):
-    _entitle(business, set_plan)
+def test_send_test_email_maps_errors(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
     monkeypatch.setattr(campaign_service, "send_test_email", AsyncMock(side_effect=CampaignSendError("mailchimp down")))
 
@@ -200,8 +200,8 @@ def test_send_test_email_maps_errors(client, business, set_plan, monkeypatch):
     assert resp.status_code == 502
 
 
-def test_get_campaign_report_success(client, business, set_plan, monkeypatch):
-    _entitle(business, set_plan)
+def test_get_campaign_report_success(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
 
     from app.integrations.email_marketing_providers import CampaignReport
@@ -221,8 +221,8 @@ def test_get_campaign_report_success(client, business, set_plan, monkeypatch):
     }
 
 
-def test_get_campaign_report_not_sent_yet_maps_to_400(client, business, set_plan, monkeypatch):
-    _entitle(business, set_plan)
+def test_get_campaign_report_not_sent_yet_maps_to_400(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
     campaign_id = _make_campaign(client, business)
     monkeypatch.setattr(campaign_service, "get_campaign_report", AsyncMock(side_effect=ValueError("not sent yet")))
 

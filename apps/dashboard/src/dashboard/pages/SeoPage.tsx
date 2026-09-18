@@ -4,8 +4,8 @@ import { Sparkles, Check, X } from 'lucide-react'
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
-import { PlanGate } from '../../shared/components/PlanGate'
-import { usePlan } from '../../shared/hooks/usePlan'
+import { AgentGate } from '../../shared/components/AgentGate'
+import { useAgentAccess } from '../../shared/hooks/usePlan'
 
 interface Product {
   id: string
@@ -162,16 +162,16 @@ function SeoPageContent() {
 }
 
 export function SeoPage() {
-  const { data: plan, isLoading } = usePlan()
+  const { data: access, isLoading } = useAgentAccess()
   if (isLoading) return null
 
-  if (!plan?.features.seo_copywriter_enabled) {
+  if (!access?.seo_audit_optimization) {
     return (
       <div className="space-y-6">
         <h1 className="text-4xl font-bold text-slate-900">SEO Copywriter</h1>
-        <PlanGate feature="seo_copywriter_enabled">
+        <AgentGate agentKey="seo_audit_optimization">
           <span />
-        </PlanGate>
+        </AgentGate>
       </div>
     )
   }

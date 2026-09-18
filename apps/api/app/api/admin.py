@@ -9,6 +9,7 @@ from ..schemas.admin import (
     AdminBusinessDetailOut,
     AdminBusinessStatusUpdate,
     AdminBusinessPlanUpdate,
+    AdminAgentAccessUpdate,
     AdminOverviewOut,
     AdminLLMUsageOut,
     AdminBookingListOut,
@@ -59,6 +60,16 @@ def set_business_plan(business_id: str, body: AdminBusinessPlanUpdate, db: Sessi
 @router.patch("/businesses/{business_id}/status", response_model=AdminBusinessDetailOut)
 def set_business_status(business_id: str, body: AdminBusinessStatusUpdate, db: Session = Depends(get_db)):
     detail = admin_service.set_business_status(db, business_id, body.status)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Business not found")
+    return detail
+
+
+@router.patch("/businesses/{business_id}/agents/{agent_key}", response_model=AdminBusinessDetailOut)
+def set_business_agent_access(
+    business_id: str, agent_key: str, body: AdminAgentAccessUpdate, db: Session = Depends(get_db)
+):
+    detail = admin_service.set_business_agent_access(db, business_id, agent_key, body.active)
     if not detail:
         raise HTTPException(status_code=404, detail="Business not found")
     return detail

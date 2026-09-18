@@ -11,15 +11,12 @@ fast calls to Mailchimp's own Campaigns API (create + set content + one
 action), not a slow per-recipient loop, so unlike this feature's abandoned
 Option B design, none of these routes need FastAPI's BackgroundTasks.
 
-Every route requires the email_marketing_enabled entitlement, checked via
-plan_service.require_feature -- the exact same call mailchimp_oauth.py's
-own /authorize already uses (see that file). This IS a pre-existing
-inconsistency with root CLAUDE.md convention #2 ("entitlements checked in
-packages/billing, nowhere else") -- app/core/plans.py/app/services/plan_
-service.py is where every entitlement check in this codebase actually
-lives today, not packages/billing. Matching that existing (if imperfect)
-convention here is deliberate: this file does not newly diverge from it,
-and fixing that drift is out of scope for this feature.
+Every route requires the "email_marketing" agent entitlement, checked via
+agent_access_service.require_agent_access -- the exact same call
+mailchimp_oauth.py's own /authorize already uses (see that file). Email
+Marketing is purchased separately from the chat-widget plan, like every
+other Force agent -- see apps/api/app/core/agent_catalog.py and
+apps/agents/seo-copywriter/CLAUDE.md's "Standalone agent billing" decision.
 """
 
 from dataclasses import asdict
@@ -35,13 +32,13 @@ from ..core.dependencies import get_current_business, get_current_user
 from ..models.business import Business
 from ..models.campaign import Campaign
 from ..models.user import User
-from ..services import campaign_service, plan_service
+from ..services import agent_access_service, campaign_service
 
 router = APIRouter(prefix="/api/businesses/me/campaigns", tags=["email-marketing-campaigns"])
 
 
-def _require_enabled(business: Business) -> None:
-    plan_service.require_feature(business, "email_marketing_enabled")
+def _require_enabled(db: Session, business: Business) -> None:
+    agent_access_service.require_agent_access(db, business, "email_marketing")
 
 
 class _CampaignOut(BaseModel):
@@ -98,7 +95,7 @@ def list_campaigns(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     campaigns = campaign_service.list_campaigns(db, str(current_user.business_id), status=status)
     return [_CampaignOut.from_orm_campaign(c) for c in campaigns]
 
@@ -120,7 +117,7 @@ def create_campaign(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     campaign = campaign_service.create_draft(db, str(current_user.business_id), **body.model_dump())
     return _CampaignOut.from_orm_campaign(campaign)
 
@@ -132,7 +129,7 @@ def get_campaign(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         campaign = campaign_service.get_campaign(db, str(current_user.business_id), campaign_id)
     except ValueError as exc:
@@ -158,7 +155,7 @@ def update_campaign(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     # exclude_unset -- a PATCH only ever touches fields the caller actually
     # sent, same reasoning as every other partial-update endpoint in this
     # codebase; a field the caller omitted must never be overwritten with None.
@@ -177,7 +174,7 @@ def approve_campaign(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         campaign = campaign_service.approve_campaign(db, str(current_user.business_id), campaign_id)
     except ValueError as exc:
@@ -199,7 +196,7 @@ async def send_test_email(
 ):
     """Sends a real Mailchimp test email so a human can review actual
     rendered content before approving/sending -- never the real send."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         campaign = await campaign_service.send_test_email(db, str(current_user.business_id), campaign_id, body.test_emails)
     except ValueError as exc:
@@ -222,7 +219,7 @@ async def send_campaign(
     not a per-recipient loop this app runs itself (see campaign_service.py's
     own module docstring), so this is a plain synchronous request/response,
     not a background task."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         campaign = await campaign_service.send_campaign(db, str(current_user.business_id), campaign_id)
     except ValueError as exc:
@@ -246,7 +243,7 @@ async def schedule_campaign(
 ):
     """Schedules the campaign on Mailchimp itself -- Mailchimp fires the
     actual send at scheduled_at; nothing in this app needs to."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         campaign = await campaign_service.schedule_campaign(db, str(current_user.business_id), campaign_id, body.scheduled_at)
     except ValueError as exc:
@@ -270,7 +267,7 @@ async def get_campaign_report(
     refresh_campaign_status) -- opening this view is what notices a
     "sending" -> "sent" transition, since no webhook/poller runs in the
     background."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         report = await campaign_service.get_campaign_report(db, str(current_user.business_id), campaign_id)
     except ValueError as exc:

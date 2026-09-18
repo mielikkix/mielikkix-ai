@@ -29,10 +29,10 @@ export interface PlanFeatures {
   api_access: boolean
   api_access_addon_available: boolean
   priority_support: boolean
-  booking_enabled: boolean
-  seo_copywriter_enabled: boolean
-  review_reputation_enabled: boolean
-  email_marketing_enabled: boolean
+  // Force-agent access (booking_enabled/seo_copywriter_enabled/
+  // review_reputation_enabled/email_marketing_enabled) used to live here.
+  // Removed: every agent is sold separately from the chat-widget plan,
+  // never bundled into it -- see useAgentAccess() below.
 }
 
 export interface PlanStatus {
@@ -73,5 +73,29 @@ export function usePlanCatalog() {
   return useQuery<PlanCatalogEntry[]>({
     queryKey: ['plan-catalog'],
     queryFn: () => api.get('/businesses/plans').then((r) => r.data),
+  })
+}
+
+// Force agents (Voice Receptionist, Booking Assistant, Support Triage, SEO
+// Audit & Optimization, Review & Reputation, Email Marketing) -- each sold
+// separately from the chat-widget plan above. See agent_access_service.py.
+export interface AgentProduct {
+  key: string
+  name: string
+  price_usd: number
+  multi_tenant: boolean
+}
+
+export function useAgentAccess() {
+  return useQuery<Record<string, boolean>>({
+    queryKey: ['agent-access'],
+    queryFn: () => api.get('/businesses/me/agents').then((r) => r.data),
+  })
+}
+
+export function useAgentCatalog() {
+  return useQuery<AgentProduct[]>({
+    queryKey: ['agent-catalog'],
+    queryFn: () => api.get('/businesses/agents').then((r) => r.data),
   })
 }

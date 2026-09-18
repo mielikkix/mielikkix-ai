@@ -1,3 +1,4 @@
+from typing import Dict
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..core.database import get_db
@@ -19,8 +20,10 @@ from ..schemas.plan import (
     ApiKeyOut,
     NotificationChannelRequest,
 )
+from ..schemas.agent_access import AgentProductOut
 from ..core.plans import PLANS
-from ..services import plan_service
+from ..core.agent_catalog import AGENTS
+from ..services import agent_access_service, plan_service
 from ..rag.providers import get_llm_provider
 from ..rag.providers.base import LANGUAGE_NAMES
 from ..rag.pipeline import log_llm_usage
@@ -209,6 +212,33 @@ def set_api_access_addon(
     db.commit()
     db.refresh(business)
     return plan_service.get_plan_status(db, business)
+
+
+# ---------------------------------------------------------------------------
+# Force agents -- sold separately from the chat-widget plan above (see
+# apps/api/app/core/agent_catalog.py and apps/agents/seo-copywriter/
+# CLAUDE.md's "Standalone agent billing" decision). No payment processor
+# exists yet, same as the plan endpoints above -- activating a purchased
+# agent is a platform-admin action (PATCH /api/admin/businesses/{id}/
+# agents/{agent_key}, see admin_service) until real billing exists.
+# ---------------------------------------------------------------------------
+
+@router.get("/agents", response_model=list[AgentProductOut])
+def list_agent_catalog():
+    """Public agent catalog -- powers the "buy an agent" UI, no auth needed,
+    same shape as GET /plans above."""
+    return [
+        AgentProductOut(key=a.key, name=a.name, price_usd=a.price_usd, multi_tenant=a.multi_tenant)
+        for a in AGENTS.values()
+    ]
+
+
+@router.get("/me/agents", response_model=Dict[str, bool])
+def get_my_agent_access(business: Business = Depends(get_current_business), db: Session = Depends(get_db)):
+    """Which agents this business currently has active -- what the
+    dashboard reads to decide what to show/hide/lock, replacing the old
+    plan.features.*_enabled booleans this endpoint used to carry."""
+    return agent_access_service.list_agent_access(db, business.id)
 
 
 # ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@ from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
 from ..models.business import Business
 from ..models.user import User
-from ..services import plan_service, seo_service
+from ..services import agent_access_service, seo_service
 
 router = APIRouter(prefix="/api/agents/seo", tags=["seo-copywriter"])
 
@@ -48,7 +48,7 @@ async def generate_drafts(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    plan_service.require_feature(business, "seo_copywriter_enabled")
+    agent_access_service.require_agent_access(db, business, "seo_audit_optimization")
     drafts = await seo_service.generate_drafts(db, str(current_user.business_id), body.product_ids)
     return [_DraftOut.from_orm_draft(d) for d in drafts]
 
@@ -60,7 +60,7 @@ def list_drafts(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    plan_service.require_feature(business, "seo_copywriter_enabled")
+    agent_access_service.require_agent_access(db, business, "seo_audit_optimization")
     drafts = seo_service.list_drafts(db, str(current_user.business_id), status)
     return [_DraftOut.from_orm_draft(d) for d in drafts]
 
@@ -72,7 +72,7 @@ def approve_draft(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    plan_service.require_feature(business, "seo_copywriter_enabled")
+    agent_access_service.require_agent_access(db, business, "seo_audit_optimization")
     draft = seo_service.approve_draft(db, str(current_user.business_id), draft_id)
     if draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")
@@ -86,7 +86,7 @@ def reject_draft(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    plan_service.require_feature(business, "seo_copywriter_enabled")
+    agent_access_service.require_agent_access(db, business, "seo_audit_optimization")
     draft = seo_service.reject_draft(db, str(current_user.business_id), draft_id)
     if draft is None:
         raise HTTPException(status_code=404, detail="Draft not found")

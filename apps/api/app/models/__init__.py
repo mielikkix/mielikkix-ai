@@ -16,6 +16,7 @@ from .review import Review
 from .review_connection import ReviewConnection
 from .mailchimp_connection import MailchimpConnection
 from .campaign import Campaign
+from .agent_access import BusinessAgentAccess
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
@@ -24,5 +25,5 @@ __all__ = [
     "PasswordResetToken", "LLMUsageLog",
     "Ticket", "TicketMessage", "Booking", "CalendarConnection",
     "SeoDraft", "Review", "ReviewConnection", "MailchimpConnection",
-    "Campaign",
+    "Campaign", "BusinessAgentAccess",
 ]

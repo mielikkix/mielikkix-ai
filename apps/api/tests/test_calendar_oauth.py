@@ -64,8 +64,8 @@ def test_authorize_requires_booking_enabled_plan(client, business):
     assert resp.status_code == 403
 
 
-def test_authorize_503_when_oauth_client_not_configured(client, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+def test_authorize_503_when_oauth_client_not_configured(client, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "booking_assistant")
     monkeypatch.setattr(settings, "google_calendar_oauth_client_id", "")
     monkeypatch.setattr(settings, "google_calendar_oauth_client_secret", "")
 
@@ -76,8 +76,8 @@ def test_authorize_503_when_oauth_client_not_configured(client, business, set_pl
     assert resp.status_code == 503
 
 
-def test_authorize_redirects_to_google_consent_screen(client, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+def test_authorize_redirects_to_google_consent_screen(client, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "booking_assistant")
     monkeypatch.setattr(settings, "google_calendar_oauth_client_id", "test-client-id")
     monkeypatch.setattr(settings, "google_calendar_oauth_client_secret", "test-client-secret")
     fake_flow = MagicMock()

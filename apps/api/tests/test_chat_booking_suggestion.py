@@ -19,7 +19,7 @@ def _fake_run_rag(intent: str, confidence: float):
 
 @pytest.mark.asyncio
 async def test_booking_intent_suppresses_lead_capture_when_booking_enabled(
-    db_session, business, set_plan, monkeypatch
+    db_session, business, grant_agent, monkeypatch
 ):
     """A booking intent almost always also has low confidence (a brand-new
     business has no FAQ/document actually about booking) -- confirmed live,
@@ -27,7 +27,7 @@ async def test_booking_intent_suppresses_lead_capture_when_booking_enabled(
     widget showed both a lead form AND a booking panel stacked for the same
     message, and the booking one (the actually-relevant one) was easy to
     miss below the fold."""
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "booking_assistant")
     monkeypatch.setattr(chat_service, "run_rag", _fake_run_rag("booking", 0.0))
 
     req = ChatMessageRequest(business_id=business["business_id"], session_id="s1", message="book the meeting")
@@ -53,8 +53,8 @@ async def test_booking_intent_without_booking_enabled_falls_back_to_lead_capture
 
 
 @pytest.mark.asyncio
-async def test_low_confidence_non_booking_intent_still_suggests_lead(db_session, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+async def test_low_confidence_non_booking_intent_still_suggests_lead(db_session, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "booking_assistant")
     monkeypatch.setattr(chat_service, "run_rag", _fake_run_rag("faq", 0.1))
 
     req = ChatMessageRequest(business_id=business["business_id"], session_id="s1", message="what are your hours")
@@ -65,8 +65,8 @@ async def test_low_confidence_non_booking_intent_still_suggests_lead(db_session,
 
 
 @pytest.mark.asyncio
-async def test_lead_intent_still_suggests_lead_regardless_of_confidence(db_session, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+async def test_lead_intent_still_suggests_lead_regardless_of_confidence(db_session, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "booking_assistant")
     monkeypatch.setattr(chat_service, "run_rag", _fake_run_rag("lead", 0.9))
 
     req = ChatMessageRequest(business_id=business["business_id"], session_id="s1", message="I'd like to talk to sales")

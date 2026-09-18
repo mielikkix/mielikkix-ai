@@ -4,7 +4,7 @@ from ..models.business import Business, BusinessSettings
 from ..schemas.chat import ChatMessageRequest, ChatMessageResponse
 from ..rag.pipeline import run_rag
 from ..rag.language_detect import detect_message_language
-from ..services import plan_service
+from ..services import agent_access_service, plan_service
 from fastapi import HTTPException
 
 HISTORY_LIMIT = 6
@@ -100,8 +100,8 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
 
     # An ungated business's chatbot never offers booking in the first place
     # -- not just blocked after the fact by agents_booking.py's own
-    # plan_service.require_feature check on /request and /confirm.
-    suggest_booking = intent == "booking" and plan_service.resolve_features(business).get("booking_enabled", False)
+    # agent_access_service.require_agent_access check on /request and /confirm.
+    suggest_booking = intent == "booking" and agent_access_service.has_agent_access(db, business.id, "booking_assistant")
     # A booking intent almost always also has low confidence (a brand-new
     # business has no FAQ/document actually about booking), which alone
     # would also trigger the lead-capture form below -- confirmed live: a

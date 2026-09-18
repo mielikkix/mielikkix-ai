@@ -45,7 +45,7 @@ from ..integrations.google_calendar_client import CALENDAR_SCOPES
 from ..models.business import Business
 from ..models.calendar_connection import CalendarConnection
 from ..models.user import User
-from ..services import plan_service
+from ..services import agent_access_service
 
 logger = logging.getLogger(__name__)
 
@@ -161,8 +161,9 @@ def _fetch_google_account_email(credentials) -> str | None:
 def authorize(
     current_user: User = Depends(get_current_user),
     business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
 ):
-    plan_service.require_feature(business, "booking_enabled")
+    agent_access_service.require_agent_access(db, business, "booking_assistant")
 
     if not (settings.google_calendar_oauth_client_id and settings.google_calendar_oauth_client_secret):
         raise HTTPException(

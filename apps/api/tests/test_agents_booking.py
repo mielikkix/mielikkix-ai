@@ -446,7 +446,7 @@ def test_confirm_works_outside_debug_mode(client, db_session, monkeypatch):
 # calendar/hours instead of Mielikkix's demo one, via
 # booking_service._resolve_calendar_provider/_resolve_business_hours (see
 # app/integrations/calendar_provider.py's get_calendar_provider). All of
-# these use the isolated `client`/`db_session`/`business`/`set_plan`
+# these use the isolated `client`/`db_session`/`business`/`grant_agent`
 # fixtures since they touch real CalendarConnection/BusinessSettings rows.
 # The critical property under test throughout: a business with no working
 # setup gets "not_configured", never a silent fallback to Mielikkix's own
@@ -465,8 +465,8 @@ def test_request_with_business_id_not_configured_when_plan_lacks_feature(client,
     assert resp.json()["status"] == "not_configured"
 
 
-def test_request_with_business_id_not_configured_when_no_connection(client, business, set_plan):
-    set_plan(business["business_id"], "business")
+def test_request_with_business_id_not_configured_when_no_connection(client, business, grant_agent):
+    grant_agent(business["business_id"], "booking_assistant")
 
     resp = client.post(
         "/api/agents/booking/request",
@@ -485,11 +485,11 @@ def test_request_with_unknown_business_id_not_configured(client):
     assert resp.json()["status"] == "not_configured"
 
 
-def test_request_with_business_id_not_configured_when_hours_unset(client, business, set_plan, db_session):
+def test_request_with_business_id_not_configured_when_hours_unset(client, business, grant_agent, db_session):
     from app.core.encryption import encrypt
     from app.models.calendar_connection import CalendarConnection
 
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "booking_assistant")
     db_session.add(
         CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
     )
@@ -514,12 +514,12 @@ def test_request_with_business_id_skips_llm_call_when_not_configured(client, bus
     fake_chat.assert_not_awaited()
 
 
-def test_request_with_business_id_uses_tenant_calendar_and_hours(client, business, set_plan, db_session, monkeypatch):
+def test_request_with_business_id_uses_tenant_calendar_and_hours(client, business, grant_agent, db_session, monkeypatch):
     from app.core.encryption import encrypt
     from app.models.business import BusinessSettings
     from app.models.calendar_connection import CalendarConnection
 
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "booking_assistant")
     db_session.add(
         CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
     )
@@ -553,19 +553,19 @@ def test_request_with_business_id_uses_tenant_calendar_and_hours(client, busines
     fake_provider.get_busy_blocks.assert_awaited_once()
 
 
-def test_confirm_with_business_id_not_configured_when_no_connection(client, business, set_plan):
-    set_plan(business["business_id"], "business")
+def test_confirm_with_business_id_not_configured_when_no_connection(client, business, grant_agent):
+    grant_agent(business["business_id"], "booking_assistant")
 
     resp = _confirm(client, business_id=business["business_id"])
 
     assert resp.json()["status"] == "not_configured"
 
 
-def test_confirm_with_business_id_books_via_tenant_calendar(client, business, set_plan, db_session, monkeypatch):
+def test_confirm_with_business_id_books_via_tenant_calendar(client, business, grant_agent, db_session, monkeypatch):
     from app.core.encryption import encrypt
     from app.models.calendar_connection import CalendarConnection
 
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "booking_assistant")
     db_session.add(
         CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
     )
@@ -592,7 +592,7 @@ def test_confirm_with_business_id_books_via_tenant_calendar(client, business, se
 
 
 def test_confirm_with_business_id_notifies_the_businesss_own_contact_email(
-    client, business, set_plan, db_session, monkeypatch
+    client, business, grant_agent, db_session, monkeypatch
 ):
     """A business_id-scoped booking must notify THAT business's own
     contact_email, never settings.booking_notification_email -- otherwise
@@ -604,7 +604,7 @@ def test_confirm_with_business_id_notifies_the_businesss_own_contact_email(
     from app.models.business import BusinessSettings
     from app.models.calendar_connection import CalendarConnection
 
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "booking_assistant")
     db_session.add(
         CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
     )
@@ -632,7 +632,7 @@ def test_confirm_with_business_id_notifies_the_businesss_own_contact_email(
 
 
 def test_confirm_with_business_id_skips_notification_when_no_contact_email_on_file(
-    client, business, set_plan, db_session, monkeypatch
+    client, business, grant_agent, db_session, monkeypatch
 ):
     """No contact_email on file means no notification -- must never fall
     back to Mielikkix's own settings.booking_notification_email either.
@@ -644,7 +644,7 @@ def test_confirm_with_business_id_skips_notification_when_no_contact_email_on_fi
     from app.models.business import BusinessSettings
     from app.models.calendar_connection import CalendarConnection
 
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "booking_assistant")
     db_session.add(
         CalendarConnection(business_id=business["business_id"], refresh_token_encrypted=encrypt("tenant-token"))
     )

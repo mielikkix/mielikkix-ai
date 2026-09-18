@@ -33,7 +33,7 @@ from ..core.config import settings
 from ..integrations.calendar_provider import BusyBlock, CalendarProvider, get_calendar_provider
 from ..models.booking import Booking
 from ..models.business import Business, BusinessSettings
-from ..services import plan_service
+from ..services import agent_access_service
 from fastapi import HTTPException
 
 # Booking Agent's model tier: Anthropic (settings.anthropic_model, default
@@ -73,9 +73,10 @@ def _resolve_calendar_provider(db: Session, business_id: str | None) -> Calendar
     A real business_id (the live chat widget, once a tenant has gone
     through Booking Assistant's OAuth setup -- see api/calendar_oauth.py):
     resolves via the tenant-aware factory instead. Returns None if that
-    business doesn't exist, isn't entitled (plan_service.require_feature,
-    "booking_enabled"), or has no CalendarConnection yet -- callers turn
-    that into a "not_configured" response rather than ever falling back to
+    business doesn't exist, isn't entitled
+    (agent_access_service.require_agent_access, "booking_assistant"), or
+    has no CalendarConnection yet -- callers turn that into a
+    "not_configured" response rather than ever falling back to
     _calendar_provider, which would silently book onto Mielikkix's OWN
     calendar on that business's behalf (exactly the cross-tenant mistake
     this whole per-tenant design exists to prevent).
@@ -87,7 +88,7 @@ def _resolve_calendar_provider(db: Session, business_id: str | None) -> Calendar
     if business is None:
         return None
     try:
-        plan_service.require_feature(business, "booking_enabled")
+        agent_access_service.require_agent_access(db, business, "booking_assistant")
     except HTTPException:
         return None
 

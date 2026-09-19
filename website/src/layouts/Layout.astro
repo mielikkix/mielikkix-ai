@@ -17,7 +17,14 @@ interface Props {
 
 const { title, description, path = "/", page, titleKey, descriptionKey } = Astro.props;
 const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
-const canonicalUrl = new URL(path, siteUrl).toString();
+
+// Every route here builds to a directory + index.html (astro.config.mjs's default
+// trailingSlash behavior), and the production host's Apache 301-redirects a
+// slash-less request to the slash form (mod_dir's default DirectorySlash) -- so the
+// canonical/OG URL must already BE the slash form to match the sitemap and the
+// actual served URL exactly, rather than pointing at a URL that just redirects to it.
+const normalizedPath = path.endsWith("/") ? path : `${path}/`;
+const canonicalUrl = new URL(normalizedPath, siteUrl).toString();
 const ogImage = new URL("/og-image.png", siteUrl).toString();
 
 // Only renders once a real Plausible account/domain exists (see .env.example) --
@@ -28,6 +35,44 @@ const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
 // PUBLIC_GA_MEASUREMENT_ID means no gtag script and no tracking request.
 // GA4 for mielikkix.ai only; mielikkix.com/.no are untouched.
 const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+
+// Organization + WebSite structured data (schema.org), identical on every page --
+// this is the structured, machine-readable signal that the entity "Mielikkix" is
+// officially represented by this domain (as opposed to relying on prose alone).
+// Deliberately minimal, per 2026-09-19 SEO audit decisions:
+//  - no legalName ("Mielikkix AS" registration is still in process -- see
+//    src/pages/privacy.astro)
+//  - no sameAs (no verified company social profiles exist yet)
+//  - no SearchAction on WebSite (no on-site search feature exists)
+//  - no address/telephone/VAT/aggregateRating (none of that is real data to publish)
+// Stable @id values (site root + #organization / #website) let WebSite reference
+// Organization as its publisher without duplicating data or creating two
+// unlinked entities.
+const siteRootUrl = new URL("/", siteUrl).toString();
+const logoUrl = new URL("/favicon.png", siteUrl).toString();
+const organizationId = `${siteRootUrl}#organization`;
+const websiteId = `${siteRootUrl}#website`;
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": organizationId,
+      name: "Mielikkix",
+      url: siteRootUrl,
+      logo: logoUrl,
+      description:
+        "Mielikkix is an AI automation company providing AI chatbot, voice receptionist, booking assistant, and other AI automation solutions for businesses.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": websiteId,
+      name: "Mielikkix",
+      url: siteRootUrl,
+      publisher: { "@id": organizationId },
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -61,6 +106,8 @@ const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
     <meta name="twitter:title" content={`${title} · Mielikkix`} data-i18n-meta-title={titleKey} />
     <meta name="twitter:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta name="twitter:image" content={ogImage} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
     {plausibleDomain && (
       <script is:inline data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script>

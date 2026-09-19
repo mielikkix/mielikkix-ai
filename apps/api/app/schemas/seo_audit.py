@@ -160,3 +160,142 @@ class ActionPlanItemOut(BaseModel):
             implementation_difficulty=item.implementation_difficulty,
             status=item.status,
         )
+
+
+class SeoPerformanceMeasurementOut(BaseModel):
+    strategy: str
+    performance_score: Optional[int]
+    lcp_ms: Optional[int]
+    cls_score: Optional[float]
+    inp_ms: Optional[int]
+    tbt_ms: Optional[int]
+    measured_at: datetime
+
+    @classmethod
+    def from_orm_measurement(cls, measurement) -> "SeoPerformanceMeasurementOut":
+        return cls(
+            strategy=measurement.strategy,
+            performance_score=measurement.performance_score,
+            lcp_ms=measurement.lcp_ms,
+            cls_score=measurement.cls,
+            inp_ms=measurement.inp_ms,
+            tbt_ms=measurement.tbt_ms,
+            measured_at=measurement.measured_at,
+        )
+
+
+class SeoKeywordOpportunityOut(BaseModel):
+    id: str
+    keyword: str
+    intent: Optional[str]
+    suggested_page: Optional[str]
+    current_page: Optional[str]
+    content_gap: Optional[str]
+    recommendation: Optional[str]
+    # Always "Not available" -- no real search-volume/CPC/competition data
+    # source is connected anywhere in this codebase (see
+    # seo_keyword_service.py's own module docstring).
+    volume: str
+
+    @classmethod
+    def from_orm_opportunity(cls, opportunity) -> "SeoKeywordOpportunityOut":
+        return cls(
+            id=str(opportunity.id),
+            keyword=opportunity.keyword,
+            intent=opportunity.intent,
+            suggested_page=opportunity.suggested_page,
+            current_page=opportunity.current_page,
+            content_gap=opportunity.content_gap,
+            recommendation=opportunity.recommendation,
+            volume=opportunity.volume,
+        )
+
+
+class SeoAuditReportOut(BaseModel):
+    website_id: str
+    website_url: str
+    website_name: Optional[str]
+    audit_id: str
+    audit_completed_at: Optional[datetime]
+    # Same internal diagnostic composite as SeoAuditOut.overall_health --
+    # explicitly not a real Google ranking score (see this agent's own
+    # CLAUDE.md, Phase 10).
+    overall_health: Optional[int]
+    executive_summary: Optional[str]
+    finding_counts: Dict[str, int]
+    # Priority-sorted, capped at the caller's top_n (default 5) -- the
+    # full list is already available via GET .../audits/{id}/action-plan.
+    top_action_items: List[ActionPlanItemOut]
+    keyword_opportunity_count: int
+
+    @classmethod
+    def from_report(cls, report) -> "SeoAuditReportOut":
+        return cls(
+            website_id=str(report.website.id),
+            website_url=report.website.url,
+            website_name=report.website.name,
+            audit_id=str(report.audit.id),
+            audit_completed_at=report.audit.completed_at,
+            overall_health=report.overall_health,
+            executive_summary=report.audit.executive_summary,
+            finding_counts=report.finding_counts,
+            top_action_items=[ActionPlanItemOut.from_item(i) for i in report.top_action_items],
+            keyword_opportunity_count=report.keyword_opportunity_count,
+        )
+
+
+class ComparisonFindingOut(BaseModel):
+    category: str
+    rule_code: str
+    severity: str
+    affected_url: Optional[str]
+    issue: str
+
+    @classmethod
+    def from_comparison_finding(cls, finding) -> "ComparisonFindingOut":
+        return cls(
+            category=finding.category,
+            rule_code=finding.rule_code,
+            severity=finding.severity,
+            affected_url=finding.affected_url,
+            issue=finding.issue,
+        )
+
+
+class SeoAuditComparisonOut(BaseModel):
+    previous_audit_id: str
+    current_audit_id: str
+    previous_created_at: datetime
+    current_created_at: datetime
+    # Same internal diagnostic composite as SeoAuditOut.overall_health --
+    # None if either audit hadn't computed any health category yet.
+    overall_health_previous: Optional[int]
+    overall_health_current: Optional[int]
+    overall_health_delta: Optional[int]
+    finding_counts_previous: Dict[str, int]
+    finding_counts_current: Dict[str, int]
+    # Matched between the two audits by (rule_code, affected_url) -- see
+    # seo_audit_comparison_service.py's own docstring for why findings can't
+    # be matched by ID across separate audit runs.
+    resolved_findings: List[ComparisonFindingOut]
+    new_findings: List[ComparisonFindingOut]
+    persisting_findings: List[ComparisonFindingOut]
+
+    @classmethod
+    def from_comparison(cls, comparison) -> "SeoAuditComparisonOut":
+        return cls(
+            previous_audit_id=str(comparison.previous_audit.id),
+            current_audit_id=str(comparison.current_audit.id),
+            previous_created_at=comparison.previous_audit.created_at,
+            current_created_at=comparison.current_audit.created_at,
+            overall_health_previous=comparison.overall_health_previous,
+            overall_health_current=comparison.overall_health_current,
+            overall_health_delta=comparison.overall_health_delta,
+            finding_counts_previous=comparison.finding_counts_previous,
+            finding_counts_current=comparison.finding_counts_current,
+            resolved_findings=[ComparisonFindingOut.from_comparison_finding(f) for f in comparison.resolved_findings],
+            new_findings=[ComparisonFindingOut.from_comparison_finding(f) for f in comparison.new_findings],
+            persisting_findings=[
+                ComparisonFindingOut.from_comparison_finding(f) for f in comparison.persisting_findings
+            ],
+        )

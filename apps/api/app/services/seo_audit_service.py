@@ -6,8 +6,14 @@ technical), Stage 4 (on-page analyzer, health_on_page), and Stage 5
 deterministically. Stage 6 (recommendation engine) is the first LLM call
 in this pipeline: a deterministic action plan built from the SeoFinding
 rows already persisted, plus an LLM-written executive summary over that
-same real data (see seo_recommendation_service.py). Performance/keyword
-analyzers are later stages -- not run here yet.
+same real data (see seo_recommendation_service.py). Stage 8 (Core Web
+Vitals, see app/integrations/performance_provider.py) measures the
+website's own root URL only, on mobile and desktop, storing a
+SeoPerformanceMeasurement row per strategy that actually succeeded --
+health_performance stays null ("Not measured") if neither did. Stage 9
+(seo_keyword_service.py) generates keyword opportunity IDEAS from the
+audit's own real crawled pages -- never real search-volume/CPC/competition
+data, since no such data source is connected anywhere in this codebase.
 
 No job queue exists in this codebase (see that CLAUDE.md's "What already
 exists that this reuses") -- run_audit follows crawl_and_ingest_website's
@@ -23,9 +29,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..core.database import SessionLocal
-from ..models.seo_audit import SeoAudit, SeoCrawledPage, SeoFinding
+from ..integrations.performance_provider import PAGESPEED_STRATEGIES, get_performance_provider
+from ..models.seo_audit import SeoAudit, SeoCrawledPage, SeoFinding, SeoKeywordOpportunity, SeoPerformanceMeasurement
 from ..models.seo_website import SeoWebsite, CRAWL_TIER_PAGE_LIMITS
-from . import seo_onpage_analyzer, seo_page_analyzer, seo_recommendation_service, seo_technical_analyzer, web_crawl
+from . import seo_keyword_service, seo_onpage_analyzer, seo_page_analyzer, seo_recommendation_service, seo_technical_analyzer, web_crawl
 from .seo_finding_common import FindingDraft
 
 
@@ -161,6 +168,47 @@ async def run_audit(audit_id: str) -> None:
             overall_health(audit), finding_severity_counts(db, audit.id), action_plan
         )
 
+        # Stage 8: Core Web Vitals -- one measurement per strategy (mobile,
+        # desktop) on the website's own root URL only, never every crawled
+        # page (each call is a real, slow Lighthouse run against Google's
+        # API, not something to multiply by page count). A provider with no
+        # API key configured returns None for both immediately, leaving
+        # health_performance null ("Not measured") rather than fabricated.
+        performance_provider = get_performance_provider()
+        performance_scores = []
+        for strategy in PAGESPEED_STRATEGIES:
+            try:
+                metrics = await performance_provider.measure(website.url, strategy)
+            except Exception:
+                metrics = None
+            if metrics is None:
+                continue
+            db.add(SeoPerformanceMeasurement(
+                audit_id=audit.id,
+                strategy=metrics.strategy,
+                performance_score=metrics.performance_score,
+                lcp_ms=metrics.lcp_ms,
+                cls=metrics.cls,
+                inp_ms=metrics.inp_ms,
+                tbt_ms=metrics.tbt_ms,
+            ))
+            if metrics.performance_score is not None:
+                performance_scores.append(metrics.performance_score)
+        if performance_scores:
+            audit.health_performance = round(sum(performance_scores) / len(performance_scores))
+
+        # Stage 9: keyword opportunities -- LLM ideas grounded in this
+        # audit's own real crawled pages, never real search-volume/CPC/
+        # competition data (none is connected -- see seo_keyword_service.py).
+        # A failed generation just means no keyword ideas this run, not an
+        # audit failure -- same degrade-gracefully rule as the executive
+        # summary above.
+        try:
+            ideas = await seo_keyword_service.generate_keyword_ideas(website, crawled_pages)
+            seo_keyword_service.persist_keyword_opportunities(db, audit.id, audit.business_id, ideas)
+        except seo_keyword_service.KeywordGenerationError:
+            pass
+
         audit.status = "completed"
         audit.completed_at = datetime.now(timezone.utc)
         db.commit()
@@ -193,6 +241,30 @@ def list_crawled_pages(db: Session, audit_id: str) -> list[SeoCrawledPage]:
         db.query(SeoCrawledPage)
         .filter(SeoCrawledPage.audit_id == audit_id)
         .order_by(SeoCrawledPage.created_at)
+        .all()
+    )
+
+
+def list_performance_measurements(db: Session, audit_id: str) -> list[SeoPerformanceMeasurement]:
+    """Stage 8 -- zero, one, or two rows (mobile/desktop) depending on how
+    many strategies actually got a real measurement; never backfilled with
+    a placeholder for the strategy that didn't (see run_audit)."""
+    return (
+        db.query(SeoPerformanceMeasurement)
+        .filter(SeoPerformanceMeasurement.audit_id == audit_id)
+        .order_by(SeoPerformanceMeasurement.strategy)
+        .all()
+    )
+
+
+def list_keyword_opportunities(db: Session, business_id, audit_id: str) -> list[SeoKeywordOpportunity]:
+    """Stage 9 -- may be empty if the audit's keyword-generation pass
+    failed (see run_audit's own degrade-gracefully handling); an empty
+    list means "no ideas this run", not an error."""
+    return (
+        db.query(SeoKeywordOpportunity)
+        .filter(SeoKeywordOpportunity.audit_id == audit_id, SeoKeywordOpportunity.business_id == business_id)
+        .order_by(SeoKeywordOpportunity.created_at)
         .all()
     )
 

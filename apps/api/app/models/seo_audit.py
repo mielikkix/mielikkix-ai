@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, Text, DateTime, Integer, Boolean, JSON, ForeignKey
+from sqlalchemy import Column, Text, DateTime, Integer, Float, Boolean, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from ..core.database import Base
@@ -129,3 +129,30 @@ class SeoKeywordOpportunity(Base):
     recommendation = Column(Text, nullable=True)
     volume = Column(Text, nullable=False, default="Not available")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class SeoPerformanceMeasurement(Base):
+    """One Core Web Vitals measurement for one SeoAudit (Stage 8, see
+    apps/agents/seo-copywriter/CLAUDE.md) -- via app/integrations/
+    performance_provider.py. A row only ever exists here when a real
+    measurement actually succeeded; when no provider is configured (no
+    API key) or the call failed, no row is created at all, and callers
+    render that absence as "Not measured" -- never a fabricated number.
+
+    inp_ms is real-user Chrome UX Report field data ONLY, often null even
+    when the rest of the row is populated (most lower-traffic sites don't
+    have enough field data yet) -- tbt_ms is the always-available lab
+    proxy, kept as its own separate field rather than relabeled as INP.
+    """
+
+    __tablename__ = "seo_performance_measurements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    audit_id = Column(UUID(as_uuid=True), ForeignKey("seo_audits.id", ondelete="CASCADE"), nullable=False, index=True)
+    strategy = Column(Text, nullable=False)  # "mobile" | "desktop"
+    performance_score = Column(Integer, nullable=True)  # Lighthouse's own 0-100 lab score
+    lcp_ms = Column(Integer, nullable=True)
+    cls = Column(Float, nullable=True)
+    inp_ms = Column(Integer, nullable=True)
+    tbt_ms = Column(Integer, nullable=True)
+    measured_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

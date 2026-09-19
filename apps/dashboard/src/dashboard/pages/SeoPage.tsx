@@ -88,6 +88,18 @@ interface SeoFinding {
   status: 'open' | 'in_progress' | 'approved' | 'completed' | 'ignored'
 }
 
+// Stage 7 of the SEO Audit & Optimization upgrade -- which finding types
+// the Copywriter can generate a fix for (see app/services/seo_service.py's
+// _TITLE_RULE_CODES/_META_RULE_CODES/_CONTENT_RULE_CODES). Deliberately NOT
+// every rule_code: images_missing_alt has no per-image data to generate
+// real alt text from, and duplicate_title/duplicate_content need a human
+// choosing which page keeps which copy -- see UnsupportedFindingError.
+const COPYWRITER_RULE_CODES = new Set([
+  'missing_title', 'title_too_long', 'title_too_short',
+  'missing_meta_description', 'meta_description_too_long', 'meta_description_too_short',
+  'thin_content',
+])
+
 const AUDIT_STATUS_COLORS: Record<SeoAudit['status'], string> = {
   pending: 'bg-slate-100 text-slate-600',
   running: 'bg-blue-100 text-blue-700',
@@ -108,6 +120,45 @@ const SEVERITY_COLORS: Record<SeoFinding['severity'], string> = {
 // counts, each clickable to drill into that severity's findings below.
 // Explicitly labeled as an internal score, never a real Google ranking
 // signal (see apps/agents/seo-copywriter/CLAUDE.md, Phase 10).
+interface SeoPerformanceMeasurement {
+  strategy: 'mobile' | 'desktop'
+  performance_score: number | null
+  lcp_ms: number | null
+  cls_score: number | null
+  inp_ms: number | null
+  tbt_ms: number | null
+}
+
+// Stage 8 of the SEO Audit & Optimization upgrade -- real Core Web Vitals
+// (Google PageSpeed Insights), one row per strategy that actually got a
+// measurement. Renders nothing if the list is empty ("Not measured" is
+// already implied by the Performance tile above showing "—") -- never a
+// fabricated number, per this agent's CLAUDE.md.
+function CoreWebVitals({ auditId }: { auditId: string }) {
+  const { data: measurements = [] } = useQuery<SeoPerformanceMeasurement[]>({
+    queryKey: ['seo', 'performance', auditId],
+    queryFn: () => api.get(`/agents/seo/audits/${auditId}/performance`).then((r) => r.data),
+  })
+
+  if (measurements.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap gap-4 rounded-lg bg-white p-3 text-sm border border-slate-200">
+      {measurements.map((m) => (
+        <div key={m.strategy}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{m.strategy}</p>
+          <p className="text-slate-600">
+            {m.performance_score !== null ? `Score: ${m.performance_score}/100` : 'Score: —'}
+            {m.lcp_ms !== null && ` · LCP: ${(m.lcp_ms / 1000).toFixed(1)}s`}
+            {m.cls_score !== null && ` · CLS: ${m.cls_score}`}
+            {m.inp_ms !== null ? ` · INP: ${m.inp_ms}ms` : m.tbt_ms !== null ? ` · TBT: ${m.tbt_ms}ms` : ''}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
   audit: SeoAudit
   severityFilter: Severity | null
@@ -156,6 +207,8 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
           {audit.executive_summary}
         </p>
       )}
+
+      <CoreWebVitals auditId={audit.id} />
     </div>
   )
 }
@@ -203,6 +256,329 @@ function ActionPlanList({ auditId }: { auditId: string }) {
   )
 }
 
+interface SeoAuditReport {
+  website_id: string
+  website_url: string
+  website_name: string | null
+  audit_id: string
+  audit_completed_at: string | null
+  overall_health: number | null
+  executive_summary: string | null
+  finding_counts: Record<Severity, number>
+  top_action_items: ActionPlanItem[]
+  keyword_opportunity_count: number
+}
+
+// Stage 11 of the SEO Audit & Optimization upgrade -- a single client-
+// presentable rollup of one completed audit (see app/services/
+// seo_report_service.py). No new analysis here, just an assembly of data
+// already computed by earlier stages. PDF export is deliberately NOT
+// implemented (see this agent's CLAUDE.md, Phase 17) -- "Print / Save as
+// PDF" below is the browser's own native print dialog, not a generated PDF.
+function ReportView({ auditId }: { auditId: string }) {
+  const { data: report, isLoading, isError } = useQuery<SeoAuditReport>({
+    queryKey: ['seo', 'report', auditId],
+    queryFn: () => api.get(`/agents/seo/audits/${auditId}/report`).then((r) => r.data),
+  })
+
+  if (isLoading) return <p className="text-sm text-slate-400">Building report…</p>
+  if (isError || !report) {
+    return <p className="text-sm text-red-500">Report isn't available yet -- the audit may still be running.</p>
+  }
+
+  return (
+    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 print:border-0">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">SEO Report — {report.website_name || report.website_url}</h3>
+          <p className="text-sm text-slate-500">
+            {report.website_url}
+            {report.audit_completed_at && ` · Generated ${new Date(report.audit_completed_at).toLocaleDateString()}`}
+          </p>
+        </div>
+        <Button size="sm" variant="secondary" onClick={() => window.print()} className="print:hidden">
+          Print / Save as PDF
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+        <span className="text-2xl font-bold text-slate-900">{report.overall_health ?? '—'}</span>
+        <span className="text-sm text-slate-500">Overall SEO health (internal diagnostic score, not a Google ranking)</span>
+      </div>
+
+      {report.executive_summary && (
+        <div>
+          <h4 className="mb-1 text-sm font-semibold text-slate-700">Summary</h4>
+          <p className="text-sm text-slate-700">{report.executive_summary}</p>
+        </div>
+      )}
+
+      <div>
+        <h4 className="mb-1 text-sm font-semibold text-slate-700">Issues found</h4>
+        <div className="flex flex-wrap gap-3 text-sm">
+          {(Object.keys(report.finding_counts) as Severity[])
+            .filter((s) => report.finding_counts[s] > 0)
+            .map((severity) => (
+              <span key={severity} className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">
+                {report.finding_counts[severity]} {severity}
+              </span>
+            ))}
+          {Object.values(report.finding_counts).every((c) => c === 0) && (
+            <span className="text-slate-400">No issues found.</span>
+          )}
+        </div>
+      </div>
+
+      {report.top_action_items.length > 0 && (
+        <div>
+          <h4 className="mb-1 text-sm font-semibold text-slate-700">Top priorities</h4>
+          <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
+            {report.top_action_items.map((item) => (
+              <li key={item.rule_code}>
+                {item.issue} ({item.affected_urls.length} page(s), {item.implementation_difficulty} fix)
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      <p className="text-sm text-slate-500">{report.keyword_opportunity_count} keyword opportunit{report.keyword_opportunity_count === 1 ? 'y' : 'ies'} identified.</p>
+    </div>
+  )
+}
+
+interface ComparisonFinding {
+  category: string
+  rule_code: string
+  severity: string
+  affected_url: string | null
+  issue: string
+}
+
+interface SeoAuditComparison {
+  previous_audit_id: string
+  current_audit_id: string
+  previous_created_at: string
+  current_created_at: string
+  overall_health_previous: number | null
+  overall_health_current: number | null
+  overall_health_delta: number | null
+  finding_counts_previous: Record<Severity, number>
+  finding_counts_current: Record<Severity, number>
+  resolved_findings: ComparisonFinding[]
+  new_findings: ComparisonFinding[]
+  persisting_findings: ComparisonFinding[]
+}
+
+// Stage 10 of the SEO Audit & Optimization upgrade -- diffs two audits of
+// the same website (see app/services/seo_audit_comparison_service.py).
+// Findings are matched across runs by (rule_code, affected_url), not by
+// row ID, since every audit persists brand-new SeoFinding rows.
+function AuditComparisonPanel({ currentAuditId, previousAuditId }: { currentAuditId: string; previousAuditId: string }) {
+  const { data, isLoading, isError } = useQuery<SeoAuditComparison>({
+    queryKey: ['seo', 'compare', currentAuditId, previousAuditId],
+    queryFn: () =>
+      api
+        .get(`/agents/seo/audits/${currentAuditId}/compare`, { params: { against: previousAuditId } })
+        .then((r) => r.data),
+  })
+
+  if (isLoading) return <p className="mt-2 text-sm text-slate-400">Comparing…</p>
+  if (isError || !data) return <p className="mt-2 text-sm text-red-500">Could not compare these audits.</p>
+
+  return (
+    <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+      <p className="font-medium text-slate-700">
+        Overall health: {data.overall_health_previous ?? '—'} → {data.overall_health_current ?? '—'}
+        {data.overall_health_delta !== null && (
+          <span className={clsx('ml-2 font-semibold', data.overall_health_delta >= 0 ? 'text-green-600' : 'text-red-600')}>
+            ({data.overall_health_delta >= 0 ? '+' : ''}
+            {data.overall_health_delta})
+          </span>
+        )}
+      </p>
+      <div className="flex gap-4">
+        <span className="text-green-700">{data.resolved_findings.length} resolved</span>
+        <span className="text-amber-700">{data.new_findings.length} new</span>
+        <span className="text-slate-500">{data.persisting_findings.length} still open</span>
+      </div>
+      {data.resolved_findings.length > 0 && (
+        <div>
+          <p className="font-medium text-slate-600">Resolved</p>
+          <ul className="list-disc pl-5 text-slate-600">
+            {data.resolved_findings.map((f) => (
+              <li key={`${f.rule_code}-${f.affected_url ?? ''}`}>
+                {f.issue}
+                {f.affected_url && ` — ${f.affected_url}`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {data.new_findings.length > 0 && (
+        <div>
+          <p className="font-medium text-slate-600">New</p>
+          <ul className="list-disc pl-5 text-slate-600">
+            {data.new_findings.map((f) => (
+              <li key={`${f.rule_code}-${f.affected_url ?? ''}`}>
+                {f.issue}
+                {f.affected_url && ` — ${f.affected_url}`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AuditHistoryList({ audits }: { audits: SeoAudit[] }) {
+  const [comparingId, setComparingId] = useState<string | null>(null)
+  const completed = audits.filter((a) => a.status === 'completed')
+
+  if (completed.length === 0) return <p className="text-sm text-slate-400">No completed audits yet.</p>
+
+  return (
+    <div className="space-y-2">
+      {completed.map((audit, i) => {
+        const previous = completed[i + 1]
+        return (
+          <div key={audit.id} className="rounded-lg border border-slate-200 px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="font-medium text-slate-800">{new Date(audit.created_at).toLocaleString()}</p>
+                <p className="text-sm text-slate-500">Overall health: {audit.overall_health ?? 'Not yet scored'}</p>
+              </div>
+              {previous && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setComparingId((v) => (v === audit.id ? null : audit.id))}
+                >
+                  {comparingId === audit.id ? 'Hide comparison' : 'Compare to previous'}
+                </Button>
+              )}
+            </div>
+            {previous && comparingId === audit.id && (
+              <AuditComparisonPanel currentAuditId={audit.id} previousAuditId={previous.id} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+interface SeoKeywordOpportunity {
+  id: string
+  keyword: string
+  intent: string | null
+  suggested_page: string | null
+  current_page: string | null
+  content_gap: string | null
+  recommendation: string | null
+  volume: string
+}
+
+// Stage 9 of the SEO Audit & Optimization upgrade -- LLM-suggested keyword
+// ideas grounded in this audit's own crawled pages (see app/services/
+// seo_keyword_service.py). volume is always "Not available" -- no real
+// search-volume/CPC/competition data source is connected, and this is
+// shown honestly rather than guessed.
+function KeywordOpportunitiesList({ auditId }: { auditId: string }) {
+  const { data: keywords = [], isLoading } = useQuery<SeoKeywordOpportunity[]>({
+    queryKey: ['seo', 'keyword-opportunities', auditId],
+    queryFn: () => api.get(`/agents/seo/audits/${auditId}/keyword-opportunities`).then((r) => r.data),
+  })
+
+  if (isLoading) return <p className="text-sm text-slate-400">Loading keyword ideas…</p>
+  if (keywords.length === 0) return <p className="text-sm text-slate-400">No keyword ideas generated for this audit.</p>
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-slate-400">
+        Search volume/CPC/competition: <span className="font-medium">Not available</span> -- no real keyword-data source is connected.
+      </p>
+      {keywords.map((k) => (
+        <div key={k.id} className="rounded-lg border border-slate-200 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-slate-800">{k.keyword}</span>
+            {k.intent && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{k.intent}</span>}
+          </div>
+          {k.content_gap && <p className="mt-1 text-sm text-amber-700">Content gap: {k.content_gap}</p>}
+          {k.current_page && <p className="mt-1 text-sm text-slate-500">Already covered by: {k.current_page}</p>}
+          {k.suggested_page && !k.current_page && <p className="mt-1 text-sm text-slate-500">Suggested page: {k.suggested_page}</p>}
+          {k.recommendation && <p className="mt-1 text-sm text-slate-700">{k.recommendation}</p>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Stage 7 of the SEO Audit & Optimization upgrade -- lets the Copywriter
+// generate a fix (title/meta description/content suggestion) targeted at
+// one specific finding, review it, and approve or reject it, all inline.
+// No live page for us to publish onto (a crawled page usually isn't a
+// Product row we own) -- "Approve" just marks the draft ready for the
+// business to use themselves, see seo_service.approve_draft's own docstring.
+function FindingDraftAction({ finding }: { finding: SeoFinding }) {
+  const qc = useQueryClient()
+  const draftsKey = ['seo', 'finding-drafts', finding.id]
+  const { data: drafts = [] } = useQuery<SeoDraft[]>({
+    queryKey: draftsKey,
+    queryFn: () => api.get(`/agents/seo/findings/${finding.id}/drafts`).then((r) => r.data),
+  })
+  const latest = drafts[0]
+
+  const generateMut = useMutation({
+    mutationFn: () => api.post(`/agents/seo/findings/${finding.id}/generate-draft`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: draftsKey }),
+  })
+  const approveMut = useMutation({
+    mutationFn: () => api.post(`/agents/seo/drafts/${latest?.id}/approve`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: draftsKey }),
+  })
+  const rejectMut = useMutation({
+    mutationFn: () => api.post(`/agents/seo/drafts/${latest?.id}/reject`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: draftsKey }),
+  })
+
+  const draftText = latest?.draft_seo_title || latest?.draft_meta_description || latest?.draft_description
+
+  if (!latest || latest.status === 'rejected') {
+    return (
+      <div className="mt-2">
+        <Button size="sm" variant="secondary" loading={generateMut.isPending} onClick={() => generateMut.mutate()}>
+          <Sparkles size={14} className="mr-1" />
+          {latest?.status === 'rejected' ? 'Regenerate fix' : 'Generate fix'}
+        </Button>
+        {generateMut.isError && <p className="mt-1 text-sm text-red-600">Couldn't generate a fix. Try again.</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-brand-600">Suggested fix</p>
+      <p className="mt-1 text-sm text-slate-800">{draftText}</p>
+      {latest.status === 'draft' ? (
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" loading={approveMut.isPending} onClick={() => approveMut.mutate()}>
+            <Check size={14} className="mr-1" />
+            Approve
+          </Button>
+          <Button size="sm" variant="secondary" loading={rejectMut.isPending} onClick={() => rejectMut.mutate()}>
+            <X size={14} className="mr-1" />
+            Reject
+          </Button>
+        </div>
+      ) : (
+        <p className="mt-1 text-xs font-medium text-emerald-600">Approved -- ready to use.</p>
+      )}
+    </div>
+  )
+}
+
 // Stage 3/4 of the SEO Audit & Optimization upgrade -- the technical/
 // on-page analyzers' findings for one completed audit, optionally filtered
 // by severity (drilled into from SeoHealthPanel above). Recommendations/
@@ -240,6 +616,7 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
               {f.affected_url && <p className="mt-1 text-sm text-slate-500 break-all">{f.affected_url}</p>}
               {f.explanation && <p className="mt-1 text-sm text-slate-500">{f.explanation}</p>}
               {f.recommended_fix && <p className="mt-1 text-sm text-slate-700">Fix: {f.recommended_fix}</p>}
+              {f.status !== 'ignored' && COPYWRITER_RULE_CODES.has(f.rule_code) && <FindingDraftAction finding={f} />}
             </div>
             {f.status !== 'ignored' && (
               <Button size="sm" variant="ghost" loading={ignoreMut.isPending} onClick={() => ignoreMut.mutate(f.id)}>
@@ -261,7 +638,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
   const qc = useQueryClient()
   const [showFindings, setShowFindings] = useState(false)
   const [severityFilter, setSeverityFilter] = useState<Severity | null>(null)
-  const [detailTab, setDetailTab] = useState<'findings' | 'plan'>('plan')
+  const [detailTab, setDetailTab] = useState<'findings' | 'plan' | 'keywords' | 'history' | 'report'>('plan')
   const { data: audits = [] } = useQuery<SeoAudit[]>({
     queryKey: ['seo', 'audits', website.id],
     queryFn: () => api.get(`/agents/seo/websites/${website.id}/audits`).then((r) => r.data),
@@ -328,7 +705,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
         <>
           <SeoHealthPanel audit={latestAudit} severityFilter={severityFilter} onSeverityFilter={setSeverityFilter} />
           <div className="mt-3 flex gap-2 border-b border-slate-200">
-            {(['plan', 'findings'] as const).map((t) => (
+            {(['plan', 'findings', 'keywords', 'history', 'report'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setDetailTab(t)}
@@ -337,15 +714,29 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
                   detailTab === t ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500',
                 )}
               >
-                {t === 'plan' ? 'Action Plan' : 'All Findings'}
+                {t === 'plan'
+                  ? 'Action Plan'
+                  : t === 'findings'
+                  ? 'All Findings'
+                  : t === 'keywords'
+                  ? 'Keyword Ideas'
+                  : t === 'history'
+                  ? 'History'
+                  : 'Report'}
               </button>
             ))}
           </div>
           <div className="mt-3">
             {detailTab === 'plan' ? (
               <ActionPlanList auditId={latestAudit.id} />
-            ) : (
+            ) : detailTab === 'findings' ? (
               <FindingsList auditId={latestAudit.id} severityFilter={severityFilter} />
+            ) : detailTab === 'keywords' ? (
+              <KeywordOpportunitiesList auditId={latestAudit.id} />
+            ) : detailTab === 'history' ? (
+              <AuditHistoryList audits={audits} />
+            ) : (
+              <ReportView auditId={latestAudit.id} />
             )}
           </div>
         </>
@@ -484,10 +875,13 @@ interface Product {
 
 interface SeoDraft {
   id: string
-  product_id: string
-  draft_description: string
-  draft_seo_title: string
-  draft_meta_description: string
+  product_id: string | null
+  finding_id: string | null
+  url: string | null
+  draft_type: 'full_copy' | 'title' | 'meta_description' | 'content'
+  draft_description: string | null
+  draft_seo_title: string | null
+  draft_meta_description: string | null
   status: 'draft' | 'approved' | 'rejected'
 }
 
@@ -523,9 +917,9 @@ function DraftReview({ product, draft }: { product: Product; draft: SeoDraft }) 
         </div>
         <div>
           <p className="text-sm font-medium text-brand-600 uppercase tracking-wide">Draft</p>
-          <p className="mt-1 text-base text-slate-900">{draft.draft_description}</p>
-          <p className="mt-2 text-sm text-slate-600">SEO title: {draft.draft_seo_title}</p>
-          <p className="text-sm text-slate-600">Meta: {draft.draft_meta_description}</p>
+          <p className="mt-1 text-base text-slate-900">{draft.draft_description || '-'}</p>
+          <p className="mt-2 text-sm text-slate-600">SEO title: {draft.draft_seo_title || '-'}</p>
+          <p className="text-sm text-slate-600">Meta: {draft.draft_meta_description || '-'}</p>
         </div>
       </div>
 
@@ -606,6 +1000,10 @@ function ContentTab() {
 
       <div className="space-y-4">
         {drafts.map((draft) => {
+          // Finding-driven drafts (Stage 7) have no product_id -- they're
+          // reviewed inline on the finding itself (WebsiteCard's findings
+          // list), not here, so this tab only ever shows product drafts.
+          if (!draft.product_id) return null
           const product = productById.get(draft.product_id)
           if (!product) return null
           return <DraftReview key={draft.id} product={product} draft={draft} />

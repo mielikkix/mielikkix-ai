@@ -237,28 +237,141 @@ matters* and *drafts the fix*, both always subject to approval.
    on `SeoHealthPanel` and a new "Action Plan" tab grouped by priority.
    23 tests (`test_seo_recommendation_service.py`,
    `test_seo_recommendation_integration.py`).
-7. **Integrate existing Copywriter** — "Generate SEO Title/Meta/Alt Text/
-   Content Improvement/Internal Linking Suggestion" actions on a finding,
-   writing into (extended) `SeoDraft`; SEO Draft Workspace UI (Phase 13).
-8. **Performance/Core Web Vitals** — `PerformanceProvider` + PageSpeed
-   Insights implementation, "Not measured" fallback.
-9. **Keyword opportunities** — LLM-generated ideas only, per the Phase 14
-   decision above.
-10. **Audit history/comparison** — re-run audits, diff findings/counts
-    between runs.
-11. **Client-ready report** — report data structure + UI first; PDF export
-    only after that's solid.
+7. **DONE (partial, by design) — Integrate existing Copywriter.**
+   `SeoDraft` extended: `product_id` now nullable, added `url` and
+   `draft_type` (`full_copy` | `title` | `meta_description` | `content`),
+   the three `draft_*` fields now nullable (migration `d5a8c2f4b7e9`) --
+   exactly one is populated per finding-driven draft, all three for the
+   original product-picker flow. `seo_service.generate_draft_for_finding()`
+   dispatches by `rule_code`: title findings → `draft_seo_title`, meta
+   findings → `draft_meta_description`, `thin_content` → a content-
+   expansion suggestion in `draft_description`. New endpoints
+   `POST/GET .../findings/{id}/generate-draft|drafts`; reuses the
+   existing `/drafts/{id}/approve|reject` endpoints unchanged (approve
+   already only writes to a Product when one is actually linked -- a
+   finding-driven draft never is, so approving just marks it ready to use,
+   see that function's own docstring).
+   **Deliberately NOT implemented** (`UnsupportedFindingError`, by design,
+   not an oversight): **Generate Alt Text** -- Stage 4's on-page analyzer
+   only stores a per-page COUNT of images missing alt text, never each
+   image's own src/context, so there is no real image to generate alt
+   text FROM without fabricating what it shows. **Internal Linking
+   Suggestions** -- Stage 4 only counts internal links per page; making a
+   real suggestion needs an actual link graph (which page links to which,
+   with what anchor text), a data model and analyzer that don't exist.
+   **Duplicate title/duplicate content findings** -- fixing these means a
+   human choosing which of several pages keeps which copy, not a single
+   generated answer for one page in isolation. All three would need
+   guessing past what the audit actually knows -- exactly what this
+   agent's "no fabricated findings" rule forbids. Dashboard: a "Generate
+   fix" button appears on every supported finding, showing the result
+   inline with Approve/Reject, reusing the same review pattern as the
+   Content tab. 17 tests (`test_seo_copywriter_finding_integration.py`).
+8. **DONE — Performance/Core Web Vitals.** `app/integrations/
+   performance_provider.py` -- `PerformanceProvider` ABC +
+   `GooglePageSpeedProvider` (Google PageSpeed Insights v5, free, no
+   OAuth) + `get_performance_provider()` factory, same shape as
+   `calendar_provider.py`. Needs `GOOGLE_PAGESPEED_API_KEY` (`.env.example`,
+   `core/config.py`) -- **no key is configured in this repo/environment**,
+   so every measurement returns `None` immediately (no network call at
+   all) and `health_performance` stays null, rendered as "Not measured" --
+   exactly the intended honest fallback, not a gap to "fix" without a real
+   key. New `SeoPerformanceMeasurement` model (migration `e6b9d3f8a1c7`):
+   one row per strategy (mobile/desktop) that actually succeeded, storing
+   `performance_score`, `lcp_ms`, `cls`, `tbt_ms` (lab-measured, always
+   present when the call succeeds) and `inp_ms` (real-user CrUX field
+   data ONLY -- often null even on a successful measurement, deliberately
+   never backfilled from `tbt_ms` since they're different metrics).
+   `run_audit` measures the website's root URL ONLY (never every crawled
+   page -- each Lighthouse run is slow), on both strategies; a strategy
+   that fails or has no data simply gets no row, not a placeholder.
+   `health_performance` = average of whichever strategies' scores
+   succeeded. New endpoint `GET .../audits/{id}/performance`. 24 tests
+   (`test_performance_provider.py`, `test_seo_performance_integration.py`).
+9. **DONE — Keyword opportunities.** `app/services/seo_keyword_service.py` —
+   the second (and last, so far) LLM call in this pipeline, per the Phase 14
+   decision above: LLM-generated keyword *ideas* only, grounded in the
+   audit's own crawled pages (title + URL of up to `MAX_PAGES_IN_PROMPT`
+   = 30 pages, plus the website's `primary_category`/`target_country`/
+   `target_language`/`target_keywords`), never a real search-volume/CPC/
+   competition source. The JSON response schema the LLM fills in has no
+   volume/cpc/competition field at all — nothing to hallucinate a number
+   into — and `persist_keyword_opportunities()` always writes the literal
+   string `"Not available"` into `SeoKeywordOpportunity.volume`,
+   independent of anything the LLM returns. Capped at `MAX_KEYWORD_IDEAS`
+   = 15 ideas per audit; a malformed individual entry is skipped, not
+   fatal; total call failure or unparseable JSON raises
+   `KeywordGenerationError`, which `run_audit`'s keyword pass catches so a
+   down LLM/bad response degrades to "no keyword ideas this run" rather
+   than failing the whole audit. `content_gap` is a free-text description
+   (e.g. "No existing page discusses roasting"), not a boolean flag — it
+   was modeled as one initially and corrected against the actual DB column.
+   New endpoint `GET .../audits/{id}/keyword-opportunities`. Dashboard: a
+   third "Keyword Ideas" tab on `WebsiteCard` (next to Action Plan/All
+   Findings) via `KeywordOpportunitiesList`, which surfaces the "Not
+   available" volume caveat explicitly rather than hiding the column.
+   15 tests (`test_seo_keyword_service.py`, `test_seo_keyword_integration.py`).
+10. **DONE — Audit history/comparison.** `app/services/
+    seo_audit_comparison_service.py` — entirely deterministic, no LLM.
+    `compare_audits()` takes any two audit IDs (business_id-scoped),
+    orders them chronologically by `created_at` internally (so it doesn't
+    matter which one the caller passes first), and requires both belong
+    to the same website (`AuditComparisonError`, 400) and be different
+    audits. `SeoFinding` rows have no stable identity across separate audit
+    runs — every run persists brand-new rows — so findings are matched
+    between the two audits by `(rule_code, affected_url)`: same issue type
+    on the same URL (or the same site-wide check with no URL, e.g. a
+    missing sitemap). A match present only in the earlier audit is
+    `resolved_findings`; only in the later one, `new_findings`; in both,
+    `persisting_findings`. Also returns each audit's `overall_health` and
+    the delta (`None` if either audit hadn't computed any health category
+    yet — never a fabricated 0). New endpoint
+    `GET .../audits/{id}/compare?against=<other_audit_id>` (`ValueError` →
+    404 "not found"/cross-tenant, `AuditComparisonError` → 400 "can't be
+    compared"). Dashboard: a fourth "History" tab on `WebsiteCard` listing
+    completed audits with a "Compare to previous" toggle per row, showing
+    resolved/new/persisting counts and the health delta inline
+    (`AuditHistoryList`/`AuditComparisonPanel`). 17 tests
+    (`test_seo_audit_comparison_service.py`,
+    `test_seo_audit_comparison_integration.py`).
+11. **DONE (data + UI; PDF explicitly deferred) — Client-ready report.**
+    `app/services/seo_report_service.py` — does no new analysis or LLM call
+    of its own; `build_report()` just assembles data already computed by
+    earlier stages (website identity, `overall_health`, the Stage 6
+    `executive_summary`, the top `top_n` (default 5) priority-sorted
+    action-plan items, real `finding_severity_counts`, and the Stage 9
+    keyword-opportunity count) into one structure meant to be shown to (or
+    shared with) the tenant's own client. Raises `ReportNotReadyError`
+    (→ 400) for a pending/running/failed audit — a client report over an
+    incomplete run would show misleading data — and a plain `ValueError`
+    (→ 404) for an unknown/cross-tenant audit ID, same pattern as Stage 10.
+    New endpoint `GET .../audits/{id}/report`. Dashboard: a fifth "Report"
+    tab (`ReportView`) rendering a clean, presentational summary with a
+    "Print / Save as PDF" button — this is the browser's own native
+    `window.print()` dialog, NOT a generated PDF, so it doesn't cross the
+    "PDF export deferred" line while still giving a genuinely useful
+    client-facing output today; a real PDF renderer can consume this exact
+    same `SeoAuditReportOut` structure later with no service-layer change.
+    10 tests (`test_seo_report_service.py`, `test_seo_report_integration.py`).
 
 ### UI (Phase 1/20)
 
-**Done through Stage 5.** Sidebar nav item is a single entry
-(`/dashboard/seo`, relabeled "SEO" in `Sidebar.tsx`), with in-page tabs:
-**Websites** (register/list/delete + per-website "Run audit" +
-`SeoHealthPanel`: overall score, per-category tiles, severity-count
-drill-down, findings list with an "Ignore" action) and **Content** (the
-original product-picker/draft-review flow, unchanged). No new nav item.
-A **Recommendations** tab (Stage 6) and deep-linkable
-`/dashboard/seo/audits/:id` route are still open, not yet needed since
+**Done through Stage 11 (the whole staged upgrade).** Sidebar nav item is a
+single entry (`/dashboard/seo`, relabeled "SEO" in `Sidebar.tsx`), with
+in-page tabs: **Websites** (register/list/delete + per-website "Run audit"
++ `SeoHealthPanel`: overall score, per-category tiles, severity-count
+drill-down, Core Web Vitals) and **Content** (the original product-picker/
+draft-review flow, plus Stage 7's inline "Generate fix" action on
+supported findings). Each `WebsiteCard`'s "View SEO Health" panel has five
+detail tabs — **Action Plan** (Stage 6, grouped by priority),
+**All Findings** (severity-filterable), **Keyword Ideas** (Stage 9,
+`KeywordOpportunitiesList`), **History** (Stage 10, `AuditHistoryList` +
+`AuditComparisonPanel` — past completed audits with an on-demand
+resolved/new/persisting-findings + health-delta comparison against the
+previous run), **Report** (Stage 11, `ReportView` — a clean client-facing
+summary with a browser-native "Print / Save as PDF" button) — all rendered
+inline, no separate route yet. No new sidebar nav item. A deep-linkable
+`/dashboard/seo/audits/:id` route is still open, not yet needed since
 everything so far lives inline on the Websites tab.
 
 ### Testing (Phase 23)

@@ -357,6 +357,15 @@ class Settings(BaseSettings):
     mailchimp_oauth_client_id: str = ""
     mailchimp_oauth_client_secret: str = ""
 
+    # SEO Audit & Optimization, Stage 8 (apps/agents/seo-copywriter/
+    # CLAUDE.md) -- Core Web Vitals via Google's free PageSpeed Insights
+    # API (see app/integrations/performance_provider.py). Left empty, the
+    # provider returns None for every measurement and health_performance
+    # stays null ("Not measured") rather than ever fabricating a score --
+    # this agent's own "no fake numbers" rule, same shape as every other
+    # optional third-party key in this file.
+    google_pagespeed_api_key: str = ""
+
     # A Twilio account/number configured with no auth token means
     # agents_voice.py's _assert_valid_twilio_request silently skips signature
     # checking -- fine for a fresh local checkout (nothing configured at

@@ -1,5 +1,5 @@
 """SEO Audit & Optimization -- Stage 1 (website registration) tests. See
-apps/agents/seo-copywriter/CLAUDE.md. Real DNS resolution is mocked out for
+apps/agents/seo-audit/CLAUDE.md. Real DNS resolution is mocked out for
 tests that aren't specifically exercising the SSRF guard itself, same
 pattern test_web_crawl.py already uses for the shared crawler layer.
 """

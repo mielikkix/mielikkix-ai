@@ -1,4 +1,4 @@
-"""Tests for Stage 10 (apps/agents/seo-copywriter/CLAUDE.md, Phase 16):
+"""Tests for Stage 10 (apps/agents/seo-audit/CLAUDE.md, Phase 16):
 comparing two audits of the same website. Entirely deterministic -- no LLM
 involved -- so these tests build real SeoAudit/SeoFinding rows directly and
 assert on compare_audits' own matching/diff logic. HTTP wiring is covered

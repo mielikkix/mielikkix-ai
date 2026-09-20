@@ -1,5 +1,5 @@
 """SEO Audit & Optimization -- HTTP wrapper for website registration
-(Stage 1 of apps/agents/seo-copywriter/CLAUDE.md's staged plan). Audit
+(Stage 1 of apps/agents/seo-audit/CLAUDE.md's staged plan). Audit
 runs/findings/recommendations land in this same router in later stages;
 this file only maps HTTP <-> app/services/seo_website_service.py, the same
 split every other agent router in this codebase uses.

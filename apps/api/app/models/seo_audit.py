@@ -133,7 +133,7 @@ class SeoKeywordOpportunity(Base):
 
 class SeoPerformanceMeasurement(Base):
     """One Core Web Vitals measurement for one SeoAudit (Stage 8, see
-    apps/agents/seo-copywriter/CLAUDE.md) -- via app/integrations/
+    apps/agents/seo-audit/CLAUDE.md) -- via app/integrations/
     performance_provider.py. A row only ever exists here when a real
     measurement actually succeeded; when no provider is configured (no
     API key) or the call failed, no row is created at all, and callers

@@ -1,4 +1,4 @@
-"""Integration tests for Stage 4 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 4 (apps/agents/seo-audit/CLAUDE.md):
 run_audit's on-page-analyzer pass actually producing SeoFinding rows and a
 health_on_page score. Pure rule logic is covered by
 test_seo_onpage_analyzer.py; this file covers the wiring alongside the

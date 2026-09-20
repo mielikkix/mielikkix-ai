@@ -1,4 +1,4 @@
-"""SEO Copywriter -- HTTP wrapper. See apps/agents/seo-copywriter/CLAUDE.md
+"""SEO Copywriter -- HTTP wrapper. See apps/agents/seo-audit/CLAUDE.md
 for the full spec and app/services/seo_service.py for the actual logic --
 this file only maps HTTP <-> that service, the same split app/api/
 agents_booking.py uses for app/services/booking_service.py.

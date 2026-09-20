@@ -1,5 +1,5 @@
 """Tests for the SEO Audit & Optimization agent's per-page structured
-extraction (Stage 2 of apps/agents/seo-copywriter/CLAUDE.md). Deterministic
+extraction (Stage 2 of apps/agents/seo-audit/CLAUDE.md). Deterministic
 only -- every assertion here traces back to real HTML/headers in the fake
 response, never an LLM guess (see that CLAUDE.md's "no fake numbers, no
 fabricated findings" rule).

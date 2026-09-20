@@ -1,5 +1,5 @@
 """SEO Audit & Optimization -- audit run orchestration (apps/agents/
-seo-copywriter/CLAUDE.md). Stage 2 (crawl + per-page structured extraction,
+seo-audit/CLAUDE.md). Stage 2 (crawl + per-page structured extraction,
 stored as SeoCrawledPage rows), Stage 3 (technical analyzer, health_
 technical), Stage 4 (on-page analyzer, health_on_page), and Stage 5
 (overall_health/finding_severity_counts summary) run entirely
@@ -276,7 +276,7 @@ HEALTH_CATEGORIES = ["health_technical", "health_on_page", "health_performance",
 
 def finding_severity_counts(db: Session, audit_id: str) -> dict[str, int]:
     """Total findings by severity for one audit -- Stage 5's "SEO Health"
-    overview (apps/agents/seo-copywriter/CLAUDE.md, Phase 10). Always
+    overview (apps/agents/seo-audit/CLAUDE.md, Phase 10). Always
     real counts from stored SeoFinding rows, never estimated."""
     counts = {key: 0 for key in _SEVERITY_ORDER}
     rows = (

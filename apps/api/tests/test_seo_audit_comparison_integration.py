@@ -1,4 +1,4 @@
-"""Integration tests for Stage 10 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 10 (apps/agents/seo-audit/CLAUDE.md):
 the GET .../audits/{id}/compare HTTP endpoint. Pure diff/matching logic is
 covered by test_seo_audit_comparison_service.py; this file covers
 entitlement, 404s, and cross-business isolation.

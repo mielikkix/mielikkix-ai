@@ -1,4 +1,4 @@
-"""Tests for Stage 8 (apps/agents/seo-copywriter/CLAUDE.md): the
+"""Tests for Stage 8 (apps/agents/seo-audit/CLAUDE.md): the
 PerformanceProvider abstraction and its Google PageSpeed Insights
 implementation. No real network calls -- httpx is always mocked.
 """

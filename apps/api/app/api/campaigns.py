@@ -16,7 +16,7 @@ agent_access_service.require_agent_access -- the exact same call
 mailchimp_oauth.py's own /authorize already uses (see that file). Email
 Marketing is purchased separately from the chat-widget plan, like every
 other Force agent -- see apps/api/app/core/agent_catalog.py and
-apps/agents/seo-copywriter/CLAUDE.md's "Standalone agent billing" decision.
+apps/agents/seo-audit/CLAUDE.md's "Standalone agent billing" decision.
 """
 
 from dataclasses import asdict

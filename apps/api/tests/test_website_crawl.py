@@ -1,7 +1,7 @@
 """Tests for the full-site knowledge-base crawl (app/services/document_service.py's
 crawl_and_ingest_website + POST /api/documents/from-website; the underlying
 discovery helpers themselves -- sitemap/robots/SSRF -- moved to
-app/services/web_crawl.py in Stage 2 of apps/agents/seo-copywriter/CLAUDE.md,
+app/services/web_crawl.py in Stage 2 of apps/agents/seo-audit/CLAUDE.md,
 see test_web_crawl.py for their own tests).
 
 Network calls are always mocked -- no real HTTP requests happen in this suite.

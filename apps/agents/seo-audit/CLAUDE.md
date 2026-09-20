@@ -1,10 +1,34 @@
-# CLAUDE.md — apps/agents/seo-copywriter (upgrading to SEO Audit & Optimization Agent)
+# CLAUDE.md — apps/agents/seo-audit (SEO Audit & Optimization Agent; folder renamed from seo-copywriter)
 
 Read the root `CLAUDE.md` and `apps/agents/CLAUDE.md` first. This file is
 this agent's own spec — it now covers two things: the SEO Copywriter that's
-already live, and the in-progress upgrade that wraps it in a full SEO Audit
-& Optimization Agent. **The copywriter keeps working unchanged throughout
-this upgrade** — nothing below replaces it.
+already live, and the SEO Audit & Optimization Agent it was upgraded into
+(the whole reason the folder was renamed from `seo-copywriter`). **The
+copywriter keeps working unchanged throughout this upgrade** — nothing
+below replaces it.
+
+## Pricing (resolved)
+
+Sold in two tiers under the single `seo_audit_optimization` entitlement key
+(access is still on/off — the tiers are a pricing/feature-copy distinction,
+not a second entitlement gate; see `app/core/agent_catalog.py`):
+
+- **Free — "SEO Audit & Optimize"**: every capability built through Stage 11
+  below (crawl + technical/on-page findings, action plan, executive summary,
+  keyword ideas, history/comparison, client report with PDF export).
+- **Paid — "Professional SEO Audit & Optimization"**, 29 901 kr: everything
+  in Free, plus a longer roadmap of enterprise crawler capabilities (crawl
+  scheduling, JS rendering, GA/Search Console/PageSpeed integrations,
+  structured-data/accessibility checks, etc.) modeled on Screaming Frog's
+  feature set. **Most of these are marketing roadmap items, not built** —
+  each one is labeled `(coming soon)` in `agent_catalog.py`, the same
+  convention `PlanPage.tsx` already uses for `PlanFeatures` that are sold
+  but not yet wired (WhatsApp notifications, Instagram integration). Do not
+  remove the `(coming soon)` suffix from one of these until it's actually
+  implemented — the whole point of that convention is that this repo never
+  lets priced copy imply a capability that doesn't exist yet (this file's
+  own "no fabricated findings" rule, applied to sales copy instead of audit
+  data).
 
 ## Part 1 — SEO Copywriter (live, unchanged)
 

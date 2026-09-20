@@ -1,4 +1,4 @@
-"""SEO Copywriter tests (see apps/agents/seo-copywriter/CLAUDE.md). The LLM
+"""SEO Copywriter tests (see apps/agents/seo-audit/CLAUDE.md). The LLM
 client is always mocked here -- no test makes a real Groq call."""
 
 import json

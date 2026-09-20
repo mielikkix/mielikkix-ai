@@ -1,4 +1,4 @@
-"""SEO Audit & Optimization -- Stage 11 (apps/agents/seo-copywriter/
+"""SEO Audit & Optimization -- Stage 11 (apps/agents/seo-audit/
 CLAUDE.md, Phase 17): a single client-presentable rollup of one completed
 audit.
 

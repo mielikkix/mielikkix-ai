@@ -1,5 +1,5 @@
 """SEO Audit & Optimization -- recommendation engine (Stage 6 of
-apps/agents/seo-copywriter/CLAUDE.md). This is the FIRST place in this
+apps/agents/seo-audit/CLAUDE.md). This is the FIRST place in this
 agent's pipeline that calls an LLM -- everything through Stage 5
 (crawling, technical/on-page analysis, health scores) is deterministic.
 

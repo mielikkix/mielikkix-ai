@@ -1,4 +1,4 @@
-"""Integration tests for Stage 6 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 6 (apps/agents/seo-audit/CLAUDE.md):
 run_audit persisting an executive_summary, and the action-plan HTTP
 endpoint. Pure rule/LLM-mocking logic is covered by
 test_seo_recommendation_service.py; this file covers the wiring.

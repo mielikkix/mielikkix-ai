@@ -161,7 +161,7 @@ def grant_agent(db_session):
     app/services/agent_access_service.py) for test setup, bypassing the
     admin-only HTTP endpoint -- the test equivalent of set_plan above, for
     agent access instead of the chat-widget plan (the two are deliberately
-    independent, see apps/agents/seo-copywriter/CLAUDE.md's "Standalone
+    independent, see apps/agents/seo-audit/CLAUDE.md's "Standalone
     agent billing" decision)."""
     from app.services import agent_access_service
 

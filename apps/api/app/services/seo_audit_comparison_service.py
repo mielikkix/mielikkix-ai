@@ -1,4 +1,4 @@
-"""SEO Audit & Optimization -- Stage 10 (apps/agents/seo-copywriter/
+"""SEO Audit & Optimization -- Stage 10 (apps/agents/seo-audit/
 CLAUDE.md, Phase 16): comparing two completed audits of the same website to
 answer "did the fixes work / what's new / what's still broken".
 

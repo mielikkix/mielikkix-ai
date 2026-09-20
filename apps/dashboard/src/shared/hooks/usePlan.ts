@@ -79,11 +79,26 @@ export function usePlanCatalog() {
 // Force agents (Voice Receptionist, Booking Assistant, Support Triage, SEO
 // Audit & Optimization, Review & Reputation, Email Marketing) -- each sold
 // separately from the chat-widget plan above. See agent_access_service.py.
+// A tier of an agent sold free-vs-paid instead of one flat price (currently
+// just SEO Audit & Optimization -- see app/core/agent_catalog.py). A feature
+// ending in "(coming soon)" is priced/listed but not actually built yet --
+// same convention PlanPage.tsx uses for WhatsApp/Instagram; never treat it
+// as usable today.
+export interface AgentTier {
+  key: string
+  name: string
+  tagline: string
+  price_usd: number
+  price_nok: number | null
+  features: string[]
+}
+
 export interface AgentProduct {
   key: string
   name: string
   price_usd: number
   multi_tenant: boolean
+  tiers: AgentTier[] | null
 }
 
 export function useAgentAccess() {

@@ -1,4 +1,4 @@
-"""Tests for Stage 5 (apps/agents/seo-copywriter/CLAUDE.md): the audit
+"""Tests for Stage 5 (apps/agents/seo-audit/CLAUDE.md): the audit
 "SEO Health" summary -- overall_health (a composite of whichever category
 scores exist) and finding_severity_counts (real counts from stored
 SeoFinding rows, never estimated).

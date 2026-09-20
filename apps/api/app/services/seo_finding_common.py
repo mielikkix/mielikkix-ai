@@ -1,5 +1,5 @@
 """Shared finding/scoring types for the SEO Audit & Optimization agent's
-analyzers (technical, on-page, ...) -- see apps/agents/seo-copywriter/
+analyzers (technical, on-page, ...) -- see apps/agents/seo-audit/
 CLAUDE.md. One FindingDraft/health_score implementation so every analyzer
 stage scores findings identically instead of each reinventing it.
 """

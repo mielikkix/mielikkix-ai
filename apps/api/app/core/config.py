@@ -357,7 +357,7 @@ class Settings(BaseSettings):
     mailchimp_oauth_client_id: str = ""
     mailchimp_oauth_client_secret: str = ""
 
-    # SEO Audit & Optimization, Stage 8 (apps/agents/seo-copywriter/
+    # SEO Audit & Optimization, Stage 8 (apps/agents/seo-audit/
     # CLAUDE.md) -- Core Web Vitals via Google's free PageSpeed Insights
     # API (see app/integrations/performance_provider.py). Left empty, the
     # provider returns None for every measurement and health_performance

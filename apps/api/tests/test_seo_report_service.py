@@ -1,4 +1,4 @@
-"""Tests for Stage 11 (apps/agents/seo-copywriter/CLAUDE.md, Phase 17):
+"""Tests for Stage 11 (apps/agents/seo-audit/CLAUDE.md, Phase 17):
 the client-report rollup. Entirely deterministic -- no LLM call of its
 own -- so these build real SeoAudit/SeoFinding/SeoKeywordOpportunity rows
 directly. HTTP wiring is covered by test_seo_report_integration.py.

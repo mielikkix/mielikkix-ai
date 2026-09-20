@@ -1,4 +1,4 @@
-"""Integration tests for Stage 9 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 9 (apps/agents/seo-audit/CLAUDE.md):
 run_audit's keyword pass actually producing SeoKeywordOpportunity rows, and
 the keyword-opportunities HTTP endpoint. Pure service logic is covered by
 test_seo_keyword_service.py; this file covers the wiring.

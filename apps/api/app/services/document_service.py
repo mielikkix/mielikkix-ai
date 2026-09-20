@@ -12,7 +12,7 @@ from ..rag.embeddings import embed_texts
 from . import plan_service, web_crawl
 # The SSRF guard, robots/sitemap parsing, and page-discovery crawler used to
 # be defined here; extracted to web_crawl.py in Stage 2 of apps/agents/
-# seo-copywriter/CLAUDE.md so the SEO Audit & Optimization agent's own
+# seo-audit/CLAUDE.md so the SEO Audit & Optimization agent's own
 # crawler reuses this exact hardened fetch path instead of a second
 # implementation. Re-exported under their old names so every existing call
 # site and test in this module keeps working unchanged.

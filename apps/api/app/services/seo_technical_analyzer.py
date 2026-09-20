@@ -1,4 +1,4 @@
-"""Technical SEO analyzer (Stage 3 of apps/agents/seo-copywriter/CLAUDE.md)
+"""Technical SEO analyzer (Stage 3 of apps/agents/seo-audit/CLAUDE.md)
 -- turns an audit's crawled data (SeoCrawledPage rows) plus a fresh
 robots.txt/sitemap fetch into SeoFinding rows. Deterministic only, per that
 CLAUDE.md's Phase 18 hard boundary: severity always comes from a fixed

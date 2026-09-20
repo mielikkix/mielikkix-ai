@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Sparkles, Check, X, Trash2, Globe, PlayCircle } from 'lucide-react'
+import { Sparkles, Check, X, Trash2, Globe, PlayCircle, Star } from 'lucide-react'
 import { clsx } from 'clsx'
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { AgentGate } from '../../shared/components/AgentGate'
-import { useAgentAccess } from '../../shared/hooks/usePlan'
+import { useAgentAccess, useAgentCatalog, AgentTier } from '../../shared/hooks/usePlan'
+import { formatCurrency } from '../../shared/currency'
 
 interface SeoWebsite {
   id: string
@@ -119,7 +121,7 @@ const SEVERITY_COLORS: Record<SeoFinding['severity'], string> = {
 // diagnostic score, per-category breakdown, and findings-by-severity
 // counts, each clickable to drill into that severity's findings below.
 // Explicitly labeled as an internal score, never a real Google ranking
-// signal (see apps/agents/seo-copywriter/CLAUDE.md, Phase 10).
+// signal (see apps/agents/seo-audit/CLAUDE.md, Phase 10).
 interface SeoPerformanceMeasurement {
   strategy: 'mobile' | 'desktop'
   performance_score: number | null
@@ -187,7 +189,7 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 print:hidden">
         {(Object.keys(SEVERITY_LABELS) as Severity[]).map((severity) => (
           <button
             key={severity}
@@ -200,6 +202,18 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
             {SEVERITY_LABELS[severity]}: {audit.finding_counts[severity]}
           </button>
         ))}
+      </div>
+      {/* Print-only static equivalent of the interactive filter buttons above
+          -- the numbers are useful in a printed report, the click-to-filter
+          behavior isn't. */}
+      <div className="hidden flex-wrap gap-3 text-sm print:flex">
+        {(Object.keys(SEVERITY_LABELS) as Severity[])
+          .filter((s) => audit.finding_counts[s] > 0)
+          .map((severity) => (
+            <span key={severity} className="rounded-full border border-slate-300 px-3 py-1">
+              {SEVERITY_LABELS[severity]}: {audit.finding_counts[severity]}
+            </span>
+          ))}
       </div>
 
       {audit.executive_summary && (
@@ -240,7 +254,7 @@ function ActionPlanList({ auditId }: { auditId: string }) {
             <h4 className="mb-2 text-sm font-semibold text-slate-700">{PRIORITY_LABELS[priority]}</h4>
             <div className="space-y-2">
               {group.map((item) => (
-                <div key={item.rule_code} className={clsx('rounded-lg border px-3 py-2', item.status === 'ignored' && 'opacity-50')}>
+                <div key={item.rule_code} className={clsx('rounded-lg border px-3 py-2 print:break-inside-avoid', item.status === 'ignored' && 'opacity-50')}>
                   <p className="font-medium text-slate-800">{item.issue}</p>
                   <p className="mt-1 text-sm text-slate-500">
                     {item.affected_urls.length} page(s) affected · Difficulty: {item.implementation_difficulty} · Benefit: {item.expected_benefit}
@@ -287,21 +301,16 @@ function ReportView({ auditId }: { auditId: string }) {
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 print:border-0">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">SEO Report — {report.website_name || report.website_url}</h3>
-          <p className="text-sm text-slate-500">
-            {report.website_url}
-            {report.audit_completed_at && ` · Generated ${new Date(report.audit_completed_at).toLocaleDateString()}`}
-          </p>
-        </div>
-        <Button size="sm" variant="secondary" onClick={() => window.print()} className="print:hidden">
-          Print / Save as PDF
-        </Button>
+    <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 print:border-0 print:p-0">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">SEO Report — {report.website_name || report.website_url}</h3>
+        <p className="text-sm text-slate-500">
+          {report.website_url}
+          {report.audit_completed_at && ` · Generated ${new Date(report.audit_completed_at).toLocaleDateString()}`}
+        </p>
       </div>
 
-      <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+      <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 print:border print:border-slate-300">
         <span className="text-2xl font-bold text-slate-900">{report.overall_health ?? '—'}</span>
         <span className="text-sm text-slate-500">Overall SEO health (internal diagnostic score, not a Google ranking)</span>
       </div>
@@ -443,7 +452,7 @@ function AuditHistoryList({ audits }: { audits: SeoAudit[] }) {
       {completed.map((audit, i) => {
         const previous = completed[i + 1]
         return (
-          <div key={audit.id} className="rounded-lg border border-slate-200 px-3 py-2">
+          <div key={audit.id} className="rounded-lg border border-slate-200 px-3 py-2 print:break-inside-avoid">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="font-medium text-slate-800">{new Date(audit.created_at).toLocaleString()}</p>
@@ -453,6 +462,7 @@ function AuditHistoryList({ audits }: { audits: SeoAudit[] }) {
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="print:hidden"
                   onClick={() => setComparingId((v) => (v === audit.id ? null : audit.id))}
                 >
                   {comparingId === audit.id ? 'Hide comparison' : 'Compare to previous'}
@@ -500,7 +510,7 @@ function KeywordOpportunitiesList({ auditId }: { auditId: string }) {
         Search volume/CPC/competition: <span className="font-medium">Not available</span> -- no real keyword-data source is connected.
       </p>
       {keywords.map((k) => (
-        <div key={k.id} className="rounded-lg border border-slate-200 px-3 py-2">
+        <div key={k.id} className="rounded-lg border border-slate-200 px-3 py-2 print:break-inside-avoid">
           <div className="flex items-center gap-2">
             <span className="font-medium text-slate-800">{k.keyword}</span>
             {k.intent && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{k.intent}</span>}
@@ -547,7 +557,7 @@ function FindingDraftAction({ finding }: { finding: SeoFinding }) {
 
   if (!latest || latest.status === 'rejected') {
     return (
-      <div className="mt-2">
+      <div className="mt-2 print:hidden">
         <Button size="sm" variant="secondary" loading={generateMut.isPending} onClick={() => generateMut.mutate()}>
           <Sparkles size={14} className="mr-1" />
           {latest?.status === 'rejected' ? 'Regenerate fix' : 'Generate fix'}
@@ -558,11 +568,11 @@ function FindingDraftAction({ finding }: { finding: SeoFinding }) {
   }
 
   return (
-    <div className="mt-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2">
+    <div className="mt-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 print:border-slate-300 print:bg-transparent">
       <p className="text-xs font-medium uppercase tracking-wide text-brand-600">Suggested fix</p>
       <p className="mt-1 text-sm text-slate-800">{draftText}</p>
       {latest.status === 'draft' ? (
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex gap-2 print:hidden">
           <Button size="sm" loading={approveMut.isPending} onClick={() => approveMut.mutate()}>
             <Check size={14} className="mr-1" />
             Approve
@@ -606,7 +616,7 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
   return (
     <div className="space-y-2">
       {findings.map((f) => (
-        <div key={f.id} className={clsx('rounded-lg border px-3 py-2', f.status === 'ignored' ? 'opacity-50 border-slate-100' : 'border-slate-200')}>
+        <div key={f.id} className={clsx('rounded-lg border px-3 py-2 print:break-inside-avoid', f.status === 'ignored' ? 'opacity-50 border-slate-100' : 'border-slate-200')}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <span className={clsx('mr-2 rounded-full px-2 py-0.5 text-xs font-medium uppercase', SEVERITY_COLORS[f.severity])}>
@@ -619,7 +629,7 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
               {f.status !== 'ignored' && COPYWRITER_RULE_CODES.has(f.rule_code) && <FindingDraftAction finding={f} />}
             </div>
             {f.status !== 'ignored' && (
-              <Button size="sm" variant="ghost" loading={ignoreMut.isPending} onClick={() => ignoreMut.mutate(f.id)}>
+              <Button size="sm" variant="ghost" className="print:hidden" loading={ignoreMut.isPending} onClick={() => ignoreMut.mutate(f.id)}>
                 Ignore
               </Button>
             )}
@@ -630,8 +640,51 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
   )
 }
 
+// Combines every detail tab (Report, Action Plan, All Findings, Keyword
+// Ideas, History) into one flowing document for printing/PDF export. The
+// browser's native print dialog only ever captures whatever's currently
+// on screen, and the on-screen UI deliberately shows one tab at a time --
+// this component exists purely so "Print Full Report (PDF)" produces a
+// complete document regardless of which tab happens to be selected.
+// Invisible on screen (`hidden`), shown only for print (`print:block`).
+// Reuses the exact same data-fetching components as the interactive tabs
+// (ActionPlanList, FindingsList, etc.) rather than re-implementing their
+// rendering -- their own interactive-only buttons (Ignore, Generate fix,
+// Compare to previous) are individually print:hidden at their own
+// definitions above, so what's left here is exactly the same real data,
+// laid out for paper instead of a screen.
+function PrintableAuditReport({ auditId, audits }: { auditId: string; audits: SeoAudit[] }) {
+  return (
+    <div className="hidden print:block">
+      <section>
+        <ReportView auditId={auditId} />
+      </section>
+
+      <section className="print:break-before-page">
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">Action Plan</h2>
+        <ActionPlanList auditId={auditId} />
+      </section>
+
+      <section className="mt-8 print:mt-0 print:break-before-page">
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">All Findings</h2>
+        <FindingsList auditId={auditId} severityFilter={null} />
+      </section>
+
+      <section className="mt-8 print:mt-0 print:break-before-page">
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">Keyword Ideas</h2>
+        <KeywordOpportunitiesList auditId={auditId} />
+      </section>
+
+      <section className="mt-8 print:mt-0 print:break-before-page">
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">Audit History</h2>
+        <AuditHistoryList audits={audits} />
+      </section>
+    </div>
+  )
+}
+
 // Stage 2 of the SEO Audit & Optimization upgrade (see apps/agents/
-// seo-copywriter/CLAUDE.md) -- crawl a registered website and store
+// seo-audit/CLAUDE.md) -- crawl a registered website and store
 // per-page facts. Findings/health scores/recommendations are later stages
 // of that same plan; this is just "run a crawl and see it finish".
 function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onDelete: () => void; deleting: boolean }) {
@@ -658,8 +711,8 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
   })
 
   return (
-    <Card>
-      <div className="flex items-start justify-between gap-4">
+    <Card className={showFindings ? 'print:rounded-none print:border-0 print:shadow-none' : 'print:hidden'}>
+      <div className="flex items-start justify-between gap-4 print:hidden">
         <div>
           <p className="flex items-center gap-2 font-semibold text-slate-900">
             <Globe size={16} className="text-slate-400" />
@@ -684,7 +737,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
       </div>
 
       {latestAudit && (
-        <div className="mt-4 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+        <div className="mt-4 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm print:hidden">
           <span className={clsx('rounded-full px-2 py-0.5 font-medium', AUDIT_STATUS_COLORS[latestAudit.status])}>
             {latestAudit.status}
           </span>
@@ -703,30 +756,41 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
 
       {showFindings && latestAudit && (
         <>
-          <SeoHealthPanel audit={latestAudit} severityFilter={severityFilter} onSeverityFilter={setSeverityFilter} />
-          <div className="mt-3 flex gap-2 border-b border-slate-200">
-            {(['plan', 'findings', 'keywords', 'history', 'report'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setDetailTab(t)}
-                className={clsx(
-                  'px-3 py-1.5 text-sm font-medium border-b-2 -mb-px',
-                  detailTab === t ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500',
-                )}
-              >
-                {t === 'plan'
-                  ? 'Action Plan'
-                  : t === 'findings'
-                  ? 'All Findings'
-                  : t === 'keywords'
-                  ? 'Keyword Ideas'
-                  : t === 'history'
-                  ? 'History'
-                  : 'Report'}
-              </button>
-            ))}
+          <div className="print:hidden">
+            <SeoHealthPanel audit={latestAudit} severityFilter={severityFilter} onSeverityFilter={setSeverityFilter} />
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center justify-between gap-2 border-b border-slate-200 print:hidden">
+            <div className="flex gap-2">
+              {(['plan', 'findings', 'keywords', 'history', 'report'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setDetailTab(t)}
+                  className={clsx(
+                    'px-3 py-1.5 text-sm font-medium border-b-2 -mb-px',
+                    detailTab === t ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500',
+                  )}
+                >
+                  {t === 'plan'
+                    ? 'Action Plan'
+                    : t === 'findings'
+                    ? 'All Findings'
+                    : t === 'keywords'
+                    ? 'Keyword Ideas'
+                    : t === 'history'
+                    ? 'History'
+                    : 'Report'}
+                </button>
+              ))}
+            </div>
+            {/* One button prints the FULL report (all five sections below,
+                via PrintableAuditReport) regardless of which tab is active
+                on screen -- see that component's own docstring for why a
+                per-tab print button couldn't do this. */}
+            <Button size="sm" variant="secondary" className="mb-2" onClick={() => window.print()}>
+              Print Full Report (PDF)
+            </Button>
+          </div>
+          <div className="mt-3 print:hidden">
             {detailTab === 'plan' ? (
               <ActionPlanList auditId={latestAudit.id} />
             ) : detailTab === 'findings' ? (
@@ -739,6 +803,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
               <ReportView auditId={latestAudit.id} />
             )}
           </div>
+          <PrintableAuditReport auditId={latestAudit.id} audits={audits} />
         </>
       )}
     </Card>
@@ -746,7 +811,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
 }
 
 // Stage 1 of the SEO Audit & Optimization upgrade (see apps/agents/
-// seo-copywriter/CLAUDE.md) -- register websites to audit. Audit runs,
+// seo-audit/CLAUDE.md) -- register websites to audit. Audit runs,
 // findings, and recommendations land in later stages of that same plan.
 function WebsitesTab() {
   const qc = useQueryClient()
@@ -787,7 +852,7 @@ function WebsitesTab() {
 
   return (
     <div className="space-y-6">
-      <Card title="Add a website to audit">
+      <Card title="Add a website to audit" className="print:hidden">
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -886,7 +951,7 @@ interface SeoDraft {
 }
 
 // Only ever "generate for products I picked, review, approve/reject" -- see
-// apps/agents/seo-copywriter/CLAUDE.md: silently overwriting live product
+// apps/agents/seo-audit/CLAUDE.md: silently overwriting live product
 // copy without a review step is the one failure mode this agent must never
 // have, so nothing here ever calls PATCH /products directly.
 function DraftReview({ product, draft }: { product: Product; draft: SeoDraft }) {
@@ -1018,9 +1083,100 @@ function ContentTab() {
   )
 }
 
+// Two-tier pricing card, same visual language as PlanPage.tsx's chat-widget
+// plan cards (brand-gradient "Most Popular" card for the paid tier) so the
+// two pricing surfaces in this app don't look like two different products.
+function SeoTierCard({ tier, isCurrent }: { tier: AgentTier; isCurrent: boolean }) {
+  const navigate = useNavigate()
+  const isFree = tier.key === 'free'
+  const priceLabel = isFree
+    ? 'Free'
+    : tier.price_nok !== null
+      ? formatCurrency(tier.price_nok, 'NOK')
+      : formatCurrency(tier.price_usd, 'USD')
+
+  return (
+    <div
+      className={clsx(
+        'flex flex-col rounded-2xl border p-6 print:break-inside-avoid print:border-slate-300',
+        !isFree ? 'brand-gradient text-white shadow-sm shadow-brand-200 print:bg-none print:text-slate-900' : 'bg-white border-slate-300',
+      )}
+    >
+      {!isFree && (
+        <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-sm font-semibold print:border print:border-slate-300 print:bg-transparent print:text-slate-700">
+          <Star size={12} /> Most Popular
+        </span>
+      )}
+      <h3 className={clsx('text-xl font-bold', !isFree ? 'text-white print:text-slate-900' : 'text-slate-900')}>{tier.name}</h3>
+      <p className={clsx('text-sm mt-1', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}>{tier.tagline}</p>
+      <p className="mt-4">
+        <span className={clsx('text-3xl font-bold', !isFree ? 'text-white print:text-slate-900' : 'text-slate-900')}>{priceLabel}</span>
+        {!isFree && <span className={clsx('text-sm', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}> one-time</span>}
+      </p>
+
+      <Button
+        className="mt-4 w-full justify-center print:hidden"
+        variant={!isFree ? 'secondary' : isCurrent ? 'secondary' : 'primary'}
+        disabled={isCurrent}
+        onClick={() => navigate('/dashboard/plan')}
+      >
+        {isCurrent ? 'Current plan' : isFree ? 'Contact us to activate' : 'Contact us to upgrade'}
+      </Button>
+
+      <ul className="mt-5 space-y-2 flex-1">
+        {tier.features.map((line) => (
+          <li key={line} className={clsx('flex items-start gap-2 text-sm', !isFree ? 'text-white print:text-slate-600' : 'text-slate-600')}>
+            <Check size={15} className={clsx('mt-0.5 flex-shrink-0', !isFree ? 'text-white print:text-emerald-600' : 'text-emerald-600')} />
+            {line}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// No payment processor exists yet (same PAYMENT_COMING_SOON situation as
+// PlanPage.tsx), and activating a purchased agent is still a platform-admin
+// action (see businesses.py's "Force agents" section) -- so both tiers'
+// buttons hand off to Plan & Billing rather than pretending to check out.
+// "Current plan" only ever shows for the free tier: BusinessAgentAccess has
+// no tier column (tiers are catalog/pricing copy, not a second entitlement
+// gate -- see agent_catalog.py's AgentTier docstring), and every capability
+// the free tier lists is already what an active grant unlocks today, so
+// treating "has access at all" as "on the free tier" is accurate, not a
+// guess.
+function PlansTab() {
+  const { data: catalog } = useAgentCatalog()
+  const { data: access } = useAgentAccess()
+  const seo = catalog?.find((a) => a.key === 'seo_audit_optimization')
+
+  if (!seo?.tiers) return null
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 print:hidden">
+        <p className="text-base text-slate-500 max-w-2xl">
+          SEO Audit &amp; Optimization is sold in two tiers. Professional adds a deeper,
+          Screaming-Frog-style crawler on top of everything in the free tier — items marked
+          "(coming soon)" are priced in but not built yet.
+        </p>
+        <Button size="sm" variant="secondary" onClick={() => window.print()}>
+          Print / Save as PDF
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {seo.tiers.map((tier) => (
+          <SeoTierCard key={tier.key} tier={tier} isCurrent={tier.key === 'free' && !!access?.seo_audit_optimization} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const TABS = [
   { key: 'websites', label: 'Websites' },
   { key: 'content', label: 'Content' },
+  { key: 'plans', label: 'Plans' },
 ] as const
 
 export function SeoPage() {
@@ -1035,13 +1191,14 @@ export function SeoPage() {
         <AgentGate agentKey="seo_audit_optimization">
           <span />
         </AgentGate>
+        <PlansTab />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="print:hidden">
         <h1 className="text-4xl font-bold text-slate-900">SEO</h1>
         <p className="text-base text-slate-500 mt-1">
           Audit your websites for real, deterministic SEO issues, and fix them with AI-generated
@@ -1049,7 +1206,7 @@ export function SeoPage() {
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-200">
+      <div className="flex gap-2 border-b border-slate-200 print:hidden">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -1066,7 +1223,7 @@ export function SeoPage() {
         ))}
       </div>
 
-      {tab === 'websites' ? <WebsitesTab /> : <ContentTab />}
+      {tab === 'websites' ? <WebsitesTab /> : tab === 'content' ? <ContentTab /> : <PlansTab />}
     </div>
   )
 }

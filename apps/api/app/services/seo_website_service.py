@@ -1,5 +1,5 @@
 """SEO Audit & Optimization -- website registration. See
-apps/agents/seo-copywriter/CLAUDE.md, Stage 1 ("Architecture + DB").
+apps/agents/seo-audit/CLAUDE.md, Stage 1 ("Architecture + DB").
 
 Uses web_crawl.assert_public_url -- the same SSRF guard (rejects private/
 loopback/reserved IPs, validates scheme/host) that protects the "import my

@@ -1,4 +1,4 @@
-"""Integration tests for Stage 11 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 11 (apps/agents/seo-audit/CLAUDE.md):
 the GET .../audits/{id}/report HTTP endpoint. Pure assembly logic is
 covered by test_seo_report_service.py; this file covers entitlement,
 404/400s, and cross-business isolation.

@@ -1,5 +1,5 @@
 """SEO Audit & Optimization -- keyword opportunity engine (Stage 9 of
-apps/agents/seo-copywriter/CLAUDE.md, Phase 14). An LLM call, same "explain
+apps/agents/seo-audit/CLAUDE.md, Phase 14). An LLM call, same "explain
 over real data, never invent facts" boundary as
 seo_recommendation_service.py's executive summary: the model is given the
 website's real category/target market/seed keywords and its actual crawled

@@ -1,4 +1,4 @@
-"""Integration tests for Stage 8 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 8 (apps/agents/seo-audit/CLAUDE.md):
 run_audit's performance pass actually calling the PerformanceProvider,
 persisting SeoPerformanceMeasurement rows, and computing health_performance
 -- or honestly leaving it null when no measurement is available. Pure

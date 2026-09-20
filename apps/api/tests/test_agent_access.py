@@ -25,6 +25,27 @@ def test_my_agent_access_defaults_to_nothing_active(client, business):
     assert resp.json() == {key: False for key in AGENTS}
 
 
+def test_seo_agent_catalog_entry_has_free_and_professional_tiers(client):
+    """SEO Audit & Optimization is the one agent sold as free-vs-paid tiers
+    (see agent_catalog.py) rather than a single flat price -- everything
+    else in the catalog keeps tiers=None."""
+    resp = client.get("/api/businesses/agents")
+    assert resp.status_code == 200
+    by_key = {item["key"]: item for item in resp.json()}
+
+    seo = by_key["seo_audit_optimization"]
+    assert [t["key"] for t in seo["tiers"]] == ["free", "professional"]
+    free, pro = seo["tiers"]
+    assert free["name"] == "SEO Audit & Optimize"
+    assert free["price_usd"] == 0 and free["price_nok"] == 0
+    assert pro["name"] == "Professional SEO Audit & Optimization"
+    assert pro["price_nok"] == 29901
+
+    for key, item in by_key.items():
+        if key != "seo_audit_optimization":
+            assert item["tiers"] is None
+
+
 def test_my_agent_access_reflects_a_granted_agent(client, business, grant_agent):
     grant_agent(business["business_id"], "seo_audit_optimization")
 
@@ -37,7 +58,7 @@ def test_my_agent_access_reflects_a_granted_agent(client, business, grant_agent)
 
 def test_agent_access_is_independent_of_chat_widget_plan(client, business, set_plan):
     """The whole point of this system: being on a paid chat-widget plan
-    grants no agent access on its own -- see apps/agents/seo-copywriter/
+    grants no agent access on its own -- see apps/agents/seo-audit/
     CLAUDE.md's "Standalone agent billing" decision."""
     set_plan(business["business_id"], "growth")
 

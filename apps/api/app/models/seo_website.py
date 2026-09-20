@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship
 from ..core.database import Base
 
 # Page-count ceiling per audit run, by crawl_tier -- independent of plan
-# limits (see apps/agents/seo-copywriter/CLAUDE.md, Phase 4): this bounds a
+# limits (see apps/agents/seo-audit/CLAUDE.md, Phase 4): this bounds a
 # single audit's own crawl, not how many websites a business can register.
 CRAWL_TIER_PAGE_LIMITS = {"starter": 25, "standard": 100, "advanced": 500}
 
@@ -16,7 +16,7 @@ class SeoWebsite(Base):
     deliberately NOT the same thing as BusinessWebsite (models/website.py),
     which just counts widget-embed domains against PlanLimits.max_websites.
     A business can audit websites it doesn't even embed the chat widget on
-    (see apps/agents/seo-copywriter/CLAUDE.md's "What already exists that
+    (see apps/agents/seo-audit/CLAUDE.md's "What already exists that
     this reuses" section for why these two models stay separate)."""
 
     __tablename__ = "seo_websites"

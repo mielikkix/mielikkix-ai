@@ -1,4 +1,4 @@
-"""Integration tests for Stage 3 (apps/agents/seo-copywriter/CLAUDE.md):
+"""Integration tests for Stage 3 (apps/agents/seo-audit/CLAUDE.md):
 run_audit's technical-analyzer pass actually producing SeoFinding rows and
 a health_technical score, plus the findings list/update HTTP surface.
 Pure rule-logic is covered by test_seo_technical_analyzer.py; this file

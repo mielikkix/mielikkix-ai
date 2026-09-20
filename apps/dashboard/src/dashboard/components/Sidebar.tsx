@@ -39,7 +39,7 @@ export function Sidebar({ open, onClose }: Props) {
       <aside
         className={clsx(
           'fixed inset-y-0 left-0 z-40 w-60 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200 ease-out',
-          'md:static md:translate-x-0',
+          'md:static md:translate-x-0 print:hidden',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >

@@ -3,7 +3,7 @@ parsing, sitemap discovery, link-crawl fallback. Originally built inside
 document_service.py for "import my website into the knowledge base"
 (Phase 24 security requirements: reject private/internal IPs, cap crawl
 size, respect robots.txt, re-validate every redirect hop). Extracted here
-in Stage 2 of apps/agents/seo-copywriter/CLAUDE.md so the SEO Audit &
+in Stage 2 of apps/agents/seo-audit/CLAUDE.md so the SEO Audit &
 Optimization agent's own crawler (app/services/seo_page_analyzer.py,
 seo_audit_service.py) uses the exact same hardened fetch path instead of a
 second implementation -- see that CLAUDE.md's Phase 18: the LLM never

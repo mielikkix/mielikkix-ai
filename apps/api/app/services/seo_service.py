@@ -1,4 +1,4 @@
-"""SEO Copywriter -- see apps/agents/seo-copywriter/CLAUDE.md for the full
+"""SEO Copywriter -- see apps/agents/seo-audit/CLAUDE.md for the full
 spec. Generates draft product descriptions + SEO metadata for a business's
 own catalog, always into a separate SeoDraft row -- never straight onto the
 live Product record (see that CLAUDE.md: silently overwriting live,
@@ -145,7 +145,7 @@ async def generate_drafts(db: Session, business_id: str, product_ids: list[str])
 
 
 # ---------------------------------------------------------------------------
-# Stage 7 (apps/agents/seo-copywriter/CLAUDE.md): generating a draft FROM an
+# Stage 7 (apps/agents/seo-audit/CLAUDE.md): generating a draft FROM an
 # SEO Audit finding, instead of from the product picker above. Each
 # supported rule_code maps to exactly one field the Copywriter fills in --
 # never the full description+title+meta bundle generate_drafts() above

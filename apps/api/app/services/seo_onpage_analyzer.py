@@ -1,4 +1,4 @@
-"""On-page SEO analyzer (Stage 4 of apps/agents/seo-copywriter/CLAUDE.md)
+"""On-page SEO analyzer (Stage 4 of apps/agents/seo-audit/CLAUDE.md)
 -- turns an audit's crawled data (SeoCrawledPage rows) into SeoFinding
 rows for titles, meta descriptions, headings, thin content, duplicate
 content, and image alt text. Deterministic only, same Phase 18 hard

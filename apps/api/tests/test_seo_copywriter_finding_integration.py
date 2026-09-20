@@ -1,4 +1,4 @@
-"""Tests for Stage 7 (apps/agents/seo-copywriter/CLAUDE.md): generating a
+"""Tests for Stage 7 (apps/agents/seo-audit/CLAUDE.md): generating a
 Copywriter draft FROM an SEO Audit finding, instead of from the product
 picker. The LLM client is always mocked here -- no test makes a real call.
 """

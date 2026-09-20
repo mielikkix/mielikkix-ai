@@ -1,4 +1,4 @@
-"""Tests for Stage 9 (apps/agents/seo-copywriter/CLAUDE.md, Phase 14):
+"""Tests for Stage 9 (apps/agents/seo-audit/CLAUDE.md, Phase 14):
 the keyword opportunity engine. The LLM client is always mocked here -- no
 test makes a real call, and every test that matters here confirms
 volume/CPC/competition are never fabricated.

@@ -1,4 +1,4 @@
-"""Tests for SEO audit runs (Stage 2 of apps/agents/seo-copywriter/CLAUDE.md
+"""Tests for SEO audit runs (Stage 2 of apps/agents/seo-audit/CLAUDE.md
 -- crawl + per-page structured extraction). The crawler/analyzer layers
 have their own dedicated tests (test_web_crawl.py, test_seo_page_analyzer.py);
 this file covers create_audit/run_audit orchestration and the HTTP surface.

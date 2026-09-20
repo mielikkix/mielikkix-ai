@@ -1,4 +1,4 @@
-"""Tests for Stage 6 (apps/agents/seo-copywriter/CLAUDE.md): the
+"""Tests for Stage 6 (apps/agents/seo-audit/CLAUDE.md): the
 deterministic action-plan builder (no LLM, no DB) and the LLM-backed
 executive summary. The LLM client is always mocked here -- no test makes
 a real API call.

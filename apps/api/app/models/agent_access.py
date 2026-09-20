@@ -13,7 +13,7 @@ class BusinessAgentAccess(Base):
     review_reputation_enabled/email_marketing_enabled booleans, which
     incorrectly bundled every agent into the Business/Growth chat-widget
     tiers for free; every agent is sold separately from the chat-widget
-    plan, purchased on its own. See apps/agents/seo-copywriter/CLAUDE.md's
+    plan, purchased on its own. See apps/agents/seo-audit/CLAUDE.md's
     "Standalone agent billing" decision.
 
     `status` is kept as history (never deleted) so a revoked agent leaves a

@@ -1,6 +1,6 @@
 """Tests for the shared crawler layer (app/services/web_crawl.py) --
 extracted from document_service.py in Stage 2 of apps/agents/
-seo-copywriter/CLAUDE.md so both document ingestion and the SEO Audit &
+seo-audit/CLAUDE.md so both document ingestion and the SEO Audit &
 Optimization agent's crawler share one hardened fetch/SSRF/robots/sitemap
 implementation instead of two. Network calls are always mocked -- no real
 HTTP requests happen in this suite.

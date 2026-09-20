@@ -1,6 +1,6 @@
 """PerformanceProvider -- abstraction around Core Web Vitals measurement,
 so the SEO Audit & Optimization agent's performance pass (Stage 8, see
-apps/agents/seo-copywriter/CLAUDE.md) isn't tightly coupled to Google
+apps/agents/seo-audit/CLAUDE.md) isn't tightly coupled to Google
 PageSpeed Insights specifically. Same idiom app/integrations/
 calendar_provider.py and app/rag/providers/ already use: an ABC + a
 get_performance_provider() factory, so swapping providers later is a

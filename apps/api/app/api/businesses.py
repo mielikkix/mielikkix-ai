@@ -20,7 +20,7 @@ from ..schemas.plan import (
     ApiKeyOut,
     NotificationChannelRequest,
 )
-from ..schemas.agent_access import AgentProductOut
+from ..schemas.agent_access import AgentProductOut, AgentTierOut
 from ..core.plans import PLANS
 from ..core.agent_catalog import AGENTS
 from ..services import agent_access_service, plan_service
@@ -216,7 +216,7 @@ def set_api_access_addon(
 
 # ---------------------------------------------------------------------------
 # Force agents -- sold separately from the chat-widget plan above (see
-# apps/api/app/core/agent_catalog.py and apps/agents/seo-copywriter/
+# apps/api/app/core/agent_catalog.py and apps/agents/seo-audit/
 # CLAUDE.md's "Standalone agent billing" decision). No payment processor
 # exists yet, same as the plan endpoints above -- activating a purchased
 # agent is a platform-admin action (PATCH /api/admin/businesses/{id}/
@@ -228,7 +228,27 @@ def list_agent_catalog():
     """Public agent catalog -- powers the "buy an agent" UI, no auth needed,
     same shape as GET /plans above."""
     return [
-        AgentProductOut(key=a.key, name=a.name, price_usd=a.price_usd, multi_tenant=a.multi_tenant)
+        AgentProductOut(
+            key=a.key,
+            name=a.name,
+            price_usd=a.price_usd,
+            multi_tenant=a.multi_tenant,
+            tiers=(
+                [
+                    AgentTierOut(
+                        key=t.key,
+                        name=t.name,
+                        tagline=t.tagline,
+                        price_usd=t.price_usd,
+                        price_nok=t.price_nok,
+                        features=list(t.features),
+                    )
+                    for t in a.tiers
+                ]
+                if a.tiers
+                else None
+            ),
+        )
         for a in AGENTS.values()
     ]
 

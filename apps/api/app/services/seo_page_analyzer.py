@@ -1,5 +1,5 @@
 """Per-page structured extraction for the SEO Audit & Optimization agent's
-crawler (Stage 2 of apps/agents/seo-copywriter/CLAUDE.md). Deterministic
+crawler (Stage 2 of apps/agents/seo-audit/CLAUDE.md). Deterministic
 only -- no LLM involvement, per that CLAUDE.md's Phase 18 hard boundary
 ("the LLM never decides facts a program can determine"). Built on
 web_crawl.fetch_with_redirects, the same hardened fetch/SSRF/redirect-

@@ -44,7 +44,7 @@ class PlanFeatures:
     # review_reputation_enabled/email_marketing_enabled booleans. Removed:
     # every agent is sold separately from the chat-widget plan, never
     # bundled into it (see apps/api/app/core/agent_catalog.py and
-    # apps/agents/seo-copywriter/CLAUDE.md's "Standalone agent billing"
+    # apps/agents/seo-audit/CLAUDE.md's "Standalone agent billing"
     # decision). Check app/services/agent_access_service.py instead.
 
 

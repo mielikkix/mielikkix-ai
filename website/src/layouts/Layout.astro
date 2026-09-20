@@ -13,9 +13,18 @@ interface Props {
   titleKey?: string;
   /** Dot-path into that page's JSON for the translated meta description (e.g. "SEO.DESCRIPTION"). */
   descriptionKey?: string;
+  /**
+   * Extra schema.org nodes (e.g. a BlogPosting) for THIS page only, merged into
+   * the same single JSON-LD @graph as the sitewide Organization/WebSite below --
+   * never a second <script type="application/ld+json"> tag, and never a reason
+   * to repeat Organization/WebSite's own properties. Reference them instead via
+   * {"@id": "https://mielikkix.ai/#organization"} / "#website" (see how the
+   * WebSite node below references Organization as its publisher).
+   */
+  structuredDataNodes?: Record<string, unknown>[];
 }
 
-const { title, description, path = "/", page, titleKey, descriptionKey } = Astro.props;
+const { title, description, path = "/", page, titleKey, descriptionKey, structuredDataNodes } = Astro.props;
 const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
 
 // Every route here builds to a directory + index.html (astro.config.mjs's default
@@ -71,6 +80,7 @@ const structuredData = {
       url: siteRootUrl,
       publisher: { "@id": organizationId },
     },
+    ...(structuredDataNodes ?? []),
   ],
 };
 ---

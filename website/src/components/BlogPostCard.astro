@@ -1,0 +1,40 @@
+---
+// Shared between /blog (the full index) and the homepage's "Blogs" teaser
+// section -- one card style, defined once, per this site's existing
+// pattern of small reusable components (BentoCard, FeatureBentoCard).
+import type { PublicArticle } from "../lib/articles";
+
+interface Props {
+  article: PublicArticle;
+}
+const { article } = Astro.props;
+const publishedDate = new Date(article.published_at).toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+---
+
+<a
+  href={`/blog/${article.slug}/`}
+  class="group flex flex-col overflow-hidden rounded-3xl border border-slate-300 bg-white transition-all hover:-translate-y-1 hover:shadow-lg hover:shadow-violet-100"
+>
+  {
+    article.featured_image_url && (
+      <img
+        src={article.featured_image_url}
+        alt=""
+        class="h-44 w-full object-cover"
+        loading="lazy"
+        width="600"
+        height="176"
+      />
+    )
+  }
+  <div class="flex flex-1 flex-col p-6">
+    <p class="text-sm text-slate-400">{publishedDate}</p>
+    <h3 class="font-display mt-2 text-xl font-bold text-slate-900 group-hover:text-violet-600">{article.title}</h3>
+    {article.excerpt && <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{article.excerpt}</p>}
+    <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-600">Read more &rarr;</span>
+  </div>
+</a>

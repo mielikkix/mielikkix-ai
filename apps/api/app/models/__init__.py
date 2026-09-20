@@ -19,6 +19,7 @@ from .campaign import Campaign
 from .agent_access import BusinessAgentAccess
 from .seo_website import SeoWebsite
 from .seo_audit import SeoAudit, SeoCrawledPage, SeoFinding, SeoKeywordOpportunity, SeoPerformanceMeasurement
+from .article import Article
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
@@ -29,5 +30,5 @@ __all__ = [
     "SeoDraft", "Review", "ReviewConnection", "MailchimpConnection",
     "Campaign", "BusinessAgentAccess",
     "SeoWebsite", "SeoAudit", "SeoCrawledPage", "SeoFinding", "SeoKeywordOpportunity",
-    "SeoPerformanceMeasurement",
+    "SeoPerformanceMeasurement", "Article",
 ]

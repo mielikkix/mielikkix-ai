@@ -3,6 +3,8 @@ import Layout from "../layouts/Layout.astro";
 import BentoCard from "../components/BentoCard.astro";
 import CTASection from "../components/CTASection.astro";
 import Price from "../components/Price.astro";
+import BlogPostCard from "../components/BlogPostCard.astro";
+import { fetchPublishedArticles } from "../lib/articles";
 import dashboardVideo from "../assets/mielikkix-dashboard-analysis.mp4";
 import en from "../assets/i18n/en/home.json";
 import enCommon from "../assets/i18n/en/common.json";
@@ -28,6 +30,14 @@ const planAccents = [
 ];
 
 const segments = en.AUDIENCE_SEGMENTS.ITEMS;
+
+// Homepage "Blogs" teaser (see this feature's own spec) -- the 3 most
+// recent published articles from the VPS database, fetched at build time
+// the same way /blog itself does. Never fails the homepage build if the
+// API is briefly unreachable -- fetchPublishedArticles degrades to an
+// empty list, and this section just doesn't render (see its own comment
+// below).
+const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
 ---
 
 <Layout
@@ -427,6 +437,27 @@ const segments = en.AUDIENCE_SEGMENTS.ITEMS;
       </a><span data-i18n="PRICING_TEASER.FOOTER_TEXT_AFTER_LINK">{en.PRICING_TEASER.FOOTER_TEXT_AFTER_LINK}</span>
     </p>
   </section>
+
+  {
+    recentArticles.length > 0 && (
+      <section class="mx-auto max-w-[1440px] px-6 py-20">
+        <div class="mx-auto max-w-2xl text-center">
+          <h2 class="font-display text-3xl font-bold text-slate-900 sm:text-4xl">From the blog</h2>
+          <p class="mt-4 text-slate-500">Guides and resources on AI automation for businesses of every size.</p>
+        </div>
+        <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {recentArticles.map((article) => (
+            <BlogPostCard article={article} />
+          ))}
+        </div>
+        <p class="mt-10 text-center">
+          <a href="/blog" class="font-semibold text-violet-600 hover:text-violet-700">
+            View all blogs &rarr;
+          </a>
+        </p>
+      </section>
+    )
+  }
 
   <CTASection
     heading={en.CTA.HEADING}

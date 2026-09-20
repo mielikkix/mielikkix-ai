@@ -24,6 +24,8 @@ import { AdminBusinessDetailPage } from './dashboard/pages/admin/AdminBusinessDe
 import { AdminUsagePage } from './dashboard/pages/admin/AdminUsagePage'
 import { AdminBookingsPage } from './dashboard/pages/admin/AdminBookingsPage'
 import { AdminTicketsPage } from './dashboard/pages/admin/AdminTicketsPage'
+import { AdminArticlesPage } from './dashboard/pages/admin/AdminArticlesPage'
+import { AdminArticleFormPage } from './dashboard/pages/admin/AdminArticleFormPage'
 import { useAuthStore } from './shared/store/authStore'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -230,6 +232,30 @@ export function App() {
         element={
           <RequireAdmin>
             <AdminLayout><AdminTicketsPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/articles"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminArticlesPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/articles/new"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminArticleFormPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/articles/:id/edit"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminArticleFormPage /></AdminLayout>
           </RequireAdmin>
         }
       />

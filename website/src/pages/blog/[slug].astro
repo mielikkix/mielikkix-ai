@@ -1,0 +1,106 @@
+---
+// Database-backed article pages (/blog/<slug>) -- one real static page per
+// PUBLISHED article, generated at `astro build` time by fetching from the
+// public API (which reads the VPS Postgres `articles` table -- the single
+// source of truth; see apps/api/app/models/article.py and
+// app/services/article_service.py). This is the "Astro reads published
+// articles -> Astro generates static files" step of the publish pipeline
+// this feature implements.
+//
+// "chatbot-for-small-businesses" (the original pillar article) was
+// migrated into this same table on 2026-09-20 (see apps/api/scripts/
+// migrate_chatbot_article.py) -- it used to be a hand-written .astro file
+// at this exact path, excluded here to avoid a routing collision while
+// both existed. That file is now deleted; the database is the only
+// source of truth for every article, this one included, with no
+// remaining special-cased slug.
+import Layout from "../../layouts/Layout.astro";
+import CTASection from "../../components/CTASection.astro";
+import { fetchArticleBySlug, fetchPublishedArticles } from "../../lib/articles";
+
+export async function getStaticPaths() {
+  const articles = await fetchPublishedArticles();
+  return articles.map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+const { article } = Astro.props as { article: Awaited<ReturnType<typeof fetchArticleBySlug>> };
+
+// getStaticPaths already only ever generates a path for an article that
+// existed (and was published) at build time, so this re-fetch is just
+// defensive -- it never actually runs in a normal build, only if this
+// page were ever rendered outside getStaticPaths' own props.
+const resolvedArticle = article ?? (await fetchArticleBySlug(Astro.params.slug!));
+if (!resolvedArticle) {
+  return Astro.redirect("/blog", 404);
+}
+
+const canonicalArticleUrl = `https://mielikkix.ai/blog/${resolvedArticle.slug}/`;
+const organizationId = "https://mielikkix.ai/#organization";
+
+const structuredDataNodes = [
+  {
+    "@type": "BlogPosting",
+    "@id": `${canonicalArticleUrl}#article`,
+    headline: resolvedArticle.meta_title || resolvedArticle.title,
+    description: resolvedArticle.meta_description || resolvedArticle.excerpt || undefined,
+    url: canonicalArticleUrl,
+    mainEntityOfPage: { "@id": canonicalArticleUrl },
+    image: resolvedArticle.featured_image_url || "https://mielikkix.ai/og-image.png",
+    inLanguage: "en",
+    author: { "@id": organizationId },
+    publisher: { "@id": organizationId },
+    // Real, known facts for a database-backed article (unlike the
+    // hand-written pillar article, which omits these since it has no
+    // genuine publish date on record) -- see article_service.py's
+    // publish/update flow for exactly where these come from.
+    datePublished: resolvedArticle.published_at,
+    dateModified: resolvedArticle.updated_at,
+  },
+];
+---
+
+<Layout
+  title={resolvedArticle.meta_title || resolvedArticle.title}
+  description={resolvedArticle.meta_description || resolvedArticle.excerpt || resolvedArticle.title}
+  path={`/blog/${resolvedArticle.slug}`}
+  structuredDataNodes={structuredDataNodes}
+>
+  <article class="mx-auto max-w-3xl px-6 py-16">
+    {
+      resolvedArticle.featured_image_url && (
+        <img
+          src={resolvedArticle.featured_image_url}
+          alt=""
+          class="mb-8 h-64 w-full rounded-3xl object-cover sm:h-80"
+        />
+      )
+    }
+    <p class="text-sm text-slate-400">
+      {new Date(resolvedArticle.published_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}
+      {" · "}
+      {resolvedArticle.author_name}
+    </p>
+    <h1 class="font-display mt-2 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
+      {resolvedArticle.title}
+    </h1>
+    {resolvedArticle.excerpt && <p class="mt-4 text-lg text-slate-500">{resolvedArticle.excerpt}</p>}
+
+    <div
+      class="prose-article mt-10 space-y-4 text-base leading-relaxed text-slate-700 [&_a]:text-indigo-600 [&_a]:underline [&_h2]:font-display [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:font-display [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-slate-900 [&_img]:rounded-2xl [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc"
+      set:html={resolvedArticle.content}
+    />
+
+    <a href="/blog" class="mt-12 inline-block text-sm font-semibold text-violet-600 hover:underline">
+      &larr; Back to all articles
+    </a>
+  </article>
+
+  <CTASection
+    heading="Explore AI Automation for Your Business"
+    subheading="See how Mielikkix can help your business answer questions, capture leads, and automate bookings."
+  />
+</Layout>

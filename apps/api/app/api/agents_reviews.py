@@ -15,7 +15,7 @@ from ..core.limiter import limiter
 from ..integrations.google_reviews_client import GoogleReviewsError
 from ..models.business import Business
 from ..models.user import User
-from ..services import plan_service, review_service
+from ..services import agent_access_service, review_service
 
 router = APIRouter(prefix="/api/agents/reviews", tags=["review-reputation"])
 
@@ -78,8 +78,8 @@ class _ReviewOut(BaseModel):
         )
 
 
-def _require_enabled(business: Business) -> None:
-    plan_service.require_feature(business, "review_reputation_enabled")
+def _require_enabled(db: Session, business: Business) -> None:
+    agent_access_service.require_agent_access(db, business, "review_reputation")
 
 
 @router.get("", response_model=list[_ReviewOut])
@@ -92,7 +92,7 @@ def list_reviews(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     reviews = review_service.list_reviews(
         db, str(current_user.business_id), priority, sentiment, response_status, requires_human_review
     )
@@ -115,7 +115,7 @@ def create_review(
     """A review typed/pasted directly into the dashboard -- for a business
     that wants to log/analyze a review they received somewhere this app
     doesn't (yet) import from automatically."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     review = review_service.create_manual_review(
         db, str(current_user.business_id), body.review_text, rating=body.rating, customer_name=body.customer_name
     )
@@ -133,7 +133,7 @@ async def import_reviews(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         reviews = await review_service.import_reviews(db, str(current_user.business_id), body.platform)
     except NotImplementedError as exc:
@@ -158,7 +158,7 @@ async def analyze_review(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = await review_service.analyze_review(db, str(current_user.business_id), review_id, force=force)
     except ValueError as exc:
@@ -178,7 +178,7 @@ async def generate_response(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = await review_service.generate_response(
             db, str(current_user.business_id), review_id, tone_override=body.tone
@@ -200,7 +200,7 @@ def edit_response(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = review_service.edit_response(db, str(current_user.business_id), review_id, body.response_text)
     except ValueError as exc:
@@ -215,7 +215,7 @@ def approve_response(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = review_service.approve_response(db, str(current_user.business_id), review_id)
     except ValueError as exc:
@@ -230,7 +230,7 @@ def reject_response(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = review_service.reject_response(db, str(current_user.business_id), review_id)
     except ValueError as exc:
@@ -253,7 +253,7 @@ async def publish_response(
     the platform call was actually attempted and failed, since that's a
     genuinely retryable upstream failure, not a caller mistake.
     """
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = await review_service.publish_response(db, str(current_user.business_id), review_id)
     except ValueError as exc:
@@ -280,7 +280,7 @@ def escalate_response(
     Never publishes, never changes response_status; only ever raises
     requires_human_review, which publish_response() already refuses to
     publish through."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     try:
         review = review_service.escalate_response(db, str(current_user.business_id), review_id, body.reason)
     except ValueError as exc:
@@ -307,7 +307,7 @@ async def get_insights(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     insights = review_service.get_insights(db, str(current_user.business_id), days)
     summary = None
     if include_summary and not insights.insufficient_data:
@@ -341,7 +341,7 @@ def get_trends(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    _require_enabled(business)
+    _require_enabled(db, business)
     trends = review_service.get_trends(db, str(current_user.business_id), period_days)
     return _TrendsOut(
         current_period_days=trends.current_period_days,
@@ -372,7 +372,7 @@ async def chat(
     """Conversational entry point (this agent's CLAUDE.md "Chat
     Interaction") -- 'Analyze this review: ...', 'Write a response to this
     review: ...', 'What are customers complaining about most?'."""
-    _require_enabled(business)
+    _require_enabled(db, business)
     reply = await review_service.handle_chat_message(db, str(current_user.business_id), body.message)
     return _ChatResponse(reply=reply)
 

@@ -1,4 +1,4 @@
-"""SEO Copywriter -- see apps/agents/seo-copywriter/CLAUDE.md for the full
+"""SEO Copywriter -- see apps/agents/seo-audit/CLAUDE.md for the full
 spec. Generates draft product descriptions + SEO metadata for a business's
 own catalog, always into a separate SeoDraft row -- never straight onto the
 live Product record (see that CLAUDE.md: silently overwriting live,
@@ -20,7 +20,9 @@ from mielikkix_agent_core import LLMClient
 from mielikkix_agent_core.config import get_settings as get_agent_core_settings
 
 from ..models.product import Product, product_embedding_text
+from ..models.seo_audit import SeoAudit, SeoCrawledPage, SeoFinding
 from ..models.seo_draft import SeoDraft
+from ..models.seo_website import SeoWebsite
 from ..rag.embeddings import embed_query
 
 # SEO Copywriter's model tier: OpenAI's cheap/fast tier
@@ -59,6 +61,17 @@ class DraftGenerationError(Exception):
     """Raised when the LLM's JSON response doesn't parse into the shape
     DraftContent expects -- caught by generate_drafts() per-product so one
     bad response doesn't abort the whole batch."""
+
+
+class UnsupportedFindingError(Exception):
+    """Raised when a finding's rule_code has no Copywriter action wired up
+    yet. Deliberately NOT wired up (Stage 7 of this agent's CLAUDE.md):
+    images_missing_alt (we only store a per-page COUNT of images missing
+    alt text, not each image's own src/context -- generating real alt text
+    needs to know what a specific image actually shows, which nothing in
+    this codebase captures yet) and duplicate_title/duplicate_content
+    (fixing these requires a human choosing which of several pages keeps
+    which copy, not a single generated answer for one page in isolation)."""
 
 
 def _product_prompt(product: Product) -> str:
@@ -131,11 +144,170 @@ async def generate_drafts(db: Session, business_id: str, product_ids: list[str])
     return drafts
 
 
+# ---------------------------------------------------------------------------
+# Stage 7 (apps/agents/seo-audit/CLAUDE.md): generating a draft FROM an
+# SEO Audit finding, instead of from the product picker above. Each
+# supported rule_code maps to exactly one field the Copywriter fills in --
+# never the full description+title+meta bundle generate_drafts() above
+# produces, since a finding is about one specific, narrow problem.
+# ---------------------------------------------------------------------------
+
+_TITLE_RULE_CODES = {"missing_title", "title_too_long", "title_too_short"}
+_META_RULE_CODES = {"missing_meta_description", "meta_description_too_long", "meta_description_too_short"}
+_CONTENT_RULE_CODES = {"thin_content"}
+
+_TITLE_SYSTEM_PROMPT = (
+    "You write SEO title tags that target real search intent -- specific and "
+    "concrete, never generic keyword-stuffed filler. Given a page's URL, its "
+    "current title, and business context, write ONE new title tag, under 60 "
+    "characters, that accurately describes what the page is actually about.\n\n"
+    "Respond with ONLY a JSON object (no other text before or after it), in "
+    'exactly this shape: {"seo_title": "<title tag>"}'
+)
+
+_META_SYSTEM_PROMPT = (
+    "You write meta descriptions that earn real clicks from search results -- "
+    "specific and concrete, never generic filler. Given a page's URL, its "
+    "current title/meta description, and business context, write ONE new "
+    "meta description, under 155 characters, that summarizes the page and "
+    "gives a genuine reason to click through.\n\n"
+    "Respond with ONLY a JSON object (no other text before or after it), in "
+    'exactly this shape: {"meta_description": "<meta description>"}'
+)
+
+_CONTENT_SYSTEM_PROMPT = (
+    "This page was flagged for thin content (very little visible text). You "
+    "are drafting a brief to help expand it, NOT the final page copy. Given "
+    "the page's URL, current title, and business context, write 2-4 "
+    "sentences suggesting specific, concrete topics or details this page "
+    "should cover to become genuinely useful -- never generic filler advice "
+    "like 'add more content'.\n\n"
+    "Respond with ONLY a JSON object (no other text before or after it), in "
+    'exactly this shape: {"content_suggestion": "<suggestion>"}'
+)
+
+
+def _page_and_website_context(db: Session, finding: SeoFinding) -> tuple[SeoCrawledPage | None, SeoWebsite | None]:
+    audit = db.query(SeoAudit).filter(SeoAudit.id == finding.audit_id).first()
+    if audit is None:
+        return None, None
+    website = db.query(SeoWebsite).filter(SeoWebsite.id == audit.website_id).first()
+    page = None
+    if finding.affected_url:
+        page = (
+            db.query(SeoCrawledPage)
+            .filter(SeoCrawledPage.audit_id == audit.id, SeoCrawledPage.url == finding.affected_url)
+            .first()
+        )
+    return page, website
+
+
+def _finding_prompt(finding: SeoFinding, page: SeoCrawledPage | None, website: SeoWebsite | None) -> str:
+    lines = [f"Page URL: {finding.affected_url or '(unknown)'}"]
+    if page is not None:
+        lines.append(f"Current title: {page.title or '(none)'}")
+        lines.append(f"Current meta description: {page.meta_description or '(none)'}")
+        lines.append(f"Approximate word count: {page.word_count}")
+    if website is not None:
+        if website.primary_category:
+            lines.append(f"Business category: {website.primary_category}")
+        if website.target_country:
+            lines.append(f"Target country: {website.target_country}")
+        if website.target_language:
+            lines.append(f"Target language: {website.target_language}")
+        if website.target_keywords:
+            lines.append(f"Target keywords: {', '.join(website.target_keywords)}")
+    lines.append(f"Issue found: {finding.issue}")
+    return "\n".join(lines)
+
+
+async def _generate_field(system_prompt: str, user_prompt: str, field_name: str) -> str:
+    try:
+        result = await _llm_client.chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            json_mode=True,
+            max_tokens=512,
+        )
+        parsed = json.loads(result.text)
+        value = parsed.get(field_name)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Response missing a usable '{field_name}'")
+        return value.strip()
+    except Exception as exc:
+        raise DraftGenerationError(f"Could not generate {field_name}: {exc}") from exc
+
+
+async def generate_draft_for_finding(db: Session, business_id: str, finding_id: str) -> SeoDraft:
+    """Stage 7: the Copywriter's other entry point, alongside the product-
+    picker flow above -- generates ONE piece of copy targeted at a specific
+    audit finding. Always a new SeoDraft row, same "never write live
+    without approval" rule as generate_drafts(); approve_draft only has
+    somewhere to actually publish this to if it also ends up linked to a
+    real Product (it never is, from this entry point, since findings are
+    about crawled pages, not our own Product rows) -- otherwise approving
+    just marks it ready for the business to use themselves.
+
+    Raises (never swallows, unlike the batch flow above) -- this is a
+    single, explicit, human-triggered action, so a failure should be
+    reported, not silently skipped:
+    - ValueError if the finding doesn't exist for this business.
+    - UnsupportedFindingError if this rule_code has no Copywriter action.
+    - DraftGenerationError if the LLM call/response itself fails.
+    """
+    finding = (
+        db.query(SeoFinding)
+        .filter(SeoFinding.id == finding_id, SeoFinding.business_id == business_id)
+        .first()
+    )
+    if finding is None:
+        raise ValueError(f"No finding {finding_id} for this business")
+
+    if finding.rule_code in _TITLE_RULE_CODES:
+        draft_type = "title"
+    elif finding.rule_code in _META_RULE_CODES:
+        draft_type = "meta_description"
+    elif finding.rule_code in _CONTENT_RULE_CODES:
+        draft_type = "content"
+    else:
+        raise UnsupportedFindingError(f"No Copywriter action is wired up yet for '{finding.rule_code}' findings.")
+
+    page, website = _page_and_website_context(db, finding)
+    prompt = _finding_prompt(finding, page, website)
+
+    draft = SeoDraft(business_id=business_id, finding_id=finding.id, url=finding.affected_url, draft_type=draft_type)
+    if draft_type == "title":
+        draft.draft_seo_title = await _generate_field(_TITLE_SYSTEM_PROMPT, prompt, "seo_title")
+    elif draft_type == "meta_description":
+        draft.draft_meta_description = await _generate_field(_META_SYSTEM_PROMPT, prompt, "meta_description")
+    else:
+        draft.draft_description = await _generate_field(_CONTENT_SYSTEM_PROMPT, prompt, "content_suggestion")
+
+    db.add(draft)
+    db.commit()
+    db.refresh(draft)
+    return draft
+
+
 def list_drafts(db: Session, business_id: str, status: str | None = None) -> list[SeoDraft]:
     query = db.query(SeoDraft).filter(SeoDraft.business_id == business_id)
     if status:
         query = query.filter(SeoDraft.status == status)
     return query.order_by(SeoDraft.created_at.desc()).all()
+
+
+def list_drafts_for_finding(db: Session, business_id: str, finding_id: str) -> list[SeoDraft]:
+    """The SEO Draft Workspace's per-finding view (Stage 7, Phase 13) --
+    every draft ever generated for one specific finding, most recent
+    first, so re-generating after a reject still shows the history."""
+    return (
+        db.query(SeoDraft)
+        .filter(SeoDraft.business_id == business_id, SeoDraft.finding_id == finding_id)
+        .order_by(SeoDraft.created_at.desc())
+        .all()
+    )
 
 
 def approve_draft(db: Session, business_id: str, draft_id: str) -> SeoDraft | None:

@@ -25,7 +25,7 @@ mielikkix-ai/
 │       ├── booking-assistant/    # flagship — see its own CLAUDE.md
 │       ├── support-triage/       # flagship — see its own CLAUDE.md
 │       ├── review-reputation/    # built (2026-08-30) — see its own CLAUDE.md
-│       ├── seo-copywriter/       # built — see its own CLAUDE.md
+│       ├── seo-audit/            # SEO Audit & Optimization (incl. SEO Copywriter) — see its own CLAUDE.md
 │       ├── _template/            # copy this folder to start any of the remaining queued agents
 │       └── ...                   # social-media, email-marketing,
 │                                  # feedback-survey, loyalty-reengage, quote-invoice
@@ -75,11 +75,14 @@ mielikkix-ai/
 - Dashboard: **live**, serving the Chat Widget module today; agent modules added as they ship.
 - Force agents: flagship 3 (Voice Receptionist, Booking Assistant, Support Triage)
   in active build — see `apps/agents/CLAUDE.md` for shared conventions across
-  the three. SEO Copywriter and Review & Reputation are also built (each with
-  its own `apps/agents/<name>/CLAUDE.md`) — both are single-LLM-call, no-
-  external-integration agents, so they built fast off the same shared
-  infrastructure. The remaining 5 are queued as fast-follow using the same
-  `_template/` pattern.
+  the three. Review & Reputation is also built (single-LLM-call, no-external-
+  integration agent, built fast off the same shared infrastructure).
+  `apps/agents/seo-audit/` (folder renamed from `seo-copywriter` once its scope
+  grew past just copywriting) is built through its full 11-stage SEO Audit &
+  Optimization upgrade, sold in two tiers: free **SEO Audit & Optimize** and
+  paid **Professional SEO Audit & Optimization** (see
+  `apps/agents/seo-audit/CLAUDE.md` and `apps/api/app/core/agent_catalog.py`).
+  The remaining 5 are queued as fast-follow using the same `_template/` pattern.
 
 ## Where to look next
 

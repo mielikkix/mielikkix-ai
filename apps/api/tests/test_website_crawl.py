@@ -1,5 +1,8 @@
-"""Tests for the full-site knowledge-base crawl (app/services/document_service.py
-discovery helpers + crawl_and_ingest_website, and POST /api/documents/from-website).
+"""Tests for the full-site knowledge-base crawl (app/services/document_service.py's
+crawl_and_ingest_website + POST /api/documents/from-website; the underlying
+discovery helpers themselves -- sitemap/robots/SSRF -- moved to
+app/services/web_crawl.py in Stage 2 of apps/agents/seo-audit/CLAUDE.md,
+see test_web_crawl.py for their own tests).
 
 Network calls are always mocked -- no real HTTP requests happen in this suite.
 """
@@ -9,128 +12,6 @@ import pytest
 from app.models.document import Document
 from app.services import document_service
 from app.api import documents as documents_api
-
-
-# ---------------------------------------------------------------------------
-# Fake httpx transport
-# ---------------------------------------------------------------------------
-
-class _FakeAsyncClient:
-    """Drop-in stand-in for httpx.AsyncClient, routing GETs by exact URL or
-    by a substring match, so discovery code under test never hits the network."""
-
-    def __init__(self, responses, *args, **kwargs):
-        self._responses = responses
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *exc):
-        return False
-
-    async def get(self, url, **kwargs):
-        for key, resp in self._responses.items():
-            if key in url:
-                return resp
-        return httpx.Response(404, request=httpx.Request("GET", url))
-
-
-def _patch_client(monkeypatch, responses):
-    monkeypatch.setattr(document_service.httpx, "AsyncClient", lambda *a, **k: _FakeAsyncClient(responses))
-
-
-def _xml_response(body: str) -> httpx.Response:
-    return httpx.Response(200, content=body.encode(), request=httpx.Request("GET", "https://x.test/sitemap.xml"))
-
-
-SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://greenleaf.test/</loc></url>
-  <url><loc>https://greenleaf.test/about</loc></url>
-  <url><loc>https://greenleaf.test/menu</loc></url>
-</urlset>"""
-
-SITEMAP_INDEX = """<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap><loc>https://greenleaf.test/sitemap-pages.xml</loc></sitemap>
-  <sitemap><loc>https://greenleaf.test/sitemap-posts.xml</loc></sitemap>
-</sitemapindex>"""
-
-NESTED_PAGES = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://greenleaf.test/page-a</loc></url>
-</urlset>"""
-
-NESTED_POSTS = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://greenleaf.test/post-a</loc></url>
-</urlset>"""
-
-
-# ---------------------------------------------------------------------------
-# Sitemap discovery
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_sitemap_discovery_parses_loc_entries(monkeypatch):
-    _patch_client(monkeypatch, {"sitemap.xml": _xml_response(SITEMAP)})
-    urls = await document_service._discover_sitemap_urls("https://greenleaf.test")
-    assert urls == [
-        "https://greenleaf.test/",
-        "https://greenleaf.test/about",
-        "https://greenleaf.test/menu",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_sitemap_index_follows_nested_sitemaps(monkeypatch):
-    _patch_client(monkeypatch, {
-        "sitemap.xml": _xml_response(SITEMAP_INDEX),
-        "sitemap-pages.xml": _xml_response(NESTED_PAGES),
-        "sitemap-posts.xml": _xml_response(NESTED_POSTS),
-    })
-    urls = await document_service._discover_sitemap_urls("https://greenleaf.test")
-    assert set(urls) == {"https://greenleaf.test/page-a", "https://greenleaf.test/post-a"}
-
-
-@pytest.mark.asyncio
-async def test_missing_sitemap_returns_empty(monkeypatch):
-    _patch_client(monkeypatch, {})  # everything 404s
-    urls = await document_service._discover_sitemap_urls("https://greenleaf.test")
-    assert urls == []
-
-
-# ---------------------------------------------------------------------------
-# robots.txt filtering + MAX_CRAWL_PAGES cap, via discover_website_pages
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_robots_disallow_filters_urls(monkeypatch):
-    monkeypatch.setattr(document_service, "_assert_public_url", lambda url: None)  # not testing SSRF/DNS here
-    sitemap = """<?xml version="1.0"?>
-    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-      <url><loc>https://greenleaf.test/about</loc></url>
-      <url><loc>https://greenleaf.test/admin</loc></url>
-    </urlset>"""
-    robots = "User-agent: *\nDisallow: /admin\n"
-    _patch_client(monkeypatch, {
-        "sitemap.xml": _xml_response(sitemap),
-        "robots.txt": httpx.Response(200, text=robots, request=httpx.Request("GET", "https://greenleaf.test/robots.txt")),
-    })
-    pages = await document_service.discover_website_pages("https://greenleaf.test")
-    assert pages == ["https://greenleaf.test/about"]
-
-
-@pytest.mark.asyncio
-async def test_discovery_capped_at_max_crawl_pages(monkeypatch):
-    monkeypatch.setattr(document_service, "_assert_public_url", lambda url: None)  # not testing SSRF/DNS here
-    many_urls = "\n".join(
-        f"<url><loc>https://greenleaf.test/page-{i}</loc></url>" for i in range(document_service.MAX_CRAWL_PAGES + 10)
-    )
-    sitemap = f'<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{many_urls}</urlset>'
-    _patch_client(monkeypatch, {"sitemap.xml": _xml_response(sitemap)})  # no robots.txt -> allow all
-    pages = await document_service.discover_website_pages("https://greenleaf.test")
-    assert len(pages) == document_service.MAX_CRAWL_PAGES
 
 
 # ---------------------------------------------------------------------------

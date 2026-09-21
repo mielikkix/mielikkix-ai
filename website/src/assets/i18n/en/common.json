@@ -2,7 +2,10 @@
   "NAV": {
     "FEATURES": "Features",
     "PRICING": "Pricing",
-    "AGENTS": "Agents"
+    "PRICING_CHATBOT": "Chat Widget",
+    "PRICING_AGENTS": "AI Agents",
+    "AGENTS": "Agents",
+    "BLOG": "Blogs"
   },
   "BUTTONS": {
     "BOOK_DEMO": "Book a Free Demo",

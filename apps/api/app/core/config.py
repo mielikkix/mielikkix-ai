@@ -357,6 +357,62 @@ class Settings(BaseSettings):
     mailchimp_oauth_client_id: str = ""
     mailchimp_oauth_client_secret: str = ""
 
+    # SEO Audit & Optimization, Stage 12 (apps/agents/seo-audit/
+    # CLAUDE.md's "Professional tier roadmap") -- real per-tenant Google
+    # Analytics + Search Console access (app/api/google_oauth.py,
+    # app/integrations/analytics_provider.py + search_console_provider.py).
+    # ONE Google Cloud "Web application" OAuth Client ID covers both APIs'
+    # scopes in a single consent screen (same "connect Google once" idea as
+    # google_calendar_oauth_client_id above, but for these two read-only
+    # reporting APIs instead of Calendar). Left empty, /authorize returns a
+    # clean 503 (same pattern mailchimp_oauth_client_id above already
+    # follows) and both providers return None for every measurement --
+    # health/action-plan prioritization silently skips the traffic-boost
+    # step rather than fabricating engagement numbers.
+    google_analytics_oauth_client_id: str = ""
+    google_analytics_oauth_client_secret: str = ""
+
+    # SEO Audit & Optimization, Stage 8 (apps/agents/seo-audit/
+    # CLAUDE.md) -- Core Web Vitals via Google's free PageSpeed Insights
+    # API (see app/integrations/performance_provider.py). Left empty, the
+    # provider returns None for every measurement and health_performance
+    # stays null ("Not measured") rather than ever fabricating a score --
+    # this agent's own "no fake numbers" rule, same shape as every other
+    # optional third-party key in this file.
+    google_pagespeed_api_key: str = ""
+
+    # MielikkiX Admin -> Articles: publish-to-live pipeline (app/services/
+    # deploy_service.py). Left empty, publishing an article still saves it
+    # to the live database as the source of truth, but deploy_service
+    # reports deployment_status="failed" with a clear reason instead of
+    # silently claiming the article is live when it isn't -- see that
+    # module's own docstring. None of this is invented: as of this
+    # feature's implementation, no deploy mechanism for the website exists
+    # anywhere in this repo (deploys are manual -- see website/ARCHITECTURE.md
+    # and files/ARCHITECTURE.md §5), so these all start unset on purpose.
+    #
+    # Absolute path, ON THE SAME MACHINE THE API PROCESS RUNS ON, to a
+    # checkout of this repo containing website/ -- needed to actually run
+    # `npm run build` there. Today the VPS only runs apps/api + apps/
+    # dashboard (see files/ARCHITECTURE.md §5); website/ has never been
+    # deployed to it. This must point at a real checkout before automatic
+    # deploys can work at all.
+    website_repo_path: str = ""
+    # Hostinger shared hosting only offers FTP/SFTP, not a webhook/API --
+    # SFTP preferred (paramiko) since plain FTP sends credentials in the
+    # clear. Get the exact host/port/username/path from Hostinger's own
+    # hPanel (Files -> FTP Accounts), not guessed.
+    website_deploy_sftp_host: str = ""
+    website_deploy_sftp_port: int = 22
+    website_deploy_sftp_username: str = ""
+    website_deploy_sftp_password: str = ""
+    # Remote directory the built dist/ contents should be uploaded into --
+    # this IS the live public_html (or a subdirectory of it) that
+    # mielikkix.ai actually serves. Get this exact path from Hostinger; a
+    # wrong path uploads the new site nowhere useful, not somewhere unsafe,
+    # but still needs to be right for publishing to actually go live.
+    website_deploy_remote_path: str = ""
+
     # A Twilio account/number configured with no auth token means
     # agents_voice.py's _assert_valid_twilio_request silently skips signature
     # checking -- fine for a fresh local checkout (nothing configured at

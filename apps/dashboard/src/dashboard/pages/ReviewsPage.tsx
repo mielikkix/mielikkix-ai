@@ -5,8 +5,8 @@ import { Star, MessageSquare, AlertTriangle, Check, X, RefreshCw, Pencil, Downlo
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
-import { PlanGate } from '../../shared/components/PlanGate'
-import { usePlan } from '../../shared/hooks/usePlan'
+import { AgentGate } from '../../shared/components/AgentGate'
+import { useAgentAccess } from '../../shared/hooks/usePlan'
 
 interface Review {
   id: string
@@ -678,16 +678,16 @@ function ReviewsPageContent() {
 }
 
 export function ReviewsPage() {
-  const { data: plan, isLoading } = usePlan()
+  const { data: access, isLoading } = useAgentAccess()
   if (isLoading) return null
 
-  if (!plan?.features.review_reputation_enabled) {
+  if (!access?.review_reputation) {
     return (
       <div className="space-y-6">
         <h1 className="text-4xl font-bold text-slate-900">Review &amp; Reputation</h1>
-        <PlanGate feature="review_reputation_enabled">
+        <AgentGate agentKey="review_reputation">
           <span />
-        </PlanGate>
+        </AgentGate>
       </div>
     )
   }

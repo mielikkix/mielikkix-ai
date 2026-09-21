@@ -12,7 +12,7 @@ from .core.config import settings
 from .core.cors import PublicRouteCORSMiddleware
 from .core.database import Base, engine
 from .core.limiter import limiter
-from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, agents_voice, agents_booking, agents_support, agents_seo, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, campaigns
+from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, admin_articles, public_articles, agents_voice, agents_booking, agents_support, agents_seo, agents_seo_audit, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, google_oauth, campaigns
 
 # Without this, every module's logger.info() call (e.g. agents_voice.py's
 # own tool-call tracing) is silently dropped -- Python's root logger
@@ -38,6 +38,27 @@ if settings.debug:
     Base.metadata.create_all(bind=engine)
 
 
+async def _run_due_seo_audits_tick() -> None:
+    """APScheduler job, ticked every seo_schedule_service.
+    CHECK_INTERVAL_MINUTES -- see that module's own docstring for why this
+    is a narrow, single-purpose scheduler and not the general "shared job
+    queue" root CLAUDE.md still calls aspirational. Opens its own DB
+    session (the same "background work opens its own session" convention
+    seo_audit_service.run_audit already follows) and never lets one tick's
+    failure stop future ticks -- APScheduler would otherwise silently drop
+    the job entirely after an unhandled exception."""
+    from .core.database import SessionLocal
+    from .services import seo_schedule_service
+
+    db = SessionLocal()
+    try:
+        await seo_schedule_service.run_due_audits(db)
+    except Exception:
+        logging.getLogger(__name__).exception("Scheduled SEO audit tick failed")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Loading sentence-transformers can take a long time on a cold process
@@ -47,7 +68,29 @@ async def lifespan(app: FastAPI):
     from .rag.embeddings import embed_texts
 
     embed_texts(["warmup"])
+
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from .services import seo_schedule_service
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        _run_due_seo_audits_tick,
+        "interval",
+        minutes=seo_schedule_service.CHECK_INTERVAL_MINUTES,
+        id="seo_due_audits_tick",
+        # Skip a tick that's still running past the next one's fire time
+        # rather than stacking overlapping runs -- a tick that takes longer
+        # than CHECK_INTERVAL_MINUTES (a slow audit) just resumes at the
+        # next interval instead of running two audits of the same website
+        # concurrently.
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.start()
+
     yield
+
+    scheduler.shutdown(wait=False)
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
@@ -80,14 +123,20 @@ app.include_router(leads.router)
 app.include_router(analytics.router)
 app.include_router(websites.router)
 app.include_router(admin.router)
+app.include_router(admin_articles.router)
+app.include_router(public_articles.router)
 app.include_router(agents_voice.router)
 app.include_router(agents_booking.router)
 app.include_router(agents_support.router)
 app.include_router(agents_seo.router)
+app.include_router(agents_seo_audit.router)
+app.include_router(agents_seo_audit.audits_router)
+app.include_router(agents_seo_audit.findings_router)
 app.include_router(agents_reviews.router)
 app.include_router(calendar_oauth.router)
 app.include_router(review_oauth.router)
 app.include_router(mailchimp_oauth.router)
+app.include_router(google_oauth.router)
 app.include_router(campaigns.router)
 
 os.makedirs(settings.upload_dir, exist_ok=True)

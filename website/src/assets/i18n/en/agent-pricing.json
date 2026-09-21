@@ -1,0 +1,99 @@
+{
+  "SEO": {
+    "TITLE": "AI Agent Pricing",
+    "DESCRIPTION": "Real pricing for Mielikkix's AI Force agents, starting with SEO Audit & Optimize -- a one-time technical and on-page SEO audit with a prioritized action plan."
+  },
+  "PAGE_HERO": {
+    "LINE1": "AI agents,",
+    "LINE2": "priced simply",
+    "SUBHEADING": "A real crawl of your website, turned into a prioritized action plan -- pay once, no subscription required."
+  },
+  "MOST_POPULAR_BADGE": "⭐ Most Popular",
+  "FREE_LABEL": "Free",
+  "SEO_AUDIT": {
+    "HEADING": "SEO Audit & Optimize",
+    "SUBHEADING": "A real crawl of your website -- robots.txt, sitemap, canonical URLs, titles, meta descriptions, headings, thin and duplicate content, and image alt text -- turned into a prioritized, plain-language action plan with an AI-written summary. Free to start; Professional adds a growing roadmap of deeper crawler capabilities.",
+    "TIERS": [
+      {
+        "NAME": "SEO Audit & Optimize",
+        "PRICE_USD": 0,
+        "PRICE_NOTE": "",
+        "PERIOD": "",
+        "TAGLINE": "Everything you need to start improving your site's SEO.",
+        "CTA": "Get Started",
+        "FEATURED": false,
+        "FEATURES": [
+          "Up to 500 pages crawled",
+          "Technical, on-page, and internal-linking findings",
+          "Structured data validation",
+          "Accessibility checks",
+          "Prioritized action plan",
+          "AI-written executive summary",
+          "Keyword opportunity ideas",
+          "Audit history & comparison",
+          "Client-ready report with PDF export",
+          "Unlimited re-audits on this website"
+        ]
+      },
+      {
+        "NAME": "Professional SEO Audit & Optimization",
+        "PRICE_USD": 53,
+        "PRICE_NOTE": "",
+        "PERIOD": "/month",
+        "TAGLINE": "For larger, more complex websites that need deeper crawls and integrations.",
+        "CTA": "Get Started",
+        "FEATURED": true,
+        "FEATURES": [
+          "Everything in SEO Audit & Optimize, plus:",
+          "Google Analytics integration",
+          "Search Console integration",
+          "Scheduled recurring audits",
+          "Priority technical support"
+        ]
+      }
+    ]
+  },
+  "ONGOING": {
+    "HEADING": "Want us to keep optimizing every month?",
+    "SUBHEADING": "Ongoing SEO -- we monitor new audit results on your website and keep acting on what the agent finds.",
+    "PRICE_NOTE": "From",
+    "PRICE_USD": 838,
+    "PERIOD": "/mo, scoped to your site",
+    "CTA": "Get in touch"
+  },
+  "OTHER_AGENTS": {
+    "HEADING": "More Force Crew agents",
+    "SUBHEADING": "Voice Receptionist, Booking Assistant, Support Triage, Review & Reputation, and Email Marketing -- custom pricing based on your business.",
+    "ITEMS": ["Voice Receptionist", "Booking Assistant", "Support Triage", "Review & Reputation", "Email Marketing"],
+    "CTA": "Get in touch"
+  },
+  "FAQ": {
+    "HEADING": "Agent Pricing FAQ",
+    "ITEMS": [
+      {
+        "Q": "What's the difference between Free and Professional?",
+        "A": "The free SEO Audit & Optimize tier already includes a full crawl (up to 500 pages), technical and on-page findings, a prioritized action plan, an AI-written summary, keyword ideas, audit history, and a PDF report -- everything we've built so far. Professional adds a longer roadmap of deeper crawler capabilities (scheduling, JavaScript rendering, Google Analytics/Search Console integrations, and more) as we build them -- see the Professional card for the full list."
+      },
+      {
+        "Q": "Can I re-run the audit later?",
+        "A": "Yes. Your payment covers unlimited audits on that website going forward, so you can re-run one after making changes and see your score improve."
+      },
+      {
+        "Q": "Does the agent fix the issues for me?",
+        "A": "It gives you a prioritized, plain-language action plan -- what to fix first, why it matters, and how hard each fix is. Generating the actual fixed copy (titles, meta descriptions, alt text) is handled by our SEO Copywriter agent; nothing is ever published to your site without your review and approval."
+      },
+      {
+        "Q": "What if I have more than one website?",
+        "A": "Free or Professional, each tier covers one website. For multiple sites -- or if you'd rather we handle it ongoing -- get in touch and we'll scope it."
+      },
+      {
+        "Q": "How long does an audit take to run?",
+        "A": "A few minutes for most sites, depending on how many pages are being crawled. You'll see the audit's status update live once it starts."
+      }
+    ]
+  },
+  "CTA": {
+    "HEADING": "Not sure which tier fits?",
+    "SUBHEADING": "Book a free demo and we'll help you pick the right audit for your site."
+  }
+}

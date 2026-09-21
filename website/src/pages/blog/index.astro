@@ -1,0 +1,44 @@
+---
+// The public blog index (/blog) -- lists every PUBLISHED article from the
+// VPS Postgres database (via the public, unauthenticated
+// GET /api/public/articles, fetched here at `astro build` time, not in
+// the visitor's browser). Drafts are never returned by that endpoint, so
+// there's no separate filtering needed here -- see app/services/
+// article_service.py:list_public_articles and this feature's own
+// architecture notes. Every article (including the original "Chatbot for
+// Small Businesses" pillar piece, migrated 2026-09-20 -- see apps/api/
+// scripts/migrate_chatbot_article.py) now lives in this same table; there
+// is no separate hand-written article left anywhere on the site.
+import Layout from "../../layouts/Layout.astro";
+import BlogPostCard from "../../components/BlogPostCard.astro";
+import { fetchPublishedArticles } from "../../lib/articles";
+
+const articles = await fetchPublishedArticles();
+---
+
+<Layout
+  title="Blogs"
+  description="Guides and resources on AI automation for businesses of every size, from Mielikkix."
+  path="/blog"
+>
+  <section class="mx-auto max-w-[1440px] px-6 py-16">
+    <div class="mx-auto max-w-2xl text-center">
+      <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">Blogs</h1>
+      <p class="mt-4 text-slate-500">
+        Guides and resources on AI automation for businesses of every size.
+      </p>
+    </div>
+
+    {
+      articles.length === 0 ? (
+        <p class="mt-16 text-center text-slate-400">No articles published yet -- check back soon.</p>
+      ) : (
+        <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {articles.map((article) => (
+            <BlogPostCard article={article} />
+          ))}
+        </div>
+      )
+    }
+  </section>
+</Layout>

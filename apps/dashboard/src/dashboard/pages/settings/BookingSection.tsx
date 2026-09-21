@@ -1,7 +1,7 @@
 import { UseMutationResult } from '@tanstack/react-query'
 import { Card } from '../../../shared/components/Card'
 import { Button } from '../../../shared/components/Button'
-import { PlanGate } from '../../../shared/components/PlanGate'
+import { AgentGate } from '../../../shared/components/AgentGate'
 import { api } from '../../../shared/api/client'
 import { BusinessHours, CalendarStatus, DayHours, DAYS } from './types'
 
@@ -32,9 +32,9 @@ export function BookingSection({
   if (!bookingEnabled) {
     return (
       <Card title="Booking Assistant">
-        <PlanGate feature="booking_enabled">
+        <AgentGate agentKey="booking_assistant">
           <span />
-        </PlanGate>
+        </AgentGate>
       </Card>
     )
   }

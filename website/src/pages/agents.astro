@@ -3,20 +3,23 @@ import Layout from "../layouts/Layout.astro";
 import PageHero from "../components/PageHero.astro";
 import en from "../assets/i18n/en/agents.json";
 
-// Business direction (2026-08-30): Mielikkix is not productizing all 10
-// originally-planned Force agents right now. The page communicates three
-// tiers, in descending visual weight:
+// Business direction (2026-08-30, updated 2026-09-19): Mielikkix is not
+// productizing all 10 originally-planned Force agents right now. The page
+// communicates three tiers, in descending visual weight:
 //   1. Core solutions -- AI Chatbot (the live product), Voice Receptionist
-//      and Booking Assistant (working previews) -- the three things a
-//      visitor can actually use/try today.
+//      and Booking Assistant (working previews), and SEO Audit & Optimize
+//      (real, priced product as of 2026-09-19 -- see /agent-pricing and
+//      apps/agents/seo-audit/CLAUDE.md) -- things a visitor can
+//      actually use/try/buy today.
 //   2. Additional built demos -- Support Triage, Review & Reputation --
 //      real, working previews (see their own CLAUDE.md files) but not part
 //      of the current core-product push.
 //   3. Custom AI agent development -- the remaining agent concepts (social,
-//      email, SEO, feedback, loyalty, quote/invoice, plus a few new
-//      capability examples) presented as examples of what Mielikkix can
-//      build to order, NOT as products in a pipeline -- deliberately no
-//      "Coming Soon" language anywhere in this section.
+//      email, feedback, loyalty, quote/invoice, plus a few new capability
+//      examples) presented as examples of what Mielikkix can build to
+//      order, NOT as products in a pipeline -- deliberately no "Coming
+//      Soon" language anywhere in this section. SEO used to be listed here
+//      too; moved up to Core Solutions now that it's a real, priced agent.
 //
 // All display text lives in assets/i18n/{en,no}/agents.json (see
 // translationService.ts) -- only non-translatable per-item metadata (icon
@@ -44,6 +47,14 @@ const coreSolutionsMeta = [
     statusClass: "bg-emerald-50 text-emerald-700",
     icon: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008Z",
   },
+  {
+    // SEO Audit & Optimize has no /demo route (it's a real crawl of a real
+    // website, not a scripted demo conversation) -- points straight at its
+    // pricing page instead, same as this card's own "See Pricing" CTA text.
+    href: "/agent-pricing",
+    statusClass: "bg-amber-50 text-amber-700",
+    icon: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z",
+  },
 ];
 
 const additionalAgentsMeta = [
@@ -70,9 +81,6 @@ const customAgentExamplesMeta = [
   },
   {
     icon: "M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75",
-  },
-  {
-    icon: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z",
   },
   {
     icon: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z",
@@ -145,7 +153,7 @@ const customAgentExamplesMeta = [
       </p>
     </div>
 
-    <div class="mt-12 grid gap-8 lg:grid-cols-3">
+    <div class="mt-12 grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
       {
         en.CORE_SOLUTIONS.ITEMS.map((agent, i) => {
           const meta = coreSolutionsMeta[i];

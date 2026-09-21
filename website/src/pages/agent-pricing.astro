@@ -1,0 +1,216 @@
+---
+// AI Agent pricing -- separate from /pricing (the Chat Widget's own plan
+// tiers). SEO Audit & Optimize is the first Force agent productized with
+// real pricing: free "SEO Audit & Optimize" plus a paid "Professional"
+// tier, 499 kr/month (resolved 2026-09-21 -- was 29,901 kr one-time,
+// revised after real-comparable pricing research put a one-time fee that
+// size well above every actual competitor, which all price as monthly
+// subscriptions). The other built agents (Voice Receptionist, Booking
+// Assistant, Support Triage, Review & Reputation, Email Marketing) stay
+// "get in touch" here, same as this page's own Force Crew section used to
+// show for all of them -- no invented numbers for agents that haven't had
+// real pricing decided yet.
+import Layout from "../layouts/Layout.astro";
+import CTASection from "../components/CTASection.astro";
+import PageHero from "../components/PageHero.astro";
+import Price from "../components/Price.astro";
+import en from "../assets/i18n/en/agent-pricing.json";
+
+const tiers = en.SEO_AUDIT.TIERS;
+const faqs = en.FAQ.ITEMS;
+
+// One icon per tier, in TIERS order (Free, then Professional).
+const tierIconPaths = [
+  "M9 4.5v15m6-15v15M4.5 9h15M4.5 15h15",
+  "M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25",
+];
+
+const tierAccents = [
+  { iconBg: "bg-sky-50", iconText: "text-sky-600" },
+  { iconBg: "bg-white/20", iconText: "text-white" },
+];
+---
+
+<Layout
+  title={en.SEO.TITLE}
+  description={en.SEO.DESCRIPTION}
+  path="/agent-pricing"
+  page="agent-pricing"
+  titleKey="SEO.TITLE"
+  descriptionKey="SEO.DESCRIPTION"
+>
+  <PageHero
+    line1={en.PAGE_HERO.LINE1}
+    line2={en.PAGE_HERO.LINE2}
+    subheading={en.PAGE_HERO.SUBHEADING}
+    line1Key="PAGE_HERO.LINE1"
+    line2Key="PAGE_HERO.LINE2"
+    subheadingKey="PAGE_HERO.SUBHEADING"
+  />
+
+  <!-- SEO Audit & Optimize -->
+  <section class="mx-auto max-w-[1440px] px-6 py-16">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="font-display text-3xl font-bold text-slate-900 sm:text-4xl" data-i18n="SEO_AUDIT.HEADING">
+        {en.SEO_AUDIT.HEADING}
+      </h2>
+      <p class="mt-4 text-slate-500" data-i18n="SEO_AUDIT.SUBHEADING">
+        {en.SEO_AUDIT.SUBHEADING}
+      </p>
+    </div>
+
+    <div class="mx-auto mt-12 grid max-w-3xl gap-6 lg:grid-cols-2">
+      {
+        tiers.map((tier, i) => (
+          <div
+            class:list={[
+              "flex flex-col rounded-3xl border p-7",
+              tier.FEATURED
+                ? "brand-gradient border-transparent text-white shadow-2xl shadow-violet-200 lg:-translate-y-3"
+                : "border-slate-300 bg-white",
+            ]}
+          >
+            <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl" class:list={[tier.FEATURED ? "bg-white/20" : tierAccents[i].iconBg]}>
+              <svg xmlns="http://www.w3.org/2000/svg" class:list={["h-5 w-5", tier.FEATURED ? "text-white" : tierAccents[i].iconText]} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d={tierIconPaths[i]} />
+              </svg>
+            </div>
+            {tier.FEATURED && (
+              <span class="mb-3 inline-block w-fit rounded-full bg-white/20 px-3 py-1 text-xs font-semibold" data-i18n="MOST_POPULAR_BADGE">
+                {en.MOST_POPULAR_BADGE}
+              </span>
+            )}
+            <h3 class:list={["font-display text-xl font-bold", tier.FEATURED ? "text-white" : "text-slate-900"]} data-i18n={`SEO_AUDIT.TIERS.${i}.NAME`}>
+              {tier.NAME}
+            </h3>
+            <p class:list={["mt-1 text-sm", tier.FEATURED ? "text-indigo-50" : "text-slate-500"]} data-i18n={`SEO_AUDIT.TIERS.${i}.TAGLINE`}>
+              {tier.TAGLINE}
+            </p>
+            <p class="mt-5">
+              {tier.PRICE_NOTE && (
+                <span class:list={["mr-1 text-sm font-medium", tier.FEATURED ? "text-indigo-100" : "text-slate-400"]} data-i18n={`SEO_AUDIT.TIERS.${i}.PRICE_NOTE`}>
+                  {tier.PRICE_NOTE}
+                </span>
+              )}
+              {tier.PRICE_USD === 0 ? (
+                <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]} data-i18n="FREE_LABEL">
+                  {en.FREE_LABEL}
+                </span>
+              ) : (
+                <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]}>
+                  <Price amount={tier.PRICE_USD} />
+                </span>
+              )}
+              {tier.PERIOD && (
+                <span class:list={["ml-1 text-sm", tier.FEATURED ? "text-indigo-100" : "text-slate-400"]} data-i18n={`SEO_AUDIT.TIERS.${i}.PERIOD`}>
+                  {tier.PERIOD}
+                </span>
+              )}
+            </p>
+            <a
+              href="/demo"
+              data-i18n={`SEO_AUDIT.TIERS.${i}.CTA`}
+              class:list={[
+                "mt-6 rounded-full px-4 py-2.5 text-center text-sm font-semibold shadow-sm transition-transform hover:scale-105",
+                tier.FEATURED ? "bg-white text-violet-700 shadow-violet-900/10" : "brand-gradient text-white shadow-violet-200",
+              ]}
+            >
+              {tier.CTA}
+            </a>
+            <ul class="mt-7 space-y-3 text-sm">
+              {tier.FEATURES.map((feature, j) => (
+                <li class:list={["flex gap-2", tier.FEATURED ? "text-indigo-50" : "text-slate-600"]}>
+                  <span class:list={tier.FEATURED ? "text-blue-200" : "text-violet-500"}>✓</span>
+                  <span data-i18n={`SEO_AUDIT.TIERS.${i}.FEATURES.${j}`}>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- Ongoing SEO -- variable-scope monthly retainer, deliberately "get in touch" not a fixed self-serve price -->
+  <section class="border-t border-slate-100 bg-slate-50 py-16">
+    <div class="mx-auto max-w-3xl px-6 text-center">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl" data-i18n="ONGOING.HEADING">
+        {en.ONGOING.HEADING}
+      </h2>
+      <p class="mt-3 text-slate-500" data-i18n="ONGOING.SUBHEADING">
+        {en.ONGOING.SUBHEADING}
+      </p>
+      <p class="mt-5 text-sm font-semibold text-violet-600">
+        <span data-i18n="ONGOING.PRICE_NOTE">{en.ONGOING.PRICE_NOTE}</span>{" "}
+        <Price amount={en.ONGOING.PRICE_USD} />
+        <span data-i18n="ONGOING.PERIOD">{en.ONGOING.PERIOD}</span>
+      </p>
+      <a
+        href="/demo"
+        data-i18n="ONGOING.CTA"
+        class="mt-6 inline-block rounded-full bg-white px-6 py-3 text-sm font-semibold text-violet-700 shadow-sm ring-1 ring-slate-200 transition-transform hover:scale-105"
+      >
+        {en.ONGOING.CTA}
+      </a>
+    </div>
+  </section>
+
+  <!-- Other Force Crew agents -- no invented numbers, matches this site's existing convention -->
+  <section class="border-t border-slate-100 bg-white py-16">
+    <div class="mx-auto max-w-[1440px] px-6">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="font-display text-3xl font-bold text-slate-900" data-i18n="OTHER_AGENTS.HEADING">
+          {en.OTHER_AGENTS.HEADING}
+        </h2>
+        <p class="mt-3 text-sm text-slate-500" data-i18n="OTHER_AGENTS.SUBHEADING">
+          {en.OTHER_AGENTS.SUBHEADING}
+        </p>
+      </div>
+      <div class="mx-auto mt-10 flex max-w-4xl flex-wrap justify-center gap-3">
+        {
+          en.OTHER_AGENTS.ITEMS.map((name, i) => (
+            <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600" data-i18n={`OTHER_AGENTS.ITEMS.${i}`}>
+              {name}
+            </span>
+          ))
+        }
+      </div>
+      <div class="mt-8 text-center">
+        <a href="/demo" data-i18n="OTHER_AGENTS.CTA" class="text-sm font-semibold text-violet-600 underline">
+          {en.OTHER_AGENTS.CTA}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="border-t border-slate-100 bg-slate-50 py-16">
+    <div class="mx-auto max-w-3xl px-6">
+      <h2 class="font-display text-center text-3xl font-bold text-slate-900" data-i18n="FAQ.HEADING">
+        {en.FAQ.HEADING}
+      </h2>
+      <div class="mt-10 space-y-4">
+        {
+          faqs.map((item, i) => (
+            <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+              <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+                <span data-i18n={`FAQ.ITEMS.${i}.Q`}>{item.Q}</span>
+                <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p class="mt-3 text-sm leading-relaxed text-slate-500" data-i18n={`FAQ.ITEMS.${i}.A`}>
+                {item.A}
+              </p>
+            </details>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <CTASection
+    heading={en.CTA.HEADING}
+    subheading={en.CTA.SUBHEADING}
+    headingKey="CTA.HEADING"
+    subheadingKey="CTA.SUBHEADING"
+  />
+</Layout>

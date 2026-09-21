@@ -44,7 +44,7 @@ decides whether it runs through the shared job queue or needs its own handling.>
 |---|---|---|
 | Social Media Agent | `apps/agents/social-media` | Turns offers/updates into ready-to-post social content |
 | Email Marketing | `apps/agents/email-marketing` | Newsletters, cart recovery, promo sends |
-| SEO Copywriter | `apps/agents/seo-copywriter` | Bulk product descriptions & metadata |
+| ~~SEO Copywriter~~ SEO Audit & Optimize | `apps/agents/seo-audit` | **Built, not queued** — technical/on-page site audits + the original bulk product-copy generation; see its own `CLAUDE.md` |
 | Feedback & Survey | `apps/agents/feedback-survey` | Post-visit surveys, sentiment summaries |
 | Loyalty & Re-engagement | `apps/agents/loyalty-reengage` | Automated win-back and repeat-customer offers |
 | Quote & Invoice | `apps/agents/quote-invoice` | Turns a customer request into a formal quote/invoice |

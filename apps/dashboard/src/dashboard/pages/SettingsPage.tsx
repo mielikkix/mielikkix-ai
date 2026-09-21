@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../../shared/api/client'
-import { usePlan } from '../../shared/hooks/usePlan'
+import { usePlan, useAgentAccess } from '../../shared/hooks/usePlan'
 import { SettingsNav, SettingsTab, isSettingsTab } from '../components/SettingsNav'
 import { PersonalitySection } from './settings/PersonalitySection'
 import { AppearanceSection } from './settings/AppearanceSection'
@@ -113,10 +113,12 @@ export function SettingsPage() {
   })
 
   // Booking Assistant's per-tenant Google Calendar connection (see
-  // app/api/calendar_oauth.py) -- only queried once the plan actually
-  // includes it, same "don't fetch what you can't use" reasoning as the
-  // api-access-addon card elsewhere in this app.
-  const bookingEnabled = !!plan?.features.booking_enabled
+  // app/api/calendar_oauth.py) -- only queried once this business has
+  // actually purchased the agent, same "don't fetch what you can't use"
+  // reasoning as the api-access-addon card elsewhere in this app. Agent
+  // access is independent of the chat-widget plan -- see useAgentAccess().
+  const { data: agentAccess } = useAgentAccess()
+  const bookingEnabled = !!agentAccess?.booking_assistant
 
   const { data: calendarStatus } = useQuery<CalendarStatus>({
     queryKey: ['calendar-status'],

@@ -6,8 +6,8 @@ import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
-import { PlanGate } from '../../shared/components/PlanGate'
-import { usePlan } from '../../shared/hooks/usePlan'
+import { AgentGate } from '../../shared/components/AgentGate'
+import { useAgentAccess } from '../../shared/hooks/usePlan'
 
 interface MailchimpStatus {
   connected: boolean
@@ -665,16 +665,16 @@ function EmailMarketingPageContent() {
 }
 
 export function EmailMarketingPage() {
-  const { data: plan, isLoading } = usePlan()
+  const { data: access, isLoading } = useAgentAccess()
   if (isLoading) return null
 
-  if (!plan?.features.email_marketing_enabled) {
+  if (!access?.email_marketing) {
     return (
       <div className="space-y-6">
         <h1 className="text-4xl font-bold text-slate-900">Email Marketing</h1>
-        <PlanGate feature="email_marketing_enabled">
+        <AgentGate agentKey="email_marketing">
           <span />
-        </PlanGate>
+        </AgentGate>
       </div>
     )
   }

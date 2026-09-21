@@ -24,16 +24,18 @@ import { AdminBusinessDetailPage } from './dashboard/pages/admin/AdminBusinessDe
 import { AdminUsagePage } from './dashboard/pages/admin/AdminUsagePage'
 import { AdminBookingsPage } from './dashboard/pages/admin/AdminBookingsPage'
 import { AdminTicketsPage } from './dashboard/pages/admin/AdminTicketsPage'
+import { AdminArticlesPage } from './dashboard/pages/admin/AdminArticlesPage'
+import { AdminArticleFormPage } from './dashboard/pages/admin/AdminArticleFormPage'
 import { useAuthStore } from './shared/store/authStore'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden print:block print:h-auto print:overflow-visible">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+      <div className="flex-1 flex flex-col overflow-hidden print:block print:overflow-visible">
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:hidden print:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
@@ -45,7 +47,14 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             Mielikki<span className="brand-gradient-text">X</span>
           </span>
         </div>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+        {/* Printing an SEO audit report (SeoPage's own "Print / Save as PDF" button)
+            must flow the FULL report across as many pages as needed -- the normal
+            dashboard layout is a fixed-height scrollable panel (h-screen +
+            overflow-y-auto), which would otherwise clip a printed report to
+            whatever was visible on screen at print time. print:overflow-visible
+            here (and on the two wrapping divs above) removes that clipping only
+            for print output; on-screen scrolling behavior is unchanged. */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 print:overflow-visible print:p-0">{children}</main>
       </div>
     </div>
   )
@@ -230,6 +239,30 @@ export function App() {
         element={
           <RequireAdmin>
             <AdminLayout><AdminTicketsPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/articles"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminArticlesPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/articles/new"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminArticleFormPage /></AdminLayout>
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/articles/:id/edit"
+        element={
+          <RequireAdmin>
+            <AdminLayout><AdminArticleFormPage /></AdminLayout>
           </RequireAdmin>
         }
       />

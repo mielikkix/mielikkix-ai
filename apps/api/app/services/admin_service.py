@@ -21,7 +21,7 @@ from ..models.conversation import Conversation
 from ..models.ticket import Ticket
 from ..models.llm_usage import LLMUsageLog
 from ..models.booking import Booking
-from . import plan_service
+from . import agent_access_service, plan_service
 
 
 def list_businesses(
@@ -145,6 +145,24 @@ def set_business_status(db: Session, business_id, status: str) -> Optional[dict]
     return get_business_detail(db, business_id)
 
 
+def set_business_agent_access(db: Session, business_id, agent_key: str, active: bool) -> Optional[dict]:
+    """Admin-only activation/deactivation of a purchased Force agent --
+    the one place that can grant agent access at all today, since no
+    payment processor is wired up (same "admin sets it directly" shape as
+    set_business_plan above, for the same reason). Deliberately independent
+    of Business.plan -- see agent_access_service's own module docstring."""
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
+        return None
+
+    if active:
+        agent_access_service.grant_agent_access(db, business_id, agent_key)
+    else:
+        agent_access_service.revoke_agent_access(db, business_id, agent_key)
+
+    return get_business_detail(db, business_id)
+
+
 def get_business_detail(db: Session, business_id) -> Optional[dict]:
     business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
@@ -191,6 +209,7 @@ def get_business_detail(db: Session, business_id) -> Optional[dict]:
         "leads": leads,
         "conversations_total": conversations_total,
         "llm_usage_30d": _llm_usage_summary(db, business.id, cutoff),
+        "agent_access": agent_access_service.list_agent_access(db, business.id),
     }
 
 

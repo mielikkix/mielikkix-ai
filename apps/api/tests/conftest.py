@@ -153,3 +153,19 @@ def set_plan(db_session):
         return biz
 
     return _set
+
+
+@pytest.fixture()
+def grant_agent(db_session):
+    """Directly grants a business one Force agent (see
+    app/services/agent_access_service.py) for test setup, bypassing the
+    admin-only HTTP endpoint -- the test equivalent of set_plan above, for
+    agent access instead of the chat-widget plan (the two are deliberately
+    independent, see apps/agents/seo-audit/CLAUDE.md's "Standalone
+    agent billing" decision)."""
+    from app.services import agent_access_service
+
+    def _grant(business_id, agent_key):
+        return agent_access_service.grant_agent_access(db_session, business_id, agent_key)
+
+    return _grant

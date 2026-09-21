@@ -2,7 +2,10 @@
   "NAV": {
     "FEATURES": "Funksjoner",
     "PRICING": "Priser",
-    "AGENTS": "Agenter"
+    "PRICING_CHATBOT": "Chat-widget",
+    "PRICING_AGENTS": "AI-agenter",
+    "AGENTS": "Agenter",
+    "BLOG": "Blogg"
   },
   "BUTTONS": {
     "BOOK_DEMO": "Book en gratis demo",

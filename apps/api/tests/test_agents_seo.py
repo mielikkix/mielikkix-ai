@@ -1,4 +1,4 @@
-"""SEO Copywriter tests (see apps/agents/seo-copywriter/CLAUDE.md). The LLM
+"""SEO Copywriter tests (see apps/agents/seo-audit/CLAUDE.md). The LLM
 client is always mocked here -- no test makes a real Groq call."""
 
 import json
@@ -43,8 +43,8 @@ def test_generate_requires_seo_copywriter_entitlement(client, business):
     assert resp.status_code == 403
 
 
-def test_generate_creates_a_draft_for_an_owned_product(client, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+def test_generate_creates_a_draft_for_an_owned_product(client, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     product_id = _make_product(client, business["headers"])
     _mock_generation(monkeypatch)
 
@@ -62,10 +62,10 @@ def test_generate_creates_a_draft_for_an_owned_product(client, business, set_pla
     assert body[0]["draft_description"] == "A rewritten description."
 
 
-def test_generate_skips_a_product_belonging_to_another_business(client, business, signup, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+def test_generate_skips_a_product_belonging_to_another_business(client, business, signup, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     other = signup()
-    set_plan(other["business_id"], "business")
+    grant_agent(other["business_id"], "seo_audit_optimization")
     other_product_id = _make_product(client, other["headers"])
     _mock_generation(monkeypatch)
 
@@ -79,8 +79,8 @@ def test_generate_skips_a_product_belonging_to_another_business(client, business
     assert resp.json() == []
 
 
-def test_generate_skips_a_product_on_malformed_llm_json(client, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+def test_generate_skips_a_product_on_malformed_llm_json(client, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     product_id = _make_product(client, business["headers"])
     monkeypatch.setattr(seo_service._llm_client, "chat", AsyncMock(return_value=_fake_llm_response("not json")))
 
@@ -94,12 +94,12 @@ def test_generate_skips_a_product_on_malformed_llm_json(client, business, set_pl
     assert resp.json() == []
 
 
-def test_generate_skips_a_product_when_the_llm_call_itself_fails(client, business, set_plan, monkeypatch):
+def test_generate_skips_a_product_when_the_llm_call_itself_fails(client, business, grant_agent, monkeypatch):
     """Regression: confirmed live on 2026-08-28 -- a real Groq rate-limit
     error (RateLimitError, not a malformed-response problem) propagated
     uncaught out of _generate_one and 500'd the whole /drafts/generate
     request instead of just skipping that one product."""
-    set_plan(business["business_id"], "business")
+    grant_agent(business["business_id"], "seo_audit_optimization")
     product_id = _make_product(client, business["headers"])
     monkeypatch.setattr(seo_service._llm_client, "chat", AsyncMock(side_effect=RuntimeError("groq is down")))
 
@@ -113,8 +113,8 @@ def test_generate_skips_a_product_when_the_llm_call_itself_fails(client, busines
     assert resp.json() == []
 
 
-def test_list_drafts_filters_by_status(client, business, set_plan, monkeypatch):
-    set_plan(business["business_id"], "business")
+def test_list_drafts_filters_by_status(client, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     product_id = _make_product(client, business["headers"])
     _mock_generation(monkeypatch)
     client.post("/api/agents/seo/drafts/generate", json={"product_ids": [product_id]}, headers=business["headers"])
@@ -126,8 +126,8 @@ def test_list_drafts_filters_by_status(client, business, set_plan, monkeypatch):
     assert resp.json() == []
 
 
-def test_approve_draft_copies_onto_the_real_product_and_reembeds(client, business, set_plan, monkeypatch, db_session):
-    set_plan(business["business_id"], "business")
+def test_approve_draft_copies_onto_the_real_product_and_reembeds(client, business, grant_agent, monkeypatch, db_session):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     product_id = _make_product(client, business["headers"], description="Old description.")
     _mock_generation(monkeypatch, description="New, better description.", seo_title="New Title", meta_description="New meta.")
     gen_resp = client.post(
@@ -149,8 +149,8 @@ def test_approve_draft_copies_onto_the_real_product_and_reembeds(client, busines
     assert product.embedding_json == json.dumps([0.1, 0.2])
 
 
-def test_reject_draft_does_not_touch_the_live_product(client, business, set_plan, monkeypatch, db_session):
-    set_plan(business["business_id"], "business")
+def test_reject_draft_does_not_touch_the_live_product(client, business, grant_agent, monkeypatch, db_session):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     product_id = _make_product(client, business["headers"], description="Untouched description.")
     _mock_generation(monkeypatch, description="Would-be new description.")
     gen_resp = client.post(
@@ -167,18 +167,18 @@ def test_reject_draft_does_not_touch_the_live_product(client, business, set_plan
     assert product.description == "Untouched description."
 
 
-def test_approve_unknown_draft_404s(client, business, set_plan):
-    set_plan(business["business_id"], "business")
+def test_approve_unknown_draft_404s(client, business, grant_agent):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     resp = client.post(
         "/api/agents/seo/drafts/00000000-0000-0000-0000-000000000000/approve", headers=business["headers"]
     )
     assert resp.status_code == 404
 
 
-def test_cannot_approve_another_businesss_draft(client, business, signup, set_plan, monkeypatch, db_session):
-    set_plan(business["business_id"], "business")
+def test_cannot_approve_another_businesss_draft(client, business, signup, grant_agent, monkeypatch, db_session):
+    grant_agent(business["business_id"], "seo_audit_optimization")
     other = signup()
-    set_plan(other["business_id"], "business")
+    grant_agent(other["business_id"], "seo_audit_optimization")
     other_product_id = _make_product(client, other["headers"])
     _mock_generation(monkeypatch)
     gen_resp = client.post(

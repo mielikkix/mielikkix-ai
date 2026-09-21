@@ -74,6 +74,20 @@ class SeoCrawledPageOut(BaseModel):
     internal_link_count: int
     image_count: int
     images_missing_alt: int
+    # Stage 13/14 (structured data + accessibility) -- see SeoCrawledPage's
+    # own docstring in models/seo_audit.py for what each field means.
+    structured_data_types: List[str]
+    structured_data_invalid_count: int
+    html_lang_present: Optional[bool]
+    heading_outline: List[int]
+    form_inputs_missing_label: int
+    links_missing_accessible_name: int
+    # Stage 12 (Google Analytics + Search Console) -- see SeoCrawledPage's
+    # own docstring in models/seo_audit.py. All null = "Not measured".
+    ga_sessions_28d: Optional[int]
+    gsc_impressions_28d: Optional[int]
+    gsc_clicks_28d: Optional[int]
+    gsc_avg_position_28d: Optional[float]
     created_at: datetime
 
     @classmethod
@@ -94,6 +108,16 @@ class SeoCrawledPageOut(BaseModel):
             internal_link_count=page.internal_link_count,
             image_count=page.image_count,
             images_missing_alt=page.images_missing_alt,
+            structured_data_types=page.structured_data_types or [],
+            structured_data_invalid_count=page.structured_data_invalid_count,
+            html_lang_present=page.html_lang_present,
+            heading_outline=page.heading_outline or [],
+            form_inputs_missing_label=page.form_inputs_missing_label,
+            links_missing_accessible_name=page.links_missing_accessible_name,
+            ga_sessions_28d=page.ga_sessions_28d,
+            gsc_impressions_28d=page.gsc_impressions_28d,
+            gsc_clicks_28d=page.gsc_clicks_28d,
+            gsc_avg_position_28d=page.gsc_avg_position_28d,
             created_at=page.created_at,
         )
 
@@ -145,6 +169,11 @@ class ActionPlanItemOut(BaseModel):
     expected_benefit: str
     implementation_difficulty: str
     status: str
+    # Stage 12 (Google Analytics + Search Console) -- see ActionPlanItem's
+    # own docstring in seo_recommendation_service.py. None means no
+    # affected URL has any real traffic data (not connected, or genuinely
+    # no data yet), never a fabricated 0.
+    traffic_weight: Optional[int]
 
     @classmethod
     def from_item(cls, item) -> "ActionPlanItemOut":
@@ -159,6 +188,7 @@ class ActionPlanItemOut(BaseModel):
             expected_benefit=item.expected_benefit,
             implementation_difficulty=item.implementation_difficulty,
             status=item.status,
+            traffic_weight=item.traffic_weight,
         )
 
 

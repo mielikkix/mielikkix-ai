@@ -195,6 +195,72 @@ async def test_discovery_capped_at_max_crawl_pages(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_reported_bug_bare_domain_and_trailing_slash_are_not_double_counted(monkeypatch):
+    """The exact reported bug: a sitemap listing both the bare domain and
+    its trailing-slash form must not produce two separate "pages"."""
+    monkeypatch.setattr(web_crawl, "assert_public_url", lambda url: None)
+    sitemap = """<?xml version="1.0"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://greenleaf.test</loc></url>
+      <url><loc>https://greenleaf.test/</loc></url>
+      <url><loc>https://greenleaf.test/menu</loc></url>
+    </urlset>"""
+    _patch_client(monkeypatch, {"sitemap.xml": _xml_response(sitemap)})
+    pages = await web_crawl.discover_website_pages("https://greenleaf.test")
+    assert pages == ["https://greenleaf.test", "https://greenleaf.test/menu"]
+
+
+@pytest.mark.asyncio
+async def test_trailing_slash_variants_of_a_non_root_page_are_not_double_counted(monkeypatch):
+    monkeypatch.setattr(web_crawl, "assert_public_url", lambda url: None)
+    sitemap = """<?xml version="1.0"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://greenleaf.test/menu</loc></url>
+      <url><loc>https://greenleaf.test/menu/</loc></url>
+    </urlset>"""
+    _patch_client(monkeypatch, {"sitemap.xml": _xml_response(sitemap)})
+    pages = await web_crawl.discover_website_pages("https://greenleaf.test")
+    assert pages == ["https://greenleaf.test/menu"]
+
+
+@pytest.mark.asyncio
+async def test_utm_tagged_duplicate_is_not_double_counted(monkeypatch):
+    monkeypatch.setattr(web_crawl, "assert_public_url", lambda url: None)
+    sitemap = """<?xml version="1.0"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://greenleaf.test/menu</loc></url>
+      <url><loc>https://greenleaf.test/menu?utm_source=newsletter</loc></url>
+    </urlset>"""
+    _patch_client(monkeypatch, {"sitemap.xml": _xml_response(sitemap)})
+    pages = await web_crawl.discover_website_pages("https://greenleaf.test")
+    assert pages == ["https://greenleaf.test/menu"]
+
+
+@pytest.mark.asyncio
+async def test_discover_by_crawling_does_not_revisit_a_trailing_slash_variant(monkeypatch):
+    """Link-crawl fallback (no sitemap): a homepage that links to itself
+    with a trailing slash must not be queued/fetched a second time."""
+    monkeypatch.setattr(web_crawl, "assert_public_url", lambda url: None)
+    home_html = """
+    <html><body>
+      <a href="https://greenleaf.test/">Home</a>
+      <a href="/menu">Menu</a>
+    </body></html>
+    """
+    menu_html = "<html><body><p>Menu page</p></body></html>"
+    _patch_client(monkeypatch, {
+        "sitemap.xml": httpx.Response(404, request=httpx.Request("GET", "https://greenleaf.test/sitemap.xml")),
+        "robots.txt": httpx.Response(404, request=httpx.Request("GET", "https://greenleaf.test/robots.txt")),
+        "greenleaf.test/menu": httpx.Response(200, text=menu_html, headers={"content-type": "text/html"}, request=httpx.Request("GET", "https://greenleaf.test/menu")),
+        "greenleaf.test/": httpx.Response(200, text=home_html, headers={"content-type": "text/html"}, request=httpx.Request("GET", "https://greenleaf.test/")),
+        "greenleaf.test": httpx.Response(200, text=home_html, headers={"content-type": "text/html"}, request=httpx.Request("GET", "https://greenleaf.test")),
+    })
+    pages = await web_crawl.discover_website_pages("https://greenleaf.test")
+    assert pages.count("https://greenleaf.test") + pages.count("https://greenleaf.test/") == 1
+    assert any(p.endswith("/menu") for p in pages)
+
+
+@pytest.mark.asyncio
 async def test_discovery_respects_a_smaller_custom_page_limit(monkeypatch):
     """SeoWebsite.crawl_tier (see models/seo_website.py) passes a caller-
     specific max_pages below web_crawl's own MAX_CRAWL_PAGES ceiling."""

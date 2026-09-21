@@ -14,6 +14,7 @@ from collections import defaultdict
 from typing import List
 
 from .seo_finding_common import FindingDraft, health_score
+from .url_normalizer import normalize_url
 
 __all__ = ["FindingDraft", "health_score", "analyze", "analyze_page", "analyze_cross_page"]
 
@@ -136,16 +137,43 @@ def analyze_page(page) -> List[FindingDraft]:
     return findings
 
 
+def _canonical_group_key(page) -> str:
+    """Pages that agree on a canonical target are the SAME logical page
+    for duplicate-detection purposes -- a page whose <link rel="canonical">
+    already points elsewhere has explicitly told search engines which
+    version to index, so matching title/meta/content there is by design,
+    not a bug to flag (Phase 1: "Never invent findings" applies here --
+    flagging an intentionally-canonicalized page as a duplicate problem is
+    exactly the kind of false positive that rule forbids). Normalized so
+    "https://x.com/page" and "https://x.com/page/" resolve to one group
+    even if the canonical tag itself wasn't written in normalized form."""
+    target = (getattr(page, "canonical_url", None) or "").strip()
+    return normalize_url(target) if target else normalize_url(page.url)
+
+
 def analyze_cross_page(pages: list) -> List[FindingDraft]:
     """Checks that require comparing pages against each other within the
     same audit: duplicate titles, duplicate meta descriptions, and
-    duplicate content (via each page's real content_hash)."""
+    duplicate content (via each page's real content_hash). Pages sharing a
+    canonical group (see _canonical_group_key) are collapsed to one
+    representative before comparison, so two URLs that already declare
+    themselves canonically equivalent are never flagged against each
+    other -- only genuinely distinct pages that happen to match are."""
     findings: List[FindingDraft] = []
+
+    seen_groups: set = set()
+    representative_pages = []
+    for page in pages:
+        key = _canonical_group_key(page)
+        if key in seen_groups:
+            continue
+        seen_groups.add(key)
+        representative_pages.append(page)
 
     by_title = defaultdict(list)
     by_meta = defaultdict(list)
     by_content_hash = defaultdict(list)
-    for page in pages:
+    for page in representative_pages:
         if page.title and page.title.strip():
             by_title[page.title.strip()].append(page.url)
         if page.meta_description and page.meta_description.strip():

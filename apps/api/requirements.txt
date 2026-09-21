@@ -83,6 +83,13 @@ bleach==6.4.0
 # of the publish-to-live pipeline (see app/services/deploy_service.py).
 # Only used when WEBSITE_DEPLOY_SFTP_* env vars are actually configured.
 paramiko==5.0.0
+# SEO Audit & Optimization, Stage 15 (apps/agents/seo-audit/CLAUDE.md's
+# "Professional tier roadmap") -- recurring audit scheduling
+# (app/services/seo_schedule_service.py). The FIRST scheduled/recurring
+# job in this codebase; deliberately a narrow, single-purpose in-process
+# tick (AsyncIOScheduler, wired in app/main.py's lifespan), NOT the
+# general "shared job queue" the root CLAUDE.md still calls aspirational.
+apscheduler==3.10.4
 # Editable install, resolved relative to the cwd `pip install -r` is run
 # from (apps/api, per this repo's documented dev commands) -- works for
 # local/dev installs. NOT yet wired into the Docker image: apps/api's

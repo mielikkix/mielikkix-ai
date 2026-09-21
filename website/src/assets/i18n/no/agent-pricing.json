@@ -9,60 +9,47 @@
     "SUBHEADING": "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan -- betal én gang, ingen abonnement nødvendig."
   },
   "MOST_POPULAR_BADGE": "⭐ Mest populær",
+  "FREE_LABEL": "Gratis",
   "SEO_AUDIT": {
     "HEADING": "SEO-revisjon og optimalisering",
-    "SUBHEADING": "En reell gjennomgang av nettsiden din -- robots.txt, sitemap, kanoniske URL-er, titler, metabeskrivelser, overskrifter, tynt og duplisert innhold, og alt-tekst på bilder -- omgjort til en prioritert handlingsplan på ren norsk med et AI-skrevet sammendrag. Betal én gang, kjør nye revisjoner på den samme nettsiden når som helst for å følge fremgangen.",
+    "SUBHEADING": "En reell gjennomgang av nettsiden din -- robots.txt, sitemap, kanoniske URL-er, titler, metabeskrivelser, overskrifter, tynt og duplisert innhold, og alt-tekst på bilder -- omgjort til en prioritert handlingsplan på ren norsk med et AI-skrevet sammendrag. Gratis å komme i gang med; Professional legger til en voksende liste med dypere revisjonsfunksjoner.",
     "TIERS": [
       {
-        "NAME": "SEO-revisjon",
-        "PRICE_USD": 1050,
+        "NAME": "SEO-revisjon og optimalisering",
+        "PRICE_USD": 0,
         "PRICE_NOTE": "",
-        "PERIOD": "engangsbeløp",
-        "TAGLINE": "En fokusert teknisk revisjon for en liten nettside.",
+        "PERIOD": "",
+        "TAGLINE": "Alt du trenger for å begynne å forbedre SEO-en på nettsiden din.",
         "CTA": "Kom i gang",
         "FEATURED": false,
         "FEATURES": [
-          "Opptil 25 sider gjennomgått",
-          "Tekniske SEO-funn",
-          "Innholdsmessige SEO-funn",
+          "Opptil 500 sider gjennomgått",
+          "Tekniske, innholdsmessige og interne lenke-funn",
+          "Validering av strukturert data",
+          "Tilgjengelighetssjekk",
           "Prioritert handlingsplan",
           "AI-skrevet sammendrag",
-          "Ubegrensede nye revisjoner på denne nettsiden"
-        ]
-      },
-      {
-        "NAME": "SEO-revisjon og optimalisering",
-        "PRICE_USD": 1580,
-        "PRICE_NOTE": "",
-        "PERIOD": "engangsbeløp",
-        "TAGLINE": "Vår mest populære revisjon, for en voksende nettside.",
-        "CTA": "Kom i gang",
-        "FEATURED": true,
-        "FEATURES": [
-          "Opptil 100 sider gjennomgått",
-          "Tekniske SEO-funn",
-          "Innholdsmessige SEO-funn",
-          "Prioritert handlingsplan",
-          "AI-skrevet sammendrag",
+          "Forslag til nøkkelord",
+          "Revisjonshistorikk og sammenligning",
+          "Kundeklar rapport med PDF-eksport",
           "Ubegrensede nye revisjoner på denne nettsiden"
         ]
       },
       {
         "NAME": "Profesjonell SEO-revisjon og optimalisering",
-        "PRICE_USD": 3170,
-        "PRICE_NOTE": "Fra",
-        "PERIOD": "engangsbeløp",
-        "TAGLINE": "For større, mer komplekse nettsider.",
+        "PRICE_USD": 0,
+        "PRICE_NOK": 499,
+        "PRICE_NOTE": "",
+        "PERIOD": "/mnd",
+        "TAGLINE": "For større, mer komplekse nettsider som trenger dypere gjennomganger og integrasjoner.",
         "CTA": "Kom i gang",
-        "FEATURED": false,
+        "FEATURED": true,
         "FEATURES": [
-          "Opptil 500 sider gjennomgått",
-          "Tekniske SEO-funn",
-          "Innholdsmessige SEO-funn",
-          "Prioritert handlingsplan",
-          "AI-skrevet sammendrag",
-          "Endelig pris avtales ut fra størrelsen på nettsiden din",
-          "Ubegrensede nye revisjoner på denne nettsiden"
+          "Alt i SEO-revisjon og optimalisering, i tillegg til:",
+          "Google Analytics-integrasjon",
+          "Search Console-integrasjon",
+          "Planlagte, tilbakevendende revisjoner",
+          "Prioritert teknisk support"
         ]
       }
     ]
@@ -85,8 +72,8 @@
     "HEADING": "Vanlige spørsmål om agentpriser",
     "ITEMS": [
       {
-        "Q": "Hva er forskjellen mellom de tre SEO-revisjonsnivåene?",
-        "A": "Hvor mange sider av nettsiden din som gjennomgås i én revisjon -- 25, 100 eller 500. Alle nivåer kjører de samme tekniske og innholdsmessige sjekkene og gir samme type prioriterte handlingsplan; større nettsider trenger bare flere gjennomgåtte sider for å få et fullstendig bilde."
+        "Q": "Hva er forskjellen mellom Gratis og Professional?",
+        "A": "Det gratis nivået SEO-revisjon og optimalisering inkluderer allerede en full gjennomgang (opptil 500 sider), tekniske og innholdsmessige funn, en prioritert handlingsplan, et AI-skrevet sammendrag, forslag til nøkkelord, revisjonshistorikk og en PDF-rapport -- alt vi har bygget så langt. Professional legger til en lengre liste med dypere revisjonsfunksjoner (planlegging, JavaScript-rendering, Google Analytics/Search Console-integrasjoner og mer) etter hvert som vi bygger dem -- se Professional-kortet for hele listen."
       },
       {
         "Q": "Kan jeg kjøre revisjonen på nytt senere?",
@@ -98,7 +85,7 @@
       },
       {
         "Q": "Hva om jeg har mer enn én nettside?",
-        "A": "Hver engangspris dekker én nettside. Har du flere nettsider -- eller ønsker du at vi tar oss av det løpende -- ta kontakt, så avtaler vi omfanget."
+        "A": "Enten du velger Gratis eller Professional, dekker hvert nivå én nettside. Har du flere nettsider -- eller ønsker du at vi tar oss av det løpende -- ta kontakt, så avtaler vi omfanget."
       },
       {
         "Q": "Hvor lang tid tar det å kjøre en revisjon?",

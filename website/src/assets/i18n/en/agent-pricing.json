@@ -9,60 +9,47 @@
     "SUBHEADING": "A real crawl of your website, turned into a prioritized action plan -- pay once, no subscription required."
   },
   "MOST_POPULAR_BADGE": "⭐ Most Popular",
+  "FREE_LABEL": "Free",
   "SEO_AUDIT": {
     "HEADING": "SEO Audit & Optimize",
-    "SUBHEADING": "A real crawl of your website -- robots.txt, sitemap, canonical URLs, titles, meta descriptions, headings, thin and duplicate content, and image alt text -- turned into a prioritized, plain-language action plan with an AI-written summary. Pay once, re-run audits on that website anytime to track progress.",
+    "SUBHEADING": "A real crawl of your website -- robots.txt, sitemap, canonical URLs, titles, meta descriptions, headings, thin and duplicate content, and image alt text -- turned into a prioritized, plain-language action plan with an AI-written summary. Free to start; Professional adds a growing roadmap of deeper crawler capabilities.",
     "TIERS": [
       {
-        "NAME": "SEO Audit",
-        "PRICE_USD": 1050,
+        "NAME": "SEO Audit & Optimize",
+        "PRICE_USD": 0,
         "PRICE_NOTE": "",
-        "PERIOD": "one-time",
-        "TAGLINE": "A focused technical audit for a small site.",
+        "PERIOD": "",
+        "TAGLINE": "Everything you need to start improving your site's SEO.",
         "CTA": "Get Started",
         "FEATURED": false,
         "FEATURES": [
-          "Up to 25 pages crawled",
-          "Technical SEO findings",
-          "On-page SEO findings",
+          "Up to 500 pages crawled",
+          "Technical, on-page, and internal-linking findings",
+          "Structured data validation",
+          "Accessibility checks",
           "Prioritized action plan",
           "AI-written executive summary",
-          "Unlimited re-audits on this website"
-        ]
-      },
-      {
-        "NAME": "SEO Audit & Optimize",
-        "PRICE_USD": 1580,
-        "PRICE_NOTE": "",
-        "PERIOD": "one-time",
-        "TAGLINE": "Our most popular audit, for a growing site.",
-        "CTA": "Get Started",
-        "FEATURED": true,
-        "FEATURES": [
-          "Up to 100 pages crawled",
-          "Technical SEO findings",
-          "On-page SEO findings",
-          "Prioritized action plan",
-          "AI-written executive summary",
+          "Keyword opportunity ideas",
+          "Audit history & comparison",
+          "Client-ready report with PDF export",
           "Unlimited re-audits on this website"
         ]
       },
       {
         "NAME": "Professional SEO Audit & Optimization",
-        "PRICE_USD": 3170,
-        "PRICE_NOTE": "From",
-        "PERIOD": "one-time",
-        "TAGLINE": "For larger, more complex websites.",
+        "PRICE_USD": 0,
+        "PRICE_NOK": 499,
+        "PRICE_NOTE": "",
+        "PERIOD": "/month",
+        "TAGLINE": "For larger, more complex websites that need deeper crawls and integrations.",
         "CTA": "Get Started",
-        "FEATURED": false,
+        "FEATURED": true,
         "FEATURES": [
-          "Up to 500 pages crawled",
-          "Technical SEO findings",
-          "On-page SEO findings",
-          "Prioritized action plan",
-          "AI-written executive summary",
-          "Final price scoped to your site's size",
-          "Unlimited re-audits on this website"
+          "Everything in SEO Audit & Optimize, plus:",
+          "Google Analytics integration",
+          "Search Console integration",
+          "Scheduled recurring audits",
+          "Priority technical support"
         ]
       }
     ]
@@ -85,8 +72,8 @@
     "HEADING": "Agent Pricing FAQ",
     "ITEMS": [
       {
-        "Q": "What's the difference between the three SEO Audit tiers?",
-        "A": "How many pages of your website get crawled in one audit -- 25, 100, or 500. Every tier runs the same technical and on-page checks and produces the same kind of prioritized action plan; larger sites just need more pages crawled to get a complete picture."
+        "Q": "What's the difference between Free and Professional?",
+        "A": "The free SEO Audit & Optimize tier already includes a full crawl (up to 500 pages), technical and on-page findings, a prioritized action plan, an AI-written summary, keyword ideas, audit history, and a PDF report -- everything we've built so far. Professional adds a longer roadmap of deeper crawler capabilities (scheduling, JavaScript rendering, Google Analytics/Search Console integrations, and more) as we build them -- see the Professional card for the full list."
       },
       {
         "Q": "Can I re-run the audit later?",
@@ -98,7 +85,7 @@
       },
       {
         "Q": "What if I have more than one website?",
-        "A": "Each one-time audit price covers one website. For multiple sites -- or if you'd rather we handle it ongoing -- get in touch and we'll scope it."
+        "A": "Free or Professional, each tier covers one website. For multiple sites -- or if you'd rather we handle it ongoing -- get in touch and we'll scope it."
       },
       {
         "Q": "How long does an audit take to run?",

@@ -195,3 +195,59 @@ def test_cannot_delete_another_businesss_website(client, business, signup, grant
 
     resp = client.delete(f"/api/agents/seo/websites/{website_id}", headers=business["headers"])
     assert resp.status_code == 404
+
+
+def test_new_website_has_no_schedule_by_default(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
+    _stub_public_url(monkeypatch)
+    create_resp = client.post("/api/agents/seo/websites", json={"url": "https://example.com"}, headers=business["headers"])
+    body = create_resp.json()
+    assert body["audit_schedule"] is None
+    assert body["next_scheduled_audit_at"] is None
+
+
+def test_update_schedule_to_weekly(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
+    _stub_public_url(monkeypatch)
+    website_id = client.post("/api/agents/seo/websites", json={"url": "https://example.com"}, headers=business["headers"]).json()["id"]
+
+    resp = client.patch(f"/api/agents/seo/websites/{website_id}/schedule", json={"interval": "weekly"}, headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["audit_schedule"] == "weekly"
+    assert body["next_scheduled_audit_at"] is not None
+
+
+def test_update_schedule_rejects_unknown_interval(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
+    _stub_public_url(monkeypatch)
+    website_id = client.post("/api/agents/seo/websites", json={"url": "https://example.com"}, headers=business["headers"]).json()["id"]
+
+    resp = client.patch(f"/api/agents/seo/websites/{website_id}/schedule", json={"interval": "daily"}, headers=business["headers"])
+    assert resp.status_code == 400
+
+
+def test_update_schedule_to_null_turns_it_off(client, business, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
+    _stub_public_url(monkeypatch)
+    website_id = client.post("/api/agents/seo/websites", json={"url": "https://example.com"}, headers=business["headers"]).json()["id"]
+    client.patch(f"/api/agents/seo/websites/{website_id}/schedule", json={"interval": "weekly"}, headers=business["headers"])
+
+    resp = client.patch(f"/api/agents/seo/websites/{website_id}/schedule", json={"interval": None}, headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["audit_schedule"] is None
+    assert body["next_scheduled_audit_at"] is None
+
+
+def test_cannot_update_another_businesss_website_schedule(client, business, signup, grant_agent, monkeypatch):
+    _entitle(business, grant_agent)
+    other = signup()
+    grant_agent(other["business_id"], "seo_audit_optimization")
+    _stub_public_url(monkeypatch)
+    website_id = client.post("/api/agents/seo/websites", json={"url": "https://theirs.example.com"}, headers=other["headers"]).json()["id"]
+
+    resp = client.patch(f"/api/agents/seo/websites/{website_id}/schedule", json={"interval": "weekly"}, headers=business["headers"])
+    assert resp.status_code == 404

@@ -16,7 +16,7 @@ from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
 from ..models.business import Business
 from ..models.user import User
-from ..schemas.seo_website import SeoWebsiteCreate, SeoWebsiteOut
+from ..schemas.seo_website import SeoWebsiteCreate, SeoWebsiteOut, SeoWebsiteScheduleUpdate
 from ..schemas.seo_audit import (
     ActionPlanItemOut,
     SeoAuditComparisonOut,
@@ -34,6 +34,7 @@ from ..services import (
     seo_audit_comparison_service,
     seo_audit_service,
     seo_report_service,
+    seo_schedule_service,
     seo_service,
     seo_website_service,
 )
@@ -114,6 +115,29 @@ def delete_website(
     deleted = seo_website_service.delete_website(db, current_user.business_id, website_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Website not found")
+
+
+@router.patch("/{website_id}/schedule", response_model=SeoWebsiteOut)
+def update_website_schedule(
+    website_id: str,
+    body: SeoWebsiteScheduleUpdate,
+    current_user: User = Depends(get_current_user),
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    """Stage 15: turn recurring audits on/off for a website (see
+    seo_schedule_service.py). `interval: null` turns scheduling off;
+    `"weekly"` or `"monthly"` turns it on, always restarting the countdown
+    from now rather than trying to prorate a previous interval."""
+    _require_enabled(db, business)
+    website = seo_website_service.get_website(db, current_user.business_id, website_id)
+    if website is None:
+        raise HTTPException(status_code=404, detail="Website not found")
+    try:
+        website = seo_schedule_service.set_schedule(db, website, body.interval)
+    except seo_schedule_service.InvalidScheduleError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SeoWebsiteOut.from_orm_website(website)
 
 
 @router.post("/{website_id}/audits", response_model=SeoAuditOut)

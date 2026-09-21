@@ -25,6 +25,8 @@ from xml.etree import ElementTree
 import httpx
 from fastapi import HTTPException
 
+from .url_normalizer import normalize_url
+
 CRAWL_USER_AGENT = "MielikkixBot/1.0"
 MAX_FETCH_BYTES = 5 * 1024 * 1024
 
@@ -132,11 +134,27 @@ async def discover_sitemap_urls(base_url: str) -> List[str]:
     return await fetch_sitemap_xml(sitemap_url)
 
 
+def _normalized_host(netloc: str) -> str:
+    """Lowercased, www-stripped host for same-site comparisons -- reuses
+    normalize_url's own host logic by running it through a throwaway
+    https:// URL rather than duplicating that logic here."""
+    return urlparse(normalize_url(f"https://{netloc}")).netloc
+
+
 async def discover_by_crawling(base_url: str, max_pages: int = MAX_CRAWL_PAGES) -> List[str]:
     from bs4 import BeautifulSoup
 
-    domain = urlparse(base_url).netloc
-    seen = {base_url}
+    # seen_keys tracks NORMALIZED identity only (so a nav link to "/" from
+    # a page fetched at the bare root, or to "www.example.com" from a page
+    # fetched at "example.com", is recognized as already-visited) -- the
+    # actual URLs queued/fetched/returned below stay exactly as discovered
+    # (real scheme, real host casing), never rewritten to a normalized
+    # form. Rewriting the URL we actually request to a forced scheme risks
+    # breaking a genuinely HTTP-only site (rare, but a real site none the
+    # less) for zero benefit -- we only need to know "have I already
+    # visited the equivalent of this", not change what we fetch.
+    domain = _normalized_host(urlparse(base_url).netloc)
+    seen_keys = {normalize_url(base_url)}
     queue = [(base_url, 0)]
     found: List[str] = []
 
@@ -156,11 +174,13 @@ async def discover_by_crawling(base_url: str, max_pages: int = MAX_CRAWL_PAGES) 
             soup = BeautifulSoup(resp.text, "html.parser")
             for a in soup.find_all("a", href=True):
                 link = urljoin(url, a["href"]).split("#")[0]
-                parsed = urlparse(link)
-                if parsed.netloc != domain or link in seen or not looks_like_page(link):
+                key = normalize_url(link)
+                if key in seen_keys or not looks_like_page(link):
                     continue
-                seen.add(link)
-                if len(seen) <= max_pages * 4:  # bound queue growth on link-heavy pages
+                if _normalized_host(urlparse(link).netloc) != domain:
+                    continue
+                seen_keys.add(key)
+                if len(seen_keys) <= max_pages * 4:  # bound queue growth on link-heavy pages
                     queue.append((link, depth + 1))
     return found
 
@@ -176,13 +196,22 @@ async def discover_website_pages(url: str, max_pages: int = MAX_CRAWL_PAGES) -> 
         candidates = await discover_by_crawling(base_url, max_pages=max_pages)
 
     robots = await get_robot_parser(base_url)
-    seen = set()
+    base_domain = _normalized_host(urlparse(base_url).netloc)
+    seen_keys = set()
     pages: List[str] = []
     for page_url in candidates:
-        if page_url in seen or not looks_like_page(page_url):
+        # Deduplicate by NORMALIZED identity (this is the actual fix for
+        # https://example.com vs https://example.com/, and the sitemap-
+        # source equivalent of discover_by_crawling's own seen_keys above)
+        # -- but keep the ORIGINAL discovered URL in `pages`, the same
+        # "never rewrite what we're actually going to fetch" reasoning as
+        # discover_by_crawling. Whichever variant appears FIRST among the
+        # candidates wins; later equivalents are silently dropped.
+        key = normalize_url(page_url)
+        if key in seen_keys or not looks_like_page(page_url):
             continue
-        seen.add(page_url)
-        if urlparse(page_url).netloc != urlparse(base_url).netloc:
+        seen_keys.add(key)
+        if _normalized_host(urlparse(page_url).netloc) != base_domain:
             continue
         if not robots.can_fetch(CRAWL_USER_AGENT, page_url):
             continue

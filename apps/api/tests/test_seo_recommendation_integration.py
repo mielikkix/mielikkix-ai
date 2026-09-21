@@ -78,7 +78,10 @@ async def test_run_audit_with_no_findings_has_no_executive_summary(business, db_
     monkeypatch.setattr(web_crawl, "discover_website_pages", AsyncMock(return_value=["https://greenleaf.test/"]))
     monkeypatch.setattr(
         seo_page_analyzer, "analyze_page",
-        AsyncMock(return_value=_fake_analysis("https://greenleaf.test/", h1_count=1)),
+        # structured_data_types set so Stage 13's sitewide "no structured
+        # data" finding doesn't fire -- this test's whole point is truly
+        # zero findings, which now includes that check too.
+        AsyncMock(return_value=_fake_analysis("https://greenleaf.test/", h1_count=1, structured_data_types=["Organization"])),
     )
     monkeypatch.setattr(
         web_crawl, "fetch_robots_txt_text",

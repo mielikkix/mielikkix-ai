@@ -29,10 +29,21 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..core.database import SessionLocal
+from ..integrations.analytics_provider import get_analytics_provider
 from ..integrations.performance_provider import PAGESPEED_STRATEGIES, get_performance_provider
+from ..integrations.search_console_provider import get_search_console_provider
 from ..models.seo_audit import SeoAudit, SeoCrawledPage, SeoFinding, SeoKeywordOpportunity, SeoPerformanceMeasurement
 from ..models.seo_website import SeoWebsite, CRAWL_TIER_PAGE_LIMITS
-from . import seo_keyword_service, seo_onpage_analyzer, seo_page_analyzer, seo_recommendation_service, seo_technical_analyzer, web_crawl
+from . import (
+    seo_accessibility_analyzer,
+    seo_keyword_service,
+    seo_onpage_analyzer,
+    seo_page_analyzer,
+    seo_recommendation_service,
+    seo_structured_data_analyzer,
+    seo_technical_analyzer,
+    web_crawl,
+)
 from .seo_finding_common import FindingDraft
 
 
@@ -121,6 +132,12 @@ async def run_audit(audit_id: str) -> None:
                 image_count=analysis.image_count,
                 images_missing_alt=analysis.images_missing_alt,
                 content_hash=analysis.content_hash,
+                structured_data_types=analysis.structured_data_types,
+                structured_data_invalid_count=analysis.structured_data_invalid_count,
+                html_lang_present=analysis.html_lang_present,
+                heading_outline=analysis.heading_outline,
+                form_inputs_missing_label=analysis.form_inputs_missing_label,
+                links_missing_accessible_name=analysis.links_missing_accessible_name,
             )
             db.add(crawled_page)
             crawled_pages.append(crawled_page)
@@ -128,6 +145,40 @@ async def run_audit(audit_id: str) -> None:
 
         audit.pages_crawled = crawled
         audit.pages_blocked = blocked
+        db.commit()
+
+        # Stage 12: Google Analytics + Search Console -- real per-page
+        # traffic/search data, when this business has connected Google AND
+        # picked which property/site to read from (see this agent's
+        # CLAUDE.md "Professional tier roadmap"). Either or both providers
+        # return None immediately if not configured -- no network call at
+        # all -- leaving every ga_*/gsc_* field null ("Not measured"),
+        # exactly Stage 8's already-established pattern for Core Web
+        # Vitals. Fetched once per audit (not per page) since both APIs
+        # accept a batch of URLs in one call.
+        crawled_urls = [p.url for p in crawled_pages]
+        analytics_provider = get_analytics_provider(db, audit.business_id)
+        if analytics_provider is not None and crawled_urls:
+            try:
+                sessions_by_url = await analytics_provider.get_page_sessions(crawled_urls)
+            except Exception:
+                sessions_by_url = {}
+            for page in crawled_pages:
+                if page.url in sessions_by_url:
+                    page.ga_sessions_28d = sessions_by_url[page.url]
+
+        search_console_provider = get_search_console_provider(db, audit.business_id)
+        if search_console_provider is not None and crawled_urls:
+            try:
+                search_metrics_by_url = await search_console_provider.get_page_search_metrics(crawled_urls)
+            except Exception:
+                search_metrics_by_url = {}
+            for page in crawled_pages:
+                metrics = search_metrics_by_url.get(page.url)
+                if metrics is not None:
+                    page.gsc_impressions_28d = metrics.impressions
+                    page.gsc_clicks_28d = metrics.clicks
+                    page.gsc_avg_position_28d = metrics.avg_position
         db.commit()
 
         # Stage 3: technical analyzer -- one more robots.txt fetch (raw text,
@@ -144,16 +195,24 @@ async def run_audit(audit_id: str) -> None:
         except Exception:
             sitemap_urls = []
 
+        # Stage 13: structured data analyzer -- folded into health_technical
+        # (schema markup validity is a crawlability/rich-snippet-eligibility
+        # concern) rather than its own health_* column; see that module's
+        # own docstring for why. No additional network calls -- runs on the
+        # structured_data_* fields seo_page_analyzer already extracted above.
         technical_drafts = seo_technical_analyzer.analyze(
             crawled_pages, robots_txt, robots_parser, sitemap_urls, site_root
-        )
+        ) + seo_structured_data_analyzer.analyze(crawled_pages)
         _persist_findings(db, audit, technical_drafts)
         audit.health_technical = seo_technical_analyzer.health_score(technical_drafts)
 
         # Stage 4: on-page analyzer -- titles, meta descriptions, headings,
         # thin/duplicate content, image alt text. Runs on the same
         # crawled_pages already fetched above; no additional network calls.
-        onpage_drafts = seo_onpage_analyzer.analyze(crawled_pages)
+        # Stage 14: accessibility analyzer -- folded into health_on_page
+        # (this agent already tracks one accessibility-adjacent check,
+        # images_missing_alt, under "on_page"; see that module's docstring).
+        onpage_drafts = seo_onpage_analyzer.analyze(crawled_pages) + seo_accessibility_analyzer.analyze(crawled_pages)
         _persist_findings(db, audit, onpage_drafts)
         audit.health_on_page = seo_onpage_analyzer.health_score(onpage_drafts)
         db.commit()
@@ -163,7 +222,7 @@ async def run_audit(audit_id: str) -> None:
         # (real DB state, including their status); only the executive-
         # summary narrative on top of it involves an LLM call.
         all_findings = db.query(SeoFinding).filter(SeoFinding.audit_id == audit.id).all()
-        action_plan = seo_recommendation_service.build_action_plan(all_findings)
+        action_plan = seo_recommendation_service.build_action_plan(all_findings, crawled_pages)
         audit.executive_summary = await seo_recommendation_service.generate_executive_summary(
             overall_health(audit), finding_severity_counts(db, audit.id), action_plan
         )
@@ -346,4 +405,5 @@ def get_action_plan(db: Session, business_id, audit_id: str) -> list:
     (updated via update_finding_status) is reflected the moment the plan
     is viewed again, with no separate cache to invalidate."""
     findings = db.query(SeoFinding).filter(SeoFinding.audit_id == audit_id, SeoFinding.business_id == business_id).all()
-    return seo_recommendation_service.build_action_plan(findings)
+    crawled_pages = list_crawled_pages(db, audit_id)
+    return seo_recommendation_service.build_action_plan(findings, crawled_pages)

@@ -85,7 +85,13 @@ async def test_run_audit_with_no_technical_issues_has_a_perfect_score(business, 
     audit_id = audit.id
 
     monkeypatch.setattr(web_crawl, "discover_website_pages", AsyncMock(return_value=["https://greenleaf.test/"]))
-    monkeypatch.setattr(seo_page_analyzer, "analyze_page", AsyncMock(return_value=_fake_analysis("https://greenleaf.test/")))
+    monkeypatch.setattr(
+        seo_page_analyzer, "analyze_page",
+        # structured_data_types set so Stage 13's sitewide "no structured
+        # data" finding doesn't fire -- this test's whole point is a truly
+        # perfect technical score, which now includes that check too.
+        AsyncMock(return_value=_fake_analysis("https://greenleaf.test/", structured_data_types=["Organization"])),
+    )
     monkeypatch.setattr(
         web_crawl, "fetch_robots_txt_text",
         AsyncMock(return_value="User-agent: *\nSitemap: https://greenleaf.test/sitemap.xml\n"),

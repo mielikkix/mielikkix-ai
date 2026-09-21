@@ -15,17 +15,25 @@ def _page(**overrides):
         meta_description="Organic coffee and pastries served fresh every day in downtown Oslo.",
         h1_count=1,
         word_count=400,
-        canonical_url="https://greenleaf.test/",
         meta_robots=None,
         x_robots_tag=None,
         is_indexable=True,
-        redirect_chain=["https://greenleaf.test/"],
         internal_link_count=5,
         image_count=2,
         images_missing_alt=0,
         content_hash="abc123",
     )
     defaults.update(overrides)
+    # canonical_url/redirect_chain default to self-referencing (the common,
+    # healthy case) -- derived AFTER url is resolved above so a test that
+    # only overrides `url` doesn't silently end up with a canonical/chain
+    # still pointing at the OLD default url. Phase 1's canonical-grouping
+    # fix in analyze_cross_page means a stale fixed default here would
+    # wrongly group every test page into one canonical group regardless of
+    # its own url -- see that test class's own comment for why this
+    # matters.
+    defaults.setdefault("canonical_url", defaults["url"])
+    defaults.setdefault("redirect_chain", [defaults["url"]])
     return SimpleNamespace(**defaults)
 
 
@@ -192,6 +200,52 @@ def test_pages_with_no_content_hash_are_never_flagged_as_duplicate():
     ]
     findings = opa.analyze_cross_page(pages)
     assert not any(f.rule_code == "duplicate_content" for f in findings)
+
+
+def test_pages_that_canonicalize_to_the_same_target_are_not_flagged_as_duplicate():
+    """Phase 1: a page whose <link rel="canonical"> already points at
+    another page has explicitly told search engines which version to
+    index -- matching title/content there is by design, not a bug."""
+    pages = [
+        _page(url="https://greenleaf.test/", title="Home", content_hash="h1", canonical_url="https://greenleaf.test/"),
+        _page(url="https://greenleaf.test/?ref=twitter", title="Home", content_hash="h1", canonical_url="https://greenleaf.test/"),
+    ]
+    findings = opa.analyze_cross_page(pages)
+    assert not any(f.rule_code in ("duplicate_title", "duplicate_content") for f in findings)
+
+
+def test_canonical_grouping_uses_normalized_urls():
+    """A canonical tag written as the bare domain still groups correctly
+    against the trailing-slash form of the same page (Phase 1's URL
+    normalizer, reused here)."""
+    pages = [
+        _page(url="https://greenleaf.test/a", title="Same", content_hash="h1", canonical_url="https://greenleaf.test/target"),
+        _page(url="https://greenleaf.test/b", title="Same", content_hash="h1", canonical_url="https://greenleaf.test/target/"),
+    ]
+    findings = opa.analyze_cross_page(pages)
+    assert not any(f.rule_code in ("duplicate_title", "duplicate_content") for f in findings)
+
+
+def test_two_distinct_canonical_groups_with_matching_content_are_still_flagged():
+    """The actual bug this whole feature protects against: two genuinely
+    DIFFERENT pages (different, non-matching canonicals) that happen to
+    share identical title/content are still a real problem worth flagging."""
+    pages = [
+        _page(url="https://greenleaf.test/a", title="Same Title", content_hash="h1", canonical_url="https://greenleaf.test/a"),
+        _page(url="https://greenleaf.test/b", title="Same Title", content_hash="h1", canonical_url="https://greenleaf.test/b"),
+    ]
+    findings = opa.analyze_cross_page(pages)
+    assert any(f.rule_code == "duplicate_title" for f in findings)
+    assert any(f.rule_code == "duplicate_content" for f in findings)
+
+
+def test_no_canonical_falls_back_to_the_pages_own_url_as_its_group():
+    pages = [
+        _page(url="https://greenleaf.test/a", title="Same", content_hash="h1", canonical_url=None),
+        _page(url="https://greenleaf.test/b", title="Same", content_hash="h1", canonical_url=None),
+    ]
+    findings = opa.analyze_cross_page(pages)
+    assert any(f.rule_code == "duplicate_title" for f in findings)
 
 
 def test_analyze_combines_per_page_and_cross_page_findings():

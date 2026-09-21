@@ -357,6 +357,21 @@ class Settings(BaseSettings):
     mailchimp_oauth_client_id: str = ""
     mailchimp_oauth_client_secret: str = ""
 
+    # SEO Audit & Optimization, Stage 12 (apps/agents/seo-audit/
+    # CLAUDE.md's "Professional tier roadmap") -- real per-tenant Google
+    # Analytics + Search Console access (app/api/google_oauth.py,
+    # app/integrations/analytics_provider.py + search_console_provider.py).
+    # ONE Google Cloud "Web application" OAuth Client ID covers both APIs'
+    # scopes in a single consent screen (same "connect Google once" idea as
+    # google_calendar_oauth_client_id above, but for these two read-only
+    # reporting APIs instead of Calendar). Left empty, /authorize returns a
+    # clean 503 (same pattern mailchimp_oauth_client_id above already
+    # follows) and both providers return None for every measurement --
+    # health/action-plan prioritization silently skips the traffic-boost
+    # step rather than fabricating engagement numbers.
+    google_analytics_oauth_client_id: str = ""
+    google_analytics_oauth_client_secret: str = ""
+
     # SEO Audit & Optimization, Stage 8 (apps/agents/seo-audit/
     # CLAUDE.md) -- Core Web Vitals via Google's free PageSpeed Insights
     # API (see app/integrations/performance_provider.py). Left empty, the

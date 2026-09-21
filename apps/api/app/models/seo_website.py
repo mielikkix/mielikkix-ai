@@ -30,6 +30,15 @@ class SeoWebsite(Base):
     primary_category = Column(Text, nullable=True)
     target_keywords = Column(JSON, nullable=True, default=list)
     crawl_tier = Column(Text, nullable=False, default="starter")  # "starter" | "standard" | "advanced"
+    # Stage 15 (apps/agents/seo-audit/CLAUDE.md's "Professional tier
+    # roadmap") -- null means no recurring schedule (the default, and the
+    # only state for a business that never opts in). See
+    # seo_schedule_service.py for the interval->timedelta mapping and the
+    # narrow, single-purpose scheduler this feeds -- NOT the general "shared
+    # job queue" the root CLAUDE.md still calls aspirational; this is
+    # specific to one recurring task for one agent, not general infra.
+    audit_schedule = Column(Text, nullable=True)  # null | "weekly" | "monthly"
+    next_scheduled_audit_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     business = relationship("Business")

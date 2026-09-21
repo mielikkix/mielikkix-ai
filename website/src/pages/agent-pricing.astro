@@ -1,34 +1,34 @@
 ---
 // AI Agent pricing -- separate from /pricing (the Chat Widget's own plan
 // tiers). SEO Audit & Optimize is the first Force agent productized with
-// real pricing (business direction, 2026-09-19) -- one-time payment per
-// tier, matching SeoWebsite.crawl_tier's own page-crawl caps (25/100/500 --
-// see apps/api/app/models/seo_website.py, CRAWL_TIER_PAGE_LIMITS). The
-// other built agents (Voice Receptionist, Booking Assistant, Support
-// Triage, Review & Reputation, Email Marketing) stay "get in touch" here,
-// same as this page's own Force Crew section used to show for all of
-// them -- no invented numbers for agents that haven't had real pricing
-// decided yet.
+// real pricing: free "SEO Audit & Optimize" plus a paid "Professional"
+// tier, 499 kr/month (resolved 2026-09-21 -- was 29,901 kr one-time,
+// revised after real-comparable pricing research put a one-time fee that
+// size well above every actual competitor, which all price as monthly
+// subscriptions). The other built agents (Voice Receptionist, Booking
+// Assistant, Support Triage, Review & Reputation, Email Marketing) stay
+// "get in touch" here, same as this page's own Force Crew section used to
+// show for all of them -- no invented numbers for agents that haven't had
+// real pricing decided yet.
 import Layout from "../layouts/Layout.astro";
 import CTASection from "../components/CTASection.astro";
 import PageHero from "../components/PageHero.astro";
 import Price from "../components/Price.astro";
+import { formatCurrency } from "../utils/currencyFormatter";
 import en from "../assets/i18n/en/agent-pricing.json";
 
 const tiers = en.SEO_AUDIT.TIERS;
 const faqs = en.FAQ.ITEMS;
 
-// One icon per tier, in TIERS order (Starter/Standard/Advanced crawl depth).
+// One icon per tier, in TIERS order (Free, then Professional).
 const tierIconPaths = [
   "M9 4.5v15m6-15v15M4.5 9h15M4.5 15h15",
-  "m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z",
   "M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25",
 ];
 
 const tierAccents = [
   { iconBg: "bg-sky-50", iconText: "text-sky-600" },
   { iconBg: "bg-white/20", iconText: "text-white" },
-  { iconBg: "bg-violet-50", iconText: "text-violet-700" },
 ];
 ---
 
@@ -60,7 +60,7 @@ const tierAccents = [
       </p>
     </div>
 
-    <div class="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-3">
+    <div class="mx-auto mt-12 grid max-w-3xl gap-6 lg:grid-cols-2">
       {
         tiers.map((tier, i) => (
           <div
@@ -93,12 +93,29 @@ const tierAccents = [
                   {tier.PRICE_NOTE}
                 </span>
               )}
-              <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]}>
-                <Price amount={tier.PRICE_USD} />
-              </span>
-              <span class:list={["ml-1 text-sm", tier.FEATURED ? "text-indigo-100" : "text-slate-400"]} data-i18n={`SEO_AUDIT.TIERS.${i}.PERIOD`}>
-                {tier.PERIOD}
-              </span>
+              {tier.PRICE_NOK ? (
+                // Fixed NOK price, not run through the USD-based currency
+                // switcher -- this tier's price was decided directly in kr,
+                // not converted from a USD base like every other price on
+                // this site (see Price.astro), so it stays the same
+                // regardless of which currency a visitor has selected.
+                <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]}>
+                  {formatCurrency(tier.PRICE_NOK, "NOK")}
+                </span>
+              ) : tier.PRICE_USD === 0 ? (
+                <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]} data-i18n="FREE_LABEL">
+                  {en.FREE_LABEL}
+                </span>
+              ) : (
+                <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]}>
+                  <Price amount={tier.PRICE_USD} />
+                </span>
+              )}
+              {tier.PERIOD && (
+                <span class:list={["ml-1 text-sm", tier.FEATURED ? "text-indigo-100" : "text-slate-400"]} data-i18n={`SEO_AUDIT.TIERS.${i}.PERIOD`}>
+                  {tier.PERIOD}
+                </span>
+              )}
             </p>
             <a
               href="/demo"

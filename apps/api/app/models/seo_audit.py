@@ -79,6 +79,40 @@ class SeoCrawledPage(Base):
     # instead of guessing from title/word-count alone (this agent's
     # CLAUDE.md: no fabricated findings).
     content_hash = Column(Text, nullable=True, index=True)
+    # Stage 13/14 (structured data + accessibility, see this agent's
+    # CLAUDE.md "Professional tier roadmap") -- all extracted the same way
+    # as everything else above, at crawl time in seo_page_analyzer.py, from
+    # the page's raw HTML (never re-derived later, since raw HTML itself
+    # isn't persisted). structured_data_types is the list of schema.org
+    # @type values found in valid JSON-LD blocks (empty list, not null, if
+    # the page has none). structured_data_invalid_count counts JSON-LD
+    # <script> blocks that failed to parse as JSON -- a real problem,
+    # unlike simply having none. html_lang_present is null only for
+    # non-HTML/broken pages (no <html> element to check at all), matching
+    # is_indexable's own null-for-non-HTML convention above. heading_outline
+    # is the page's heading levels in document order (e.g. [1, 2, 2, 4] --
+    # the 2->4 jump is a hierarchy skip), letting the accessibility analyzer
+    # explain exactly where a skip happens instead of just counting them.
+    structured_data_types = Column(JSON, nullable=True, default=list)
+    structured_data_invalid_count = Column(Integer, nullable=False, default=0)
+    html_lang_present = Column(Boolean, nullable=True)
+    heading_outline = Column(JSON, nullable=True, default=list)
+    form_inputs_missing_label = Column(Integer, nullable=False, default=0)
+    links_missing_accessible_name = Column(Integer, nullable=False, default=0)
+    # Stage 12 (Google Analytics + Search Console, see this agent's
+    # CLAUDE.md "Professional tier roadmap") -- null for every business
+    # until they've both connected Google (SeoGoogleConnection) AND
+    # configured which property/site to read from; also null for a
+    # business that has done both but this specific URL simply has no
+    # data for the window queried (e.g. a brand-new page). Never
+    # backfilled with 0 -- null always means "Not measured", the same
+    # "absence isn't zero" rule Stage 8's SeoPerformanceMeasurement already
+    # follows for Core Web Vitals. avg_position is a float (e.g. 14.2);
+    # everything else is a whole count over a trailing 28-day window.
+    ga_sessions_28d = Column(Integer, nullable=True)
+    gsc_impressions_28d = Column(Integer, nullable=True)
+    gsc_clicks_28d = Column(Integer, nullable=True)
+    gsc_avg_position_28d = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 

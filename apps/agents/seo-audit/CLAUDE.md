@@ -30,6 +30,74 @@ not a second entitlement gate; see `app/core/agent_catalog.py`):
   own "no fabricated findings" rule, applied to sales copy instead of audit
   data).
 
+## Professional tier roadmap (business direction, 2026-09-20)
+
+**The strategic problem this section answers**: SEO Audit & Optimize's crawl
+itself is not the product — Screaming Frog (free up to 500 URLs, £199/yr for
+more) and Ahrefs Webmaster Tools (free forever for a verified site) already
+do deterministic crawling better and cheaper than a small team can ever
+match. Building Professional as "more crawler, like Screaming Frog" is a
+losing strategy — it chases feature-parity with a 10+-year-old dedicated
+crawler aimed at technical SEO consultants, a different buyer than
+Mielikkix's actual customer (a small-business owner with no SEO expertise).
+
+**The actual differentiator, and the one to build toward**: neither
+Screaming Frog nor Ahrefs turns a finding into an *actual fix* — they stop
+at diagnosis. This agent already has the one thing they don't: the SEO
+Copywriter integration (Part 1 below, wired to findings since Stage 7) that
+generates the real replacement title/meta/content for a human to approve.
+Professional's roadmap should sharpen that gap — AI-driven remediation and
+richer, real business-data-informed prioritization — not chase raw crawler
+configurability that this agent's actual buyer would never touch anyway.
+
+Every "(coming soon)" item on the Professional tier (`app/core/
+agent_catalog.py`) was re-sorted against that lens:
+
+**Building now:**
+- Google Analytics integration + Search Console integration — real traffic
+  and search-performance data (impressions/clicks/position) per crawled
+  page, so the action plan can prioritize by "losing traffic AND broken"
+  instead of severity alone. This is the biggest lever for making the
+  action plan/executive summary smarter, and the first thing being built
+  (see the staged plan below, continuing from Stage 11).
+
+**Planned next, in priority order (not started):**
+- Scheduled recurring audits — turns a one-time report into ongoing
+  monitoring; also the natural tie-in to the "Ongoing SEO" retainer already
+  on the marketing site (`website/src/pages/agent-pricing.astro`).
+- Structured data validation, Accessibility auditing — deterministic
+  on-page checks (same shape as the existing technical/on-page analyzers)
+  that feed richer findings into the AI summary/action plan.
+- PageSpeed Insights integration is **already built** (Stage 8,
+  `GooglePageSpeedProvider`) and already listed under the *Free* tier, not
+  Professional — it just needs `GOOGLE_PAGESPEED_API_KEY` configured to stop
+  returning "Not measured". Not a Professional-exclusive item; don't
+  re-list it there.
+
+**Not being built — remove from Professional's marketing copy rather than
+leaving as `(coming soon)` forever, and removed from `agent_catalog.py`**
+(crawler feature-parity with Screaming Frog, aimed at a technical operator
+this agent's buyer isn't): Custom crawl configuration, Save & reopen past
+crawls, JavaScript rendering, Near-duplicate content detection, Custom
+robots.txt testing, Mobile usability checks, AMP crawling & validation,
+Spelling & grammar checks, Custom source code search, Custom extraction,
+Custom JavaScript, Link metrics integration, Forms-based authentication,
+Segmentation, Looker Studio crawl report, **and "Crawl with OpenAI &
+Gemini"** (resolved 2026-09-20: dropped as redundant with what this agent
+already does — the LLM executive summary and keyword ideas are already
+"crawling with AI" in a targeted way; a generic per-page LLM-classification
+pass didn't have a concrete use case). `(coming soon)` is a promise to
+eventually ship it — leaving a permanently-not-planned item labeled that
+way is the same kind of overselling this file's own "no fabricated
+findings" rule already forbids for audit data; it applies to sales copy too.
+
+**Resolved 2026-09-20 — kept:** "Priority technical support" stays on the
+Professional tier. This is an ops/staffing commitment, not something to
+build in code — there is a real intent to actually staff it for paying
+customers, so it's not subject to the "(coming soon)" removal rule above
+the same way a missing feature is. If that intent ever changes, drop it
+from `agent_catalog.py` rather than leaving an unfulfillable promise.
+
 ## Part 1 — SEO Copywriter (live, unchanged)
 
 Bulk-generates product descriptions and SEO metadata (title tag, meta
@@ -377,6 +445,107 @@ matters* and *drafts the fix*, both always subject to approval.
     client-facing output today; a real PDF renderer can consume this exact
     same `SeoAuditReportOut` structure later with no service-layer change.
     10 tests (`test_seo_report_service.py`, `test_seo_report_integration.py`).
+12. **DONE (backend; no dashboard "Connect Google" UI yet) — Google
+    Analytics + Search Console integration.** First stage of the
+    Professional tier roadmap above (business-data integrations, not
+    crawler feature-parity). `app/models/seo_google_connection.py`
+    (`SeoGoogleConnection`, migration `d3f6b8a1c5e7`) — one row per
+    business, one Google OAuth client covering BOTH APIs' read-only scopes
+    in a single consent screen (unlike Calendar's per-agent client, since
+    these two reporting APIs always travel together for this feature).
+    `app/api/google_oauth.py` (`/api/businesses/me/google/...`) —
+    structurally identical Authorization Code flow to
+    `calendar_oauth.py`'s (signed state, `/authorize` → Google consent →
+    `/callback` → encrypted refresh token stored), plus `PATCH .../config`
+    to set `analytics_property_id`/`search_console_site_url` (can't be
+    inferred automatically — a Google account can own many GA4 properties
+    and verified Search Console sites; see `SeoGoogleConnection`'s own
+    docstring). Two provider integrations, same ABC-+-factory shape as
+    `calendar_provider.py`/`performance_provider.py`:
+    `app/integrations/analytics_provider.py` (`AnalyticsProvider`/
+    `GoogleAnalyticsProvider`, GA4 Data API, matches by URL path) and
+    `app/integrations/search_console_provider.py` (`SearchConsoleProvider`/
+    `GoogleSearchConsoleProvider`, Search Console API v3, matches by full
+    URL) — both share `app/integrations/google_oauth_client.py`'s token-
+    refresh helper, both follow the existing "no key/no auth → return
+    empty, caller renders 'Not measured'" pattern (Stage 8) — never a
+    fabricated number. New `SeoCrawledPage` columns (migration
+    `e2b5c9f3a7d1`): `ga_sessions_28d`, `gsc_impressions_28d`,
+    `gsc_clicks_28d`, `gsc_avg_position_28d`, all null until both connected
+    AND configured. `run_audit` fetches both once per audit (batched
+    across every crawled URL, not per-page) right after the crawl; either
+    provider raising or returning nothing just leaves those fields null,
+    never fails the audit. The actual payoff:
+    `seo_recommendation_service.build_action_plan()` now takes an optional
+    `crawled_pages` argument and computes each item's `traffic_weight`
+    (real sessions + clicks summed across its own affected URLs, `None` if
+    none have data) — used ONLY to break ties within the same priority
+    tier (a real critical issue still always outranks a highly-trafficked
+    low-severity one; see that function's own docstring), so a business
+    with nothing connected sees byte-identical ordering to before this
+    stage. 58 tests (`test_google_oauth.py`, `test_analytics_provider.py`,
+    `test_search_console_provider.py`, `test_seo_google_integration.py`,
+    plus the `build_action_plan` traffic-weight cases added to
+    `test_seo_recommendation_service.py`).
+    **Not built**: a dashboard "Connect Google" button/Settings UI (the
+    calendar equivalent lives in Settings — this needs the same, plus a
+    small form for `analytics_property_id`/`search_console_site_url` since
+    there's no property/site picker either). Until that UI exists, this
+    stage is only reachable by calling the API directly. Needs
+    `GOOGLE_ANALYTICS_OAUTH_CLIENT_ID`/`_SECRET` in `.env` (see
+    `.env.example`'s own setup comment) before it does anything at all.
+13. **DONE — Structured data analyzer.** `app/services/
+    seo_structured_data_analyzer.py` — deterministic, category="technical"
+    (folded into `health_technical`, no new health_* column — see that
+    module's own docstring for why). Extraction happens at crawl time in
+    `seo_page_analyzer.py` (new `SeoCrawledPage` columns
+    `structured_data_types`/`structured_data_invalid_count`, migration
+    `f7c2a9d4e8b1`) since raw HTML is only ever available then. Two rules:
+    a JSON-LD block that's present but fails to parse (medium, per page —
+    a real, fixable problem) and the sitewide absence of ANY structured
+    data across the whole audit (low, ONE finding, not per-page — simply
+    having none isn't flagged per page, since most pages legitimately have
+    none and that would be noise). Wired into `run_audit` right alongside
+    the Stage 3 technical pass. 26 tests (`test_seo_page_analyzer.py`'s
+    structured-data cases, `test_seo_structured_data_analyzer.py`,
+    `test_seo_structured_data_integration.py`).
+14. **DONE — Accessibility analyzer.** `app/services/
+    seo_accessibility_analyzer.py` — deterministic, category="on_page"
+    (folded into `health_on_page`, extending this agent's existing
+    accessibility-adjacent on-page check, `images_missing_alt`). Static-
+    HTML analysis only — no headless-browser rendering (matching this
+    agent's existing crawl-time limitation), which honestly rules out
+    color-contrast checks entirely rather than faking one. New
+    `SeoCrawledPage` columns (`html_lang_present`, `heading_outline`,
+    `form_inputs_missing_label`, `links_missing_accessible_name`, same
+    migration `f7c2a9d4e8b1`), extracted in `seo_page_analyzer.py`
+    alongside Stage 13's fields. Four rules: missing `<html lang>` (low),
+    a heading-level skip e.g. h2→h4 (informational — going back UP a level
+    is normal document structure, not flagged), form fields with no
+    associated label (medium), and links with no accessible name — e.g. an
+    icon-only button with no alt/aria-label (medium). 27 tests
+    (`test_seo_page_analyzer.py`'s accessibility cases,
+    `test_seo_accessibility_analyzer.py`,
+    `test_seo_accessibility_integration.py`).
+15. **DONE — Recurring audit scheduling.** `app/services/
+    seo_schedule_service.py` — the first scheduled/recurring job in this
+    codebase (see that module's own docstring: a narrow, single-purpose
+    in-process tick, explicitly NOT the general "shared job queue" the
+    root CLAUDE.md still calls aspirational). New `SeoWebsite` columns
+    `audit_schedule` (`null`|`"weekly"`|`"monthly"`) and
+    `next_scheduled_audit_at` (migration `c8e1f4a7b3d9`). `AsyncIOScheduler`
+    (new dependency, `apscheduler`) wired into `app/main.py`'s `lifespan`,
+    ticking every `CHECK_INTERVAL_MINUTES` (15) to run
+    `run_due_audits()`, which starts a fresh audit for every past-due
+    website and reschedules it forward by its own interval regardless of
+    whether that audit succeeded (so a website stuck failing doesn't spam
+    retries faster than its configured cadence). New endpoint `PATCH
+    .../websites/{id}/schedule` (`SeoWebsiteScheduleUpdate`). Not gated to
+    a pricing tier in code (same as everything else — tiers are catalog
+    copy only, see this file's own "Pricing" section). 21 tests
+    (`test_seo_schedule_service.py`, schedule cases in
+    `test_seo_websites.py`). **Not built**: any dashboard UI to turn
+    scheduling on/off (same gap as Stage 12 — API-only for now).
 
 ### UI (Phase 1/20)
 

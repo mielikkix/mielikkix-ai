@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Sparkles, Check, X, Trash2, Globe, PlayCircle, Star } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -19,7 +19,17 @@ interface SeoWebsite {
   primary_category: string | null
   target_keywords: string[]
   crawl_tier: 'starter' | 'standard' | 'advanced'
+  // Stage 15 (recurring audits) -- null means no schedule, the default.
+  audit_schedule: 'weekly' | 'monthly' | null
+  next_scheduled_audit_at: string | null
   created_at: string
+}
+
+interface SeoGoogleStatus {
+  connected: boolean
+  google_account_email: string | null
+  analytics_property_id: string | null
+  search_console_site_url: string | null
 }
 
 type Severity = 'critical' | 'high' | 'medium' | 'low' | 'informational'
@@ -53,20 +63,46 @@ interface ActionPlanItem {
   expected_benefit: string
   implementation_difficulty: string
   status: string
+  // Stage 12 (Google Analytics + Search Console) -- real sessions + clicks
+  // summed across this item's own affected URLs, from whichever of them
+  // actually had data. null means none of this item's affected URLs have
+  // any real traffic data (Google not connected, or genuinely no data
+  // yet) -- never a fabricated 0. Only ever used to break ties within the
+  // same priority tier server-side; shown here just as a visible signal
+  // of why an item sorted where it did.
+  traffic_weight: number | null
 }
 
+// Phase 2 fix: these must match seo_recommendation_service.py's actual
+// SEVERITY_TO_PRIORITY mapping ({"critical": 1, "high": 1, "medium": 2,
+// "low": 3, "informational": 3}) exactly -- the labels here previously
+// claimed Priority 2 was "High" and Priority 3 was "Medium & Below", which
+// didn't match reality (High actually sorts into Priority 1, Medium into
+// Priority 2). That's what produced the confusing "Priority 1 — Critical"
+// heading over a group that was mostly High-severity items while the
+// summary correctly said "Critical: 0" -- one real source of truth
+// (SeoFinding.severity), but a wrong label describing it. If that backend
+// mapping ever changes, update this to match -- don't let it drift again.
 const PRIORITY_LABELS: Record<number, string> = {
-  1: 'Priority 1 — Critical',
-  2: 'Priority 2 — High',
-  3: 'Priority 3 — Medium & Below',
+  1: 'Priority 1 — Critical & High',
+  2: 'Priority 2 — Medium',
+  3: 'Priority 3 — Low & Informational',
 }
 
+// Phase 2 fix: health_content and health_internal_linking are removed from
+// this list entirely -- verified by inspection (ARCHITECTURE-NOTES.md) that
+// NO analyzer anywhere in the backend ever sets them; they are permanently
+// null, for every audit, not just this one. Showing a tile that will never
+// populate looks like a data problem, not a "feature not built yet"
+// statement, which undermines trust in the categories that DO work.
+// Performance stays -- it's a real, already-built analyzer (Stage 8) that's
+// simply unconfigured in this environment (no GOOGLE_PAGESPEED_API_KEY), a
+// transient gap, not a permanent one; see the "How is this calculated?"
+// note below for how that distinction is explained in the UI.
 const HEALTH_CATEGORIES: { key: keyof SeoAudit; label: string }[] = [
   { key: 'health_technical', label: 'Technical' },
   { key: 'health_on_page', label: 'On-Page' },
   { key: 'health_performance', label: 'Performance' },
-  { key: 'health_content', label: 'Content' },
-  { key: 'health_internal_linking', label: 'Internal Linking' },
 ]
 
 const SEVERITY_LABELS: Record<Severity, string> = {
@@ -176,6 +212,17 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
           <p className="text-3xl font-bold text-slate-900">
             {audit.overall_health !== null ? `${audit.overall_health}/100` : '—'}
           </p>
+          <details className="mt-1 text-xs text-slate-400 print:hidden">
+            <summary className="cursor-pointer select-none underline decoration-dotted">
+              How is this calculated?
+            </summary>
+            <p className="mt-1 max-w-xs text-slate-500">
+              Averaged across whichever categories below actually have real data for this
+              audit -- a category missing an API key (e.g. Performance without a PageSpeed
+              key) shows "Not measured" and isn't included in the average, never guessed at
+              or counted as zero.
+            </p>
+          </details>
         </div>
         <div className="flex gap-4">
           {HEALTH_CATEGORIES.map(({ key, label }) => (
@@ -255,7 +302,19 @@ function ActionPlanList({ auditId }: { auditId: string }) {
             <div className="space-y-2">
               {group.map((item) => (
                 <div key={item.rule_code} className={clsx('rounded-lg border px-3 py-2 print:break-inside-avoid', item.status === 'ignored' && 'opacity-50')}>
-                  <p className="font-medium text-slate-800">{item.issue}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-slate-800">{item.issue}</p>
+                    {/* Stage 12 (Google Analytics + Search Console) -- only
+                        rendered when at least one of this item's affected
+                        URLs has real data; null (not 0) means none do, e.g.
+                        Google isn't connected, so no badge at all rather
+                        than a misleading "0". */}
+                    {item.traffic_weight !== null && (
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        {item.traffic_weight.toLocaleString()} sessions/clicks (28d)
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 text-sm text-slate-500">
                     {item.affected_urls.length} page(s) affected · Difficulty: {item.implementation_difficulty} · Benefit: {item.expected_benefit}
                   </p>
@@ -345,6 +404,7 @@ function ReportView({ auditId }: { auditId: string }) {
             {report.top_action_items.map((item) => (
               <li key={item.rule_code}>
                 {item.issue} ({item.affected_urls.length} page(s), {item.implementation_difficulty} fix)
+                {item.traffic_weight !== null && ` — ${item.traffic_weight.toLocaleString()} sessions/clicks (28d)`}
               </li>
             ))}
           </ol>
@@ -710,6 +770,17 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
     },
   })
 
+  // Stage 15 (recurring audits) -- invalidating the parent's ['seo',
+  // 'websites'] query from here is fine even though WebsiteCard doesn't
+  // own that query itself; React Query invalidation is keyed globally, not
+  // scoped to whichever component created the query, so this flows the
+  // updated audit_schedule/next_scheduled_audit_at back down as new props.
+  const scheduleMut = useMutation({
+    mutationFn: (interval: 'weekly' | 'monthly' | null) =>
+      api.patch(`/agents/seo/websites/${website.id}/schedule`, { interval }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seo', 'websites'] }),
+  })
+
   return (
     <Card className={showFindings ? 'print:rounded-none print:border-0 print:shadow-none' : 'print:hidden'}>
       <div className="flex items-start justify-between gap-4 print:hidden">
@@ -724,6 +795,24 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
             {' · '}
             {website.crawl_tier} tier
           </p>
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <label className="text-slate-400">Recurring audits</label>
+            <select
+              value={website.audit_schedule ?? ''}
+              disabled={scheduleMut.isPending}
+              onChange={(e) => scheduleMut.mutate((e.target.value || null) as 'weekly' | 'monthly' | null)}
+              className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+            >
+              <option value="">Off</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            {website.audit_schedule && website.next_scheduled_audit_at && (
+              <span className="text-slate-400">
+                Next: {new Date(website.next_scheduled_audit_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" loading={runAuditMut.isPending} onClick={() => runAuditMut.mutate()}>
@@ -810,6 +899,127 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
   )
 }
 
+// Stage 12 (Google Analytics + Search Console, see apps/agents/seo-audit/
+// CLAUDE.md's "Professional tier roadmap") -- one connection per business,
+// not per website, so this lives above the website list rather than on
+// each WebsiteCard. Same OAuth-redirect-banner pattern as Booking
+// Assistant's Google Calendar connect card (dashboard/pages/settings/
+// BookingSection.tsx) -- window.location.href to the backend's own
+// /authorize route (a real browser redirect to Google, not an API call),
+// and ?google=connected|error stripped from the URL right after reading it
+// so a page refresh doesn't keep re-showing a banner from a connection
+// attempt that already happened.
+function GoogleConnectionCard() {
+  const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [banner, setBanner] = useState<'connected' | 'error' | null>(null)
+  const [propertyId, setPropertyId] = useState('')
+  const [siteUrl, setSiteUrl] = useState('')
+
+  const { data: status } = useQuery<SeoGoogleStatus>({
+    queryKey: ['seo-google-status'],
+    queryFn: () => api.get('/businesses/me/google/status').then((r) => r.data),
+  })
+
+  useEffect(() => {
+    const value = searchParams.get('google')
+    if (value === 'connected' || value === 'error') {
+      setBanner(value)
+      qc.invalidateQueries({ queryKey: ['seo-google-status'] })
+      const next = new URLSearchParams(searchParams)
+      next.delete('google')
+      setSearchParams(next, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Pre-fill the property/site inputs from whatever's already saved, once
+  // the status query resolves -- lets a business edit an existing value
+  // instead of always starting from a blank field.
+  useEffect(() => {
+    setPropertyId(status?.analytics_property_id ?? '')
+    setSiteUrl(status?.search_console_site_url ?? '')
+  }, [status?.analytics_property_id, status?.search_console_site_url])
+
+  const configMut = useMutation({
+    mutationFn: () =>
+      api.patch('/businesses/me/google/config', {
+        analytics_property_id: propertyId.trim() || null,
+        search_console_site_url: siteUrl.trim() || null,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seo-google-status'] }),
+  })
+
+  const disconnectMut = useMutation({
+    mutationFn: () => api.delete('/businesses/me/google'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seo-google-status'] }),
+  })
+
+  return (
+    <Card title="Google Analytics & Search Console" className="print:hidden">
+      <div className="space-y-3">
+        {banner === 'connected' && <p className="text-base text-green-600">Google connected!</p>}
+        {banner === 'error' && <p className="text-base text-red-600">Couldn't connect Google. Please try again.</p>}
+
+        {status?.connected ? (
+          <>
+            <p className="text-base text-slate-700">
+              Connected{status.google_account_email ? ` as ${status.google_account_email}` : ''}.
+            </p>
+            <p className="text-sm text-slate-500">
+              Real traffic and search data feed into your audits' action plans -- an issue on a page
+              people actually visit is prioritized above the same issue on a page nobody visits.
+            </p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <label className="text-sm text-slate-500">GA4 property ID</label>
+                <input
+                  placeholder="properties/123456789"
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-500">Search Console site URL</label>
+                <input
+                  placeholder="https://example.com/ or sc-domain:example.com"
+                  value={siteUrl}
+                  onChange={(e) => setSiteUrl(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" loading={configMut.isPending} onClick={() => configMut.mutate()}>
+                Save
+              </Button>
+              <Button size="sm" variant="secondary" loading={disconnectMut.isPending} onClick={() => disconnectMut.mutate()}>
+                Disconnect
+              </Button>
+              {configMut.isSuccess && <span className="text-sm text-green-600">Saved.</span>}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-slate-500">
+              Connect your Google account so audits can factor in real traffic and search performance
+              data -- which pages actually matter, not just which findings are technically worse.
+            </p>
+            <Button
+              onClick={() => {
+                window.location.href = `${api.defaults.baseURL}/businesses/me/google/authorize`
+              }}
+            >
+              Connect Google
+            </Button>
+          </>
+        )}
+      </div>
+    </Card>
+  )
+}
+
 // Stage 1 of the SEO Audit & Optimization upgrade (see apps/agents/
 // seo-audit/CLAUDE.md) -- register websites to audit. Audit runs,
 // findings, and recommendations land in later stages of that same plan.
@@ -852,6 +1062,8 @@ function WebsitesTab() {
 
   return (
     <div className="space-y-6">
+      <GoogleConnectionCard />
+
       <Card title="Add a website to audit" className="print:hidden">
         <form
           className="space-y-3"
@@ -1111,7 +1323,7 @@ function SeoTierCard({ tier, isCurrent }: { tier: AgentTier; isCurrent: boolean 
       <p className={clsx('text-sm mt-1', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}>{tier.tagline}</p>
       <p className="mt-4">
         <span className={clsx('text-3xl font-bold', !isFree ? 'text-white print:text-slate-900' : 'text-slate-900')}>{priceLabel}</span>
-        {!isFree && <span className={clsx('text-sm', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}> one-time</span>}
+        {!isFree && <span className={clsx('text-sm', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}> /month</span>}
       </p>
 
       <Button

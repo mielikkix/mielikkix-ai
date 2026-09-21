@@ -92,7 +92,18 @@ async def test_run_audit_with_no_onpage_issues_has_a_perfect_onpage_score(busine
     audit_id = audit.id
 
     monkeypatch.setattr(web_crawl, "discover_website_pages", AsyncMock(return_value=["https://greenleaf.test/"]))
-    monkeypatch.setattr(seo_page_analyzer, "analyze_page", AsyncMock(return_value=_fake_analysis("https://greenleaf.test/")))
+    monkeypatch.setattr(
+        seo_page_analyzer, "analyze_page",
+        # structured_data_types/html_lang_present/heading_outline set so
+        # Stage 13/14's checks don't fire -- this test's whole point is a
+        # truly perfect score, which now includes those checks too.
+        AsyncMock(return_value=_fake_analysis(
+            "https://greenleaf.test/",
+            structured_data_types=["Organization"],
+            html_lang_present=True,
+            heading_outline=[1],
+        )),
+    )
     monkeypatch.setattr(
         web_crawl, "fetch_robots_txt_text",
         AsyncMock(return_value="User-agent: *\nSitemap: https://greenleaf.test/sitemap.xml\n"),

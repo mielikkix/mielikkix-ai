@@ -88,37 +88,81 @@ class ActionPlanItem:
     expected_benefit: str
     implementation_difficulty: str
     status: str  # "open" unless every underlying finding shares one other status
+    # Stage 12 (Google Analytics + Search Console, see this agent's
+    # CLAUDE.md "Professional tier roadmap") -- real sessions + clicks
+    # summed across this item's own affected URLs, from whichever of them
+    # actually had data. None (never 0) when no affected URL has any real
+    # traffic data at all -- e.g. GA/Search Console aren't connected for
+    # this business, exactly Stage 8's "absence isn't zero" rule. Used only
+    # to break ties within the same priority tier (see build_action_plan's
+    # sort key) -- it never changes an item's actual priority number,
+    # since real-but-lower-severity traffic data still shouldn't outrank a
+    # genuinely critical technical issue.
+    traffic_weight: Optional[int] = None
 
 
-def build_action_plan(findings: List[SeoFinding]) -> List[ActionPlanItem]:
+def _traffic_weight_for_urls(urls: List[str], metrics_by_url: Dict[str, int]) -> Optional[int]:
+    known = [metrics_by_url[u] for u in urls if u in metrics_by_url]
+    return sum(known) if known else None
+
+
+def _page_traffic_metrics(crawled_pages) -> Dict[str, int]:
+    """url -> ga_sessions_28d + gsc_clicks_28d, for pages that have at
+    least one of the two -- a page with neither is left OUT of this dict
+    entirely (not given a 0), so _traffic_weight_for_urls above can tell
+    "no data for this URL" apart from "confirmed zero traffic"."""
+    metrics: Dict[str, int] = {}
+    for page in crawled_pages or []:
+        sessions = getattr(page, "ga_sessions_28d", None)
+        clicks = getattr(page, "gsc_clicks_28d", None)
+        if sessions is None and clicks is None:
+            continue
+        metrics[page.url] = (sessions or 0) + (clicks or 0)
+    return metrics
+
+
+def build_action_plan(findings: List[SeoFinding], crawled_pages=None) -> List[ActionPlanItem]:
     """Groups an audit's findings by rule_code into one action item per
     distinct issue type (e.g. one "duplicate_title" item listing every
     affected URL, not one item per URL) -- matches this agent's CLAUDE.md,
-    Phase 11's roadmap shape. Sorted by priority, most urgent first."""
+    Phase 11's roadmap shape. Sorted by priority, most urgent first, then
+    (Stage 12) by real traffic weight when crawled_pages carries any --
+    within the same priority tier, an issue affecting a page with real
+    visits/clicks sorts above one affecting a page nobody visits.
+    crawled_pages is optional and backward compatible: omit it (or pass
+    pages with no ga_*/gsc_* data) and every item's traffic_weight is None,
+    and the sort falls back to exactly its pre-Stage-12 behavior."""
     groups: Dict[str, List[SeoFinding]] = {}
     for finding in findings:
         groups.setdefault(finding.rule_code, []).append(finding)
+
+    page_metrics = _page_traffic_metrics(crawled_pages)
 
     items: List[ActionPlanItem] = []
     for rule_code, group in groups.items():
         representative = group[0]
         statuses = {f.status for f in group}
         status = statuses.pop() if len(statuses) == 1 else "open"
+        affected_urls = [f.affected_url for f in group if f.affected_url]
 
         items.append(ActionPlanItem(
             priority=SEVERITY_TO_PRIORITY.get(representative.severity, 3),
             category=representative.category,
             rule_code=rule_code,
             issue=representative.issue,
-            affected_urls=[f.affected_url for f in group if f.affected_url],
+            affected_urls=affected_urls,
             why_it_matters=representative.explanation,
             recommended_action=representative.recommended_fix,
             expected_benefit=EXPECTED_BENEFIT_BY_SEVERITY.get(representative.severity, "Not available"),
             implementation_difficulty=IMPLEMENTATION_DIFFICULTY_BY_RULE.get(rule_code, _DEFAULT_DIFFICULTY),
             status=status,
+            traffic_weight=_traffic_weight_for_urls(affected_urls, page_metrics),
         ))
 
-    return sorted(items, key=lambda item: (item.priority, -len(item.affected_urls)))
+    return sorted(
+        items,
+        key=lambda item: (item.priority, -(item.traffic_weight or 0), -len(item.affected_urls)),
+    )
 
 
 _SUMMARY_SYSTEM_PROMPT = (

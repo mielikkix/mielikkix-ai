@@ -81,6 +81,14 @@ AGENTS: dict[str, AgentProduct] = {
                     "Technical, on-page, and internal-linking findings",
                     "Core Web Vitals / PageSpeed Insights (needs GOOGLE_PAGESPEED_API_KEY -- "
                     "shows \"Not measured\" without one)",
+                    # Moved here from Professional 2026-09-20 (Stage 13/14,
+                    # apps/agents/seo-audit/CLAUDE.md) -- both are fully
+                    # built, automatic, and untiered (every audit gets them,
+                    # no configuration or UI needed), so listing them as a
+                    # Professional-exclusive would be inaccurate, not just
+                    # unbuilt-but-promised the way "(coming soon)" items are.
+                    "Structured data validation",
+                    "Accessibility checks",
                     "Prioritized action plan",
                     "AI-written executive summary",
                     "Keyword opportunity ideas",
@@ -94,32 +102,43 @@ AGENTS: dict[str, AgentProduct] = {
                 name="Professional SEO Audit & Optimization",
                 tagline="For larger, more complex websites that need deeper crawls and integrations.",
                 price_usd=0,
-                price_nok=29901,
+                price_nok=499,  # per month (resolved 2026-09-21 -- was 29,901 kr one-time)
+                # Trimmed 2026-09-20 (see apps/agents/seo-audit/CLAUDE.md's
+                # "Professional tier roadmap" section) from an initial list
+                # modeled 1:1 on Screaming Frog's feature table. Everything
+                # removed was crawler feature-parity with Screaming Frog/
+                # Ahrefs -- configurability for a technical operator this
+                # agent's actual buyer (a non-expert small-business owner)
+                # would never touch, and would never justify paying for when
+                # those tools are free. What's left is either already in
+                # progress (Stage 12: GA/Search Console) or genuinely sharpens
+                # this agent's real differentiator -- AI-driven remediation
+                # and business-data-informed prioritization, not raw crawler
+                # power. Do not add a crawler-configurability item back here
+                # without re-reading that CLAUDE.md section first.
+                # Structured data validation / accessibility auditing
+                # removed 2026-09-20 -- both are now built AND untiered
+                # (folded into every audit's Free-tier scores), so they moved
+                # to the Free tier's own list above rather than staying here
+                # as a paid-exclusive. Google Analytics/Search Console
+                # integration and scheduling had their "(coming soon)"
+                # suffix removed 2026-09-21 once the dashboard UI to
+                # self-serve connect Google (Connect Google card + property/
+                # site config) and toggle scheduling (per-website dropdown)
+                # actually shipped and was verified end-to-end against a
+                # real account -- both are genuinely usable by a customer
+                # now, not just built backend plumbing. Priority technical
+                # support's "(coming soon)" removed 2026-09-21 -- a real
+                # commitment to actually staff it now, not a future promise;
+                # if that commitment ever lapses, put the suffix back rather
+                # than leaving an unfulfillable promise (same rule as
+                # everything else on this tier).
                 features=(
                     "Everything in SEO Audit & Optimize, plus:",
-                    "Up to 500 pages crawled per audit (current maximum)",
-                    "Scheduled recurring audits (coming soon)",
-                    "Custom crawl configuration (coming soon)",
-                    "Save & reopen past crawls (coming soon)",
-                    "JavaScript rendering (coming soon)",
-                    "Near-duplicate content detection (coming soon)",
-                    "Custom robots.txt testing (coming soon)",
-                    "Mobile usability checks (coming soon)",
-                    "AMP crawling & validation (coming soon)",
-                    "Structured data validation (coming soon)",
-                    "Spelling & grammar checks (coming soon)",
-                    "Custom source code search (coming soon)",
-                    "Custom extraction (coming soon)",
-                    "Custom JavaScript (coming soon)",
-                    "Crawl with OpenAI & Gemini (coming soon)",
-                    "Google Analytics integration (coming soon)",
-                    "Search Console integration (coming soon)",
-                    "Accessibility auditing (coming soon)",
-                    "Link metrics integration (coming soon)",
-                    "Forms-based authentication (coming soon)",
-                    "Segmentation (coming soon)",
-                    "Looker Studio crawl report (coming soon)",
-                    "Priority technical support (coming soon)",
+                    "Google Analytics integration",
+                    "Search Console integration",
+                    "Scheduled recurring audits",
+                    "Priority technical support",
                 ),
             ),
         ),

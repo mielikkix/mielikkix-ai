@@ -8,7 +8,8 @@ import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { AgentGate } from '../../shared/components/AgentGate'
 import { useAgentAccess, useAgentCatalog, AgentTier } from '../../shared/hooks/usePlan'
-import { formatCurrency } from '../../shared/currency'
+import { useCurrency } from '../../shared/hooks/useCurrency'
+import { CurrencySwitcher } from '../components/CurrencySwitcher'
 
 interface SeoWebsite {
   id: string
@@ -1298,14 +1299,17 @@ function ContentTab() {
 // Two-tier pricing card, same visual language as PlanPage.tsx's chat-widget
 // plan cards (brand-gradient "Most Popular" card for the paid tier) so the
 // two pricing surfaces in this app don't look like two different products.
-function SeoTierCard({ tier, isCurrent }: { tier: AgentTier; isCurrent: boolean }) {
+function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: boolean; format: (usdAmount: number) => string }) {
   const navigate = useNavigate()
   const isFree = tier.key === 'free'
-  const priceLabel = isFree
-    ? 'Free'
-    : tier.price_nok !== null
-      ? formatCurrency(tier.price_nok, 'NOK')
-      : formatCurrency(tier.price_usd, 'USD')
+  // Priced in USD (agent_catalog.py's price_usd) and converted through the
+  // same live-rate system every other price in this app uses (useCurrency)
+  // -- this tier used to bypass that entirely with a hardcoded fixed-NOK
+  // display (price_nok), which was correct while the price was a one-time
+  // Norway-specific fee, but broke the currency switcher once it became a
+  // normal recurring price (confirmed: switching EUR/USD did nothing).
+  // Reverted to the standard mechanism 2026-09-21.
+  const priceLabel = isFree ? 'Free' : format(tier.price_usd)
 
   return (
     <div
@@ -1360,6 +1364,7 @@ function SeoTierCard({ tier, isCurrent }: { tier: AgentTier; isCurrent: boolean 
 function PlansTab() {
   const { data: catalog } = useAgentCatalog()
   const { data: access } = useAgentAccess()
+  const { currency, setCurrency, format } = useCurrency()
   const seo = catalog?.find((a) => a.key === 'seo_audit_optimization')
 
   if (!seo?.tiers) return null
@@ -1372,13 +1377,21 @@ function PlansTab() {
           Screaming-Frog-style crawler on top of everything in the free tier — items marked
           "(coming soon)" are priced in but not built yet.
         </p>
-        <Button size="sm" variant="secondary" onClick={() => window.print()}>
-          Print / Save as PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <CurrencySwitcher currency={currency} onChange={setCurrency} />
+          <Button size="sm" variant="secondary" onClick={() => window.print()}>
+            Print / Save as PDF
+          </Button>
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {seo.tiers.map((tier) => (
-          <SeoTierCard key={tier.key} tier={tier} isCurrent={tier.key === 'free' && !!access?.seo_audit_optimization} />
+          <SeoTierCard
+            key={tier.key}
+            tier={tier}
+            isCurrent={tier.key === 'free' && !!access?.seo_audit_optimization}
+            format={format}
+          />
         ))}
       </div>
     </div>

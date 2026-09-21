@@ -101,8 +101,18 @@ AGENTS: dict[str, AgentProduct] = {
                 key="professional",
                 name="Professional SEO Audit & Optimization",
                 tagline="For larger, more complex websites that need deeper crawls and integrations.",
-                price_usd=0,
-                price_nok=499,  # per month (resolved 2026-09-21 -- was 29,901 kr one-time)
+                # Authored in USD like every other price in this catalog --
+                # NOT a fixed price_nok anymore (that bypassed the currency
+                # switcher entirely, which was fine for a one-time
+                # Norway-specific fee but broke conversion once this became
+                # a normal recurring price -- confirmed live: switching to
+                # EUR/USD on the pricing page did nothing). 53 USD/month is
+                # the live-rate equivalent of the target 499 kr/month at the
+                # time this was set (2026-09-21); it'll drift a little with
+                # the exchange rate day to day, same as every other price
+                # on this site already does -- that's expected, not a bug.
+                price_usd=53,
+                price_nok=None,  # per month (resolved 2026-09-21 -- was 29,901 kr one-time)
                 # Trimmed 2026-09-20 (see apps/agents/seo-audit/CLAUDE.md's
                 # "Professional tier roadmap" section) from an initial list
                 # modeled 1:1 on Screaming Frog's feature table. Everything

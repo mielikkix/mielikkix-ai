@@ -14,7 +14,6 @@ import Layout from "../layouts/Layout.astro";
 import CTASection from "../components/CTASection.astro";
 import PageHero from "../components/PageHero.astro";
 import Price from "../components/Price.astro";
-import { formatCurrency } from "../utils/currencyFormatter";
 import en from "../assets/i18n/en/agent-pricing.json";
 
 const tiers = en.SEO_AUDIT.TIERS;
@@ -93,16 +92,7 @@ const tierAccents = [
                   {tier.PRICE_NOTE}
                 </span>
               )}
-              {tier.PRICE_NOK ? (
-                // Fixed NOK price, not run through the USD-based currency
-                // switcher -- this tier's price was decided directly in kr,
-                // not converted from a USD base like every other price on
-                // this site (see Price.astro), so it stays the same
-                // regardless of which currency a visitor has selected.
-                <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]}>
-                  {formatCurrency(tier.PRICE_NOK, "NOK")}
-                </span>
-              ) : tier.PRICE_USD === 0 ? (
+              {tier.PRICE_USD === 0 ? (
                 <span class:list={["font-display text-3xl font-extrabold", tier.FEATURED ? "text-white" : "text-slate-900"]} data-i18n="FREE_LABEL">
                   {en.FREE_LABEL}
                 </span>

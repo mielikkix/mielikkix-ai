@@ -1,0 +1,744 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import CTASection from "../../components/CTASection.astro";
+
+// This is Mielikkix's first blog article and the smallest clean solution for
+// it: no content-collections system, no MDX, no blog index page -- none of
+// that exists yet and this single article doesn't need it (see this
+// session's SEO task notes). It's a plain .astro page, the same pattern
+// every other page on this site already uses (privacy.astro is the closest
+// precedent: English-only, no i18n JSON namespace, hand-written long-form
+// HTML). Discoverable today via the sitemap (@astrojs/sitemap picks up every
+// built route automatically) and via the internal links placed within it;
+// no nav/footer link was added since that touches sitewide chrome, which is
+// out of scope for adding one article.
+//
+// Structured data: BlogPosting only (see structuredDataNodes below), merged
+// into Layout.astro's existing single JSON-LD @graph -- Organization/WebSite
+// are NOT repeated here, only referenced by @id. No FAQPage schema: as of
+// Google's current Search Central guidance, FAQ rich results have been
+// restricted to "well-known, authoritative government and health websites"
+// since September 2023, and the feature is being removed from Search
+// entirely -- so FAQPage schema would not be eligible for a rich result on
+// this site regardless, and the visible FAQ content below stands on its own.
+const canonicalArticleUrl = "https://mielikkix.ai/blog/chatbot-for-small-businesses/";
+const organizationId = "https://mielikkix.ai/#organization";
+
+const structuredDataNodes = [
+  {
+    "@type": "BlogPosting",
+    "@id": `${canonicalArticleUrl}#article`,
+    headline: "Chatbot for Small Businesses: The Complete AI Guide for 2026",
+    description:
+      "Learn how a chatbot for small businesses can answer questions, capture leads, support customers, automate bookings, and help your business operate 24/7.",
+    url: canonicalArticleUrl,
+    mainEntityOfPage: { "@id": canonicalArticleUrl },
+    image: "https://mielikkix.ai/og-image.png",
+    inLanguage: "en",
+    // Mielikkix genuinely is the author/publisher of its own blog content --
+    // this is a real fact, not a fabricated byline, so it's attributed to
+    // the Organization rather than inventing a person's name.
+    author: { "@id": organizationId },
+    publisher: { "@id": organizationId },
+    // datePublished/dateModified deliberately omitted: this article isn't
+    // live yet (this task is implement-only, not deploy), so a publication
+    // date would not yet be a true fact. Add both, in ISO 8601, at the point
+    // this is actually deployed.
+  },
+];
+---
+
+<Layout
+  title="Chatbot for Small Businesses: The Complete AI Guide for 2026"
+  description="Learn how a chatbot for small businesses can answer questions, capture leads, support customers, automate bookings, and help your business operate 24/7."
+  path="/blog/chatbot-for-small-businesses"
+  structuredDataNodes={structuredDataNodes}
+>
+  <article class="mx-auto max-w-3xl px-6 py-16">
+    <h1 class="font-display text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
+      Chatbot for Small Businesses: The Complete AI Guide for 2026
+    </h1>
+
+    <div class="mt-8 space-y-6 text-base leading-relaxed text-slate-700">
+      <p>
+        Running a small business means wearing many hats. You may be responsible for sales,
+        customer service, marketing, appointments, operations, and everything in between.
+      </p>
+      <p>But many of the questions customers ask are repetitive:</p>
+      <ul class="list-disc space-y-1.5 pl-5">
+        <li>What are your opening hours?</li>
+        <li>How much does this service cost?</li>
+        <li>Do you have availability tomorrow?</li>
+        <li>Where are you located?</li>
+        <li>How can I book an appointment?</li>
+        <li>Can someone help me with this problem?</li>
+      </ul>
+      <p>This is where a <strong>chatbot for small businesses</strong> can make a real difference.</p>
+      <p>
+        An AI-powered chatbot can answer common questions, capture leads, help customers find
+        information, support booking workflows, and provide assistance outside normal business hours.
+      </p>
+      <p>The goal isn't to replace people.</p>
+      <p>
+        The goal is to let people spend less time on repetitive conversations and more time on work
+        that actually requires human attention.
+      </p>
+    </div>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        What Is a Chatbot for Small Businesses?
+      </h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>
+          A <strong>chatbot for small businesses</strong> is a software application that
+          communicates with customers through a website or another digital channel.
+        </p>
+        <p>
+          Traditional chatbots usually follow predefined rules and provide answers based on a
+          fixed set of options.
+        </p>
+        <p>Modern AI chatbots can do much more.</p>
+        <p>
+          An AI chatbot can use
+          <a
+            href="https://www.ibm.com/artificial-intelligence"
+            class="text-indigo-600 underline"
+            target="_blank"
+            rel="noopener noreferrer">natural language processing to understand full sentences</a
+          >, identify what a customer is trying to accomplish, use information provided by the
+          business, and guide the customer toward the next step.
+        </p>
+        <p>For example, a customer might type:</p>
+        <blockquote class="border-l-4 border-violet-300 pl-4 italic text-slate-600">
+          "I'm looking for a consultation next week. Do you have anything available on Tuesday afternoon?"
+        </blockquote>
+        <p>
+          Instead of forcing the customer through a long menu, an AI chatbot can understand the
+          request and guide the conversation toward booking.
+        </p>
+        <p>That's what makes an AI chatbot particularly useful for small businesses.</p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        Why Are Small Businesses Using AI Chatbots?
+      </h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>Small businesses often have limited time and resources.</p>
+        <p>
+          A large company might have dedicated customer-support teams working across multiple
+          shifts. A small business may have one owner or a small team handling everything.
+        </p>
+        <p>A <strong>chatbot for small businesses</strong> can help reduce some of that repetitive workload.</p>
+      </div>
+
+      <div class="mt-8 space-y-8">
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">1. Answer Frequently Asked Questions</h3>
+          <div class="mt-3 space-y-3 text-base leading-relaxed text-slate-700">
+            <p>Customers often ask the same questions repeatedly.</p>
+            <p>A chatbot can provide immediate answers about:</p>
+            <ul class="list-disc space-y-1.5 pl-5">
+              <li>Products and services</li>
+              <li>Opening hours</li>
+              <li>Pricing</li>
+              <li>Locations</li>
+              <li>Policies</li>
+              <li>Delivery</li>
+              <li>Availability</li>
+              <li>Contact information</li>
+              <li>Frequently asked questions</li>
+            </ul>
+            <p>This means customers don't always need to wait for someone to respond.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">2. Provide Support 24/7</h3>
+          <div class="mt-3 space-y-3 text-base leading-relaxed text-slate-700">
+            <p>Your business may close at 6 PM, but your website doesn't.</p>
+            <p>A website chatbot can continue answering common questions after business hours.</p>
+            <p>
+              This is particularly useful when customers are researching a product or service in
+              the evening, during weekends, or in different time zones.
+            </p>
+            <p>The chatbot doesn't need to replace your support team.</p>
+            <p>It can handle the simple questions while more complex requests are passed to a person.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">3. Capture More Leads</h3>
+          <div class="mt-3 space-y-3 text-base leading-relaxed text-slate-700">
+            <p>A website visitor isn't necessarily ready to call your business.</p>
+            <p>Some visitors prefer to start with a conversation.</p>
+            <p>A <strong>small business chatbot</strong> can ask questions such as:</p>
+            <ul class="list-disc space-y-1.5 pl-5">
+              <li>What service are you interested in?</li>
+              <li>What type of business do you have?</li>
+              <li>When would you like to get started?</li>
+              <li>What's the best way to contact you?</li>
+            </ul>
+            <p>
+              The answers can help turn an anonymous website visitor into a qualified lead --
+              what
+              <a
+                href="https://www.hubspot.com/"
+                class="text-indigo-600 underline"
+                target="_blank"
+                rel="noopener noreferrer">HubSpot's marketing and sales resources describe as lead qualification</a
+              >.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">4. Help Customers Book Appointments</h3>
+          <div class="mt-3 space-y-3 text-base leading-relaxed text-slate-700">
+            <p>
+              Businesses such as salons, clinics, consultants, agencies, restaurants, and service
+              providers often receive booking requests.
+            </p>
+            <p>
+              A chatbot can guide customers through a booking workflow and collect the information
+              required to complete the process.
+            </p>
+            <p>Instead of:</p>
+            <p class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Customer &rarr; Website &rarr; Find phone number &rarr; Call &rarr; Wait &rarr; Ask about availability
+            </p>
+            <p>the experience can become:</p>
+            <p class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Customer &rarr; Website &rarr; Chat &rarr; Find information &rarr; Start booking
+            </p>
+            <p>That can make the customer journey considerably simpler.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">5. Reduce Repetitive Customer Service Work</h3>
+          <div class="mt-3 space-y-3 text-base leading-relaxed text-slate-700">
+            <p>Imagine receiving the same 20 questions every week.</p>
+            <p>Your team doesn't necessarily need to answer each question manually.</p>
+            <p>
+              An AI chatbot can handle common requests automatically while allowing your team to
+              focus on conversations that require judgment, empathy, or specialist knowledge.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">AI Chatbot vs Traditional Chatbot</h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>Not every chatbot is an AI chatbot.</p>
+        <p>A traditional rule-based chatbot might work like this:</p>
+        <p><strong>Customer:</strong> What are your opening hours?</p>
+        <p><strong>Bot:</strong> Choose an option:</p>
+        <ol class="list-decimal space-y-1.5 pl-5">
+          <li>Monday&ndash;Friday</li>
+          <li>Saturday</li>
+          <li>Sunday</li>
+        </ol>
+        <p>An AI chatbot can understand more natural questions:</p>
+        <p><strong>Customer:</strong> "Are you open this Saturday afternoon?"</p>
+        <p>The system can interpret the question and provide the appropriate answer.</p>
+        <p>
+          The difference is especially important for businesses that want customers to have
+          natural conversations rather than navigate complicated menus.
+        </p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        What Can a Chatbot for Small Businesses Do?
+      </h2>
+      <p class="mt-4 text-base leading-relaxed text-slate-700">
+        Depending on the business and its configuration, an AI chatbot can support several workflows.
+      </p>
+
+      <div class="mt-8 space-y-6">
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Customer Support</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Answer common questions and provide first-level support -- this is the core of
+            <a href="/features" class="text-indigo-600 underline">Mielikkix's AI chatbot</a>.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Lead Qualification</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Collect information from potential customers and identify which leads need follow-up.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Sales Assistance</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Help visitors understand products or services and guide them toward the appropriate
+            next step.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Appointment Booking</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Collect booking information and connect customers with the appropriate scheduling
+            workflow -- see Mielikkix's
+            <a href="/demo/booking-assistant" class="text-indigo-600 underline">AI Booking Assistant</a>
+            for an example of this in practice.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">FAQ Automation</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Provide immediate answers using the company's approved information.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Product or Service Discovery</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Help customers identify which product, service, or option may be appropriate for their needs.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Human Handoff</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            When a conversation becomes complicated, the chatbot can direct the customer to a
+            human -- the same handoff logic behind Mielikkix's
+            <a href="/demo/support-triage" class="text-indigo-600 underline">Support Triage agent</a>.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-8 space-y-3 text-base leading-relaxed text-slate-700">
+        <p>This is important.</p>
+        <p>A good <strong>chatbot for small businesses</strong> should not try to answer everything.</p>
+        <p>Knowing when to involve a person is just as important as answering simple questions.</p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        Which Small Businesses Can Benefit From a Chatbot?
+      </h2>
+      <p class="mt-4 text-base leading-relaxed text-slate-700">A chatbot isn't limited to one industry.</p>
+
+      <div class="mt-8 space-y-6">
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Restaurants</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            A chatbot can answer questions about menus, opening hours, locations, reservations,
+            and common customer questions.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Salons and Beauty Businesses</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Customers can ask about services, pricing, availability, and appointments.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Clinics and Healthcare Businesses</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            A chatbot can provide general administrative information, direct customers to
+            appropriate resources, and help with appointment workflows. It should not be used as a
+            substitute for professional medical advice.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Real Estate</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            A chatbot can collect information about properties customers are interested in and
+            qualify potential buyers or renters.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Professional Services</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Consultants, agencies, accountants, lawyers, and other service businesses can use
+            chatbots to answer FAQs and capture enquiries.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">E-commerce</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            An AI chatbot can help shoppers find products, answer common questions, and provide
+            support before and after a purchase.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Local Service Businesses</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Plumbers, electricians, cleaning companies, repair businesses, and other local
+            services can use chatbots to collect customer requirements and generate enquiries.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        How Much Does a Chatbot for Small Businesses Cost?
+      </h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>The cost depends on what the chatbot needs to do.</p>
+        <p>A simple FAQ chatbot may be relatively inexpensive.</p>
+        <p>A more advanced AI chatbot may include:</p>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>AI-powered conversations</li>
+          <li>Business knowledge</li>
+          <li>Lead capture</li>
+          <li>Customer qualification</li>
+          <li>Appointment workflows</li>
+          <li>Integrations</li>
+          <li>Analytics</li>
+          <li>Human handoff</li>
+          <li>Multiple languages</li>
+          <li>Custom automation</li>
+        </ul>
+        <p>Therefore, businesses shouldn't choose a chatbot based only on its monthly price.</p>
+        <p>The better question is:</p>
+        <p class="font-semibold text-slate-900">
+          How much repetitive work can the chatbot remove, and how much additional business can it
+          help generate?
+        </p>
+        <p>
+          For example, if a chatbot saves a team several hours every week and captures enquiries
+          that would otherwise be missed, its value may be significantly greater than its
+          subscription cost.
+        </p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        What Should You Look for When Choosing a Small Business Chatbot?
+      </h2>
+      <p class="mt-4 text-base leading-relaxed text-slate-700">Before choosing an AI chatbot, consider these questions.</p>
+
+      <div class="mt-8 space-y-6">
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">1. Can it use your business information?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            The chatbot should be able to provide answers based on accurate information about your company.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">2. Can it capture leads?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            If your goal is growth, simply answering questions may not be enough. The chatbot
+            should be able to collect useful lead information.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">3. Can it hand conversations to humans?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            There should be a clear path from AI assistance to human support.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">4. Can it integrate with your existing workflows?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Consider whether it can connect with booking systems,
+            <a
+              href="https://www.salesforce.com/"
+              class="text-indigo-600 underline"
+              target="_blank"
+              rel="noopener noreferrer">customer relationship management (CRM) platforms</a
+            >, email, calendars, or other tools your business already uses.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">5. Can you understand what customers are asking?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Analytics can help you identify frequently asked questions, customer concerns, and
+            opportunities to improve your website.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">6. Is it easy to update?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Your business changes. Your chatbot should be easy to update when your services,
+            prices, policies, or operating hours change.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">7. Does it provide a good customer experience?</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Technology shouldn't make the customer journey more complicated. The best chatbot
+            experience should feel simple, fast, and useful.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">Common Mistakes When Adding a Chatbot</h2>
+      <p class="mt-4 text-base leading-relaxed text-slate-700">A chatbot can be useful, but implementation matters.</p>
+
+      <div class="mt-8 space-y-6">
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Mistake 1: Making the chatbot too complicated</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Customers shouldn't have to answer ten questions just to find your opening hours.
+            Start with the most useful workflows.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Mistake 2: Giving the chatbot outdated information</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Incorrect information can be worse than no information. Keep the underlying business
+            information current.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Mistake 3: Trying to automate everything</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Some conversations require people. A chatbot should support your team rather than make
+            it difficult for customers to reach them.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Mistake 4: Forgetting about lead capture</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            If your website receives potential customers, consider how the chatbot can turn
+            conversations into useful enquiries.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Mistake 5: Treating AI as the product instead of the solution</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Customers don't necessarily care that your business uses AI. They care about getting an
+            answer, solving a problem, booking something, or contacting the right person.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">How to Add a Chatbot to Your Business Website</h2>
+      <p class="mt-4 text-base leading-relaxed text-slate-700">Getting started doesn't have to be complicated. A typical implementation looks like this:</p>
+
+      <div class="mt-8 space-y-6">
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Step 1: Identify repetitive questions</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Look at emails, calls, contact forms, and customer conversations. Find the questions
+            customers ask repeatedly.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Step 2: Decide what the chatbot should handle</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">Start with a few high-value workflows. For example:</p>
+          <ul class="mt-2 list-disc space-y-1.5 pl-5 text-base leading-relaxed text-slate-700">
+            <li>FAQs</li>
+            <li>Lead capture</li>
+            <li>Qualification</li>
+            <li>Booking</li>
+            <li>Customer support</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Step 3: Prepare your business information</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Give the chatbot accurate information about your products, services, policies, and processes.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Step 4: Configure the conversation</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Create useful conversation paths and define when the chatbot should hand a
+            conversation to a human.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Step 5: Add the chatbot to your website</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Modern website chatbots can often be added using a small piece of code -- typically an
+            embedded
+            <a
+              href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script"
+              class="text-indigo-600 underline"
+              target="_blank"
+              rel="noopener noreferrer">HTML <code class="rounded bg-slate-100 px-1 py-0.5 text-sm">&lt;script&gt;</code> tag</a
+            > -- or an embedded widget.
+          </p>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-semibold text-slate-900">Step 6: Monitor and improve</h3>
+          <p class="mt-2 text-base leading-relaxed text-slate-700">
+            Review conversations and identify unanswered questions. Then continuously improve the chatbot.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-8 space-y-3 text-base leading-relaxed text-slate-700">
+        <p>This last step is important.</p>
+        <p>
+          A chatbot shouldn't be treated as a one-time website feature. It should improve as you
+          learn more about what customers actually need.
+        </p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">How Mielikkix Helps Small Businesses</h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>At Mielikkix, we believe AI should make running a business easier, not more complicated.</p>
+        <p>
+          Our approach to the <strong>chatbot for small businesses</strong> problem is focused on
+          practical business automation rather than adding AI simply because it is popular.
+        </p>
+        <p>Mielikkix AI chatbots can help businesses with:</p>
+        <ul class="list-disc space-y-1.5 pl-5">
+          <li>Customer conversations</li>
+          <li>Frequently asked questions</li>
+          <li>Lead capture</li>
+          <li>Lead qualification</li>
+          <li>Customer support</li>
+          <li>Business information</li>
+          <li>Booking workflows</li>
+          <li>Human handoff</li>
+        </ul>
+        <p>And a chatbot doesn't have to work alone.</p>
+        <p>
+          Businesses can combine chatbot automation with other AI-powered workflows such as
+          <a href="/demo/voice-receptionist" class="text-indigo-600 underline">voice receptionists</a>,
+          booking assistants, support automation,
+          <a href="/demo/review-reputation" class="text-indigo-600 underline">review and reputation workflows</a>,
+          and <a href="/agents" class="text-indigo-600 underline">custom AI agents</a>.
+        </p>
+        <p>The objective is simple:</p>
+        <p class="font-semibold text-slate-900">
+          Use AI where it saves time, improves customer experience, or creates new business opportunities.
+        </p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">Is a Chatbot Worth It for a Small Business?</h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>There isn't one answer for every business.</p>
+        <p>
+          If your business receives frequent repetitive questions, gets enquiries outside business
+          hours, spends significant time answering basic customer requests, or wants to capture
+          more website leads, an AI chatbot may be worth exploring.
+        </p>
+        <p>But the best starting point isn't:</p>
+        <p class="border-l-4 border-slate-200 pl-4 italic text-slate-600">"Where can we add AI?"</p>
+        <p>It's:</p>
+        <p class="border-l-4 border-violet-300 pl-4 italic text-slate-600">
+          "What repetitive customer or business problem should we solve?"
+        </p>
+        <p>Once you identify that problem, you can determine whether a chatbot is the right solution.</p>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">
+        Frequently Asked Questions About Chatbots for Small Businesses
+      </h2>
+      <div class="mt-8 space-y-4">
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>What is the best chatbot for a small business?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            The right chatbot depends on your business requirements, budget, integrations,
+            customer volume, and the workflows you want to automate.
+          </p>
+        </details>
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>Is an AI chatbot expensive for a small business?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            Costs vary depending on functionality and integrations. Simple chatbot solutions can
+            be less expensive than highly customized AI automation systems.
+          </p>
+        </details>
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>Can a chatbot generate leads?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            Yes. A properly configured AI chatbot can ask qualifying questions, collect contact
+            information, and guide potential customers toward the next step.
+          </p>
+        </details>
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>Can a chatbot work 24/7?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            Yes. A website chatbot can remain available outside normal business hours, allowing
+            customers to get information and start conversations when your team isn't available.
+          </p>
+        </details>
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>Can a chatbot replace customer service employees?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            A chatbot can automate repetitive interactions, but it shouldn't be viewed as a
+            universal replacement for human customer service. Complex, sensitive, or unusual
+            situations may still require a person.
+          </p>
+        </details>
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>Can I add a chatbot to my existing website?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            In many cases, yes. Website chatbot platforms can provide an embeddable widget or
+            script that can be added to an existing website.
+          </p>
+        </details>
+        <details class="group rounded-2xl border border-slate-300 bg-white p-5 open:shadow-sm">
+          <summary class="flex cursor-pointer list-none items-center justify-between font-display font-semibold text-slate-900">
+            <span>Is a chatbot useful for a very small business?</span>
+            <span class="ml-4 text-violet-500 transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">
+            It can be, particularly when the business receives repetitive enquiries or needs to
+            respond to customers outside normal working hours.
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="mt-12">
+      <h2 class="font-display text-2xl font-bold text-slate-900 sm:text-3xl">Ready to Explore AI Automation for Your Business?</h2>
+      <div class="mt-4 space-y-4 text-base leading-relaxed text-slate-700">
+        <p>A chatbot doesn't need to transform your entire business overnight.</p>
+        <p>Start with one problem.</p>
+        <p>Maybe customers repeatedly ask the same questions.</p>
+        <p>Maybe your team spends too much time qualifying leads.</p>
+        <p>Maybe potential customers visit your website outside business hours.</p>
+        <p>Maybe appointment requests are still being handled manually.</p>
+        <p>Those are the kinds of problems where AI automation can create practical value.</p>
+        <p>
+          <strong>
+            <a href="/" class="text-indigo-600 underline">Mielikkix</a> helps businesses use AI to
+            automate conversations, customer support, lead qualification, bookings, and repetitive
+            workflows.
+          </strong>
+        </p>
+      </div>
+    </section>
+  </article>
+
+  <CTASection
+    heading="Explore AI Automation for Your Business"
+    subheading="See how a chatbot for small businesses could answer questions, capture leads, and support bookings on your own website."
+  />
+</Layout>

@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { bookingAssistantNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
 
 // Not linked from the header nav (see Header.astro), same as
@@ -23,8 +24,9 @@ import PageHero from "../../components/PageHero.astro";
 
 <Layout
   title="Try Our Booking Assistant"
-  description="An early preview of Mielikkix's AI Booking Assistant -- describe what you want to book, right in a chat, and get a real calendar invite."
+  description="Try a live demo of Mielikkix's AI Booking Assistant -- describe what you want to book, right in a chat, and get a real calendar invite. Custom pricing."
   path="/demo/booking-assistant"
+  structuredDataNodes={[bookingAssistantNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
     <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
@@ -34,7 +36,7 @@ import PageHero from "../../components/PageHero.astro";
   <PageHero
     line1="Meet Mielikkix's"
     line2="Booking Assistant"
-    subheading="An early preview -- tell it what you'd like to book, right in the chat."
+    subheading="A live demo -- tell it what you'd like to book, right in the chat. Custom pricing based on your business."
   />
 
   <section class="mx-auto max-w-lg px-6 py-16">

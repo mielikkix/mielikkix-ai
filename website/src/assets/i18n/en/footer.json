@@ -1,6 +1,8 @@
 {
   "FOOTER": {
     "TAGLINE": "Never Miss a Customer",
+    "LOCATION": "Based in Norway",
+    "CONTACT_LABEL": "Contact:",
     "PRODUCT_HEADING": "Product",
     "GET_STARTED_HEADING": "Get started",
     "GET_STARTED_TEXT": "Free plan available — no card required.",

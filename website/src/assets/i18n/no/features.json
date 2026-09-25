@@ -1,12 +1,13 @@
 {
   "SEO": {
-    "TITLE": "Chat Widget-funksjoner",
+    "TITLE": "Mielikkix Chat Widget-funksjoner",
     "DESCRIPTION": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og vokse bedriften din."
   },
   "PAGE_HERO": {
-    "LINE1": "Kraftige Chat Widget-funksjoner for",
+    "LINE1": "Kraftige Mielikkix Chat Widget-funksjoner for",
     "LINE2": "moderne bedrifter",
     "SUBHEADING": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og vokse bedriften din.",
+    "DEFINITION": "Mielikkix Chat Widget er en AI-chatbot for nettsiden din, trent på dine egne FAQ-er, dokumenter og produktkatalog, som svarer kunder og fanger opp leads døgnet rundt.",
     "EXTRA_INTRO": "Enten du driver en butikk, klinikk, restaurant, kurssenter, eiendomsmegling eller servicebedrift, hjelper Mielikkix deg med å engasjere besøkende døgnet rundt og gjøre dem til kunder."
   },
   "VALUE_PROPS": [
@@ -273,7 +274,7 @@
     "SUBHEADING": "Book en gratis demo, så setter vi opp FAQ-er, dokumenter og katalog sammen."
   },
   "AGENTS_CALLOUT": {
-    "TEXT": "Ser du etter mer enn en chat-widget? Utforsk Force Crew — 10 AI-agenter for tale, booking, support og mer.",
+    "TEXT": "Ser du etter mer enn en chat-widget? Utforsk AI-agenter bygget for bedrifter — for tale, booking, support og mer.",
     "CTA": "Se agentene"
   }
 }

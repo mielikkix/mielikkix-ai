@@ -11,6 +11,7 @@
 // show for all of them -- no invented numbers for agents that haven't had
 // real pricing decided yet.
 import Layout from "../layouts/Layout.astro";
+import { seoAuditNode, ongoingSeoNode } from "../lib/offeringSchema";
 import CTASection from "../components/CTASection.astro";
 import PageHero from "../components/PageHero.astro";
 import Price from "../components/Price.astro";
@@ -18,6 +19,19 @@ import en from "../assets/i18n/en/agent-pricing.json";
 
 const tiers = en.SEO_AUDIT.TIERS;
 const faqs = en.FAQ.ITEMS;
+
+// Each "More AI agents" pill links to that agent's demo page -- index-aligned
+// with OTHER_AGENTS.ITEMS (Voice Receptionist, Booking Assistant, Support
+// Triage, Review & Reputation); the check below fails the build if they drift.
+const otherAgentHrefs = [
+  "/demo/voice-receptionist/",
+  "/demo/booking-assistant/",
+  "/demo/support-triage/",
+  "/demo/review-reputation/",
+];
+if (otherAgentHrefs.length !== en.OTHER_AGENTS.ITEMS.length) {
+  throw new Error("[agent-pricing] otherAgentHrefs is out of sync with OTHER_AGENTS.ITEMS");
+}
 
 // One icon per tier, in TIERS order (Free, then Professional).
 const tierIconPaths = [
@@ -35,6 +49,7 @@ const tierAccents = [
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
   path="/agent-pricing"
+  structuredDataNodes={[seoAuditNode, ongoingSeoNode]}
   page="agent-pricing"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
@@ -129,6 +144,7 @@ const tierAccents = [
         ))
       }
     </div>
+    <p class="mt-8 text-center text-xs text-slate-400" data-i18n="DISPLAY_NOTE">{en.DISPLAY_NOTE}</p>
   </section>
 
   <!-- Ongoing SEO -- variable-scope monthly retainer, deliberately "get in touch" not a fixed self-serve price -->
@@ -169,9 +185,13 @@ const tierAccents = [
       <div class="mx-auto mt-10 flex max-w-4xl flex-wrap justify-center gap-3">
         {
           en.OTHER_AGENTS.ITEMS.map((name, i) => (
-            <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600" data-i18n={`OTHER_AGENTS.ITEMS.${i}`}>
+            <a
+              href={otherAgentHrefs[i]}
+              class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-violet-300 hover:text-violet-700"
+              data-i18n={`OTHER_AGENTS.ITEMS.${i}`}
+            >
               {name}
-            </span>
+            </a>
           ))
         }
       </div>

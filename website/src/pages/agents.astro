@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { customAgentDevelopmentNode } from "../lib/offeringSchema";
 import PageHero from "../components/PageHero.astro";
 import en from "../assets/i18n/en/agents.json";
 
@@ -107,6 +108,7 @@ const customAgentExamplesMeta = [
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
   path="/agents"
+  structuredDataNodes={[customAgentDevelopmentNode]}
   page="agents"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
@@ -217,8 +219,12 @@ const customAgentExamplesMeta = [
                     <path stroke-linecap="round" stroke-linejoin="round" d={meta.icon} />
                   </svg>
                 </div>
-                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500" data-i18n="ADDITIONAL_AGENTS.BADGE">
-                  {en.ADDITIONAL_AGENTS.BADGE}
+                {/* An item's own BADGE (e.g. WhatsApp Concierge's "Demo Only" -- demo, not a sold offering) overrides the shared one. */}
+                <span
+                  class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500"
+                  data-i18n={"BADGE" in agent ? `ADDITIONAL_AGENTS.ITEMS.${i}.BADGE` : "ADDITIONAL_AGENTS.BADGE"}
+                >
+                  {"BADGE" in agent ? agent.BADGE : en.ADDITIONAL_AGENTS.BADGE}
                 </span>
               </div>
               <h3 class="font-display text-lg font-semibold text-slate-900" data-i18n={`ADDITIONAL_AGENTS.ITEMS.${i}.NAME`}>

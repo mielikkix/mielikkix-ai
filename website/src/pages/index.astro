@@ -31,6 +31,18 @@ const planAccents = [
 
 const segments = en.AUDIENCE_SEGMENTS.ITEMS;
 
+// Demo links per audience card, index-aligned with ITEMS: each agent is linked once,
+// from the card that introduces it (the franchise card repeats Voice Receptionist +
+// Booking Assistant, so it gets none rather than duplicate links).
+const segmentLinks: { href: string; key: keyof typeof en.AUDIENCE_SEGMENTS.LINKS }[][] = [
+  [
+    { href: "/demo/voice-receptionist/", key: "VOICE" },
+    { href: "/demo/booking-assistant/", key: "BOOKING" },
+  ],
+  [],
+  [{ href: "/demo/support-triage/", key: "SUPPORT" }],
+];
+
 // Homepage "Blogs" teaser (see this feature's own spec) -- the 3 most
 // recent published articles from the VPS database, fetched at build time
 // the same way /blog itself does. Never fails the homepage build if the
@@ -47,6 +59,7 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
   page="home"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
+  titleSuffix={false}
 >
   <!-- Hero -->
   <section class="overflow-hidden bg-white">
@@ -97,8 +110,17 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
 
   <!-- Social proof strip -->
   <section class="border-b border-slate-100 bg-white py-6">
-    <p class="mx-auto max-w-5xl px-6 text-center text-sm font-medium text-slate-400" data-i18n="SOCIAL_PROOF.TEXT">
-      {en.SOCIAL_PROOF.TEXT}
+    {/*
+      One sentence split into segments so the two links survive the client-side
+      language swap (data-i18n replaces textContent). Each segment carries its own
+      spaces -- whitespace between these tags is dropped at build time.
+    */}
+    <p class="mx-auto max-w-5xl px-6 text-center text-sm font-medium text-slate-400">
+      <span data-i18n="SOCIAL_PROOF.TEXT_BEFORE_SEO">{en.SOCIAL_PROOF.TEXT_BEFORE_SEO}</span>
+      <a href="/agent-pricing/" class="underline decoration-slate-300 underline-offset-2 hover:text-violet-600" data-i18n="SOCIAL_PROOF.SEO_LINK">{en.SOCIAL_PROOF.SEO_LINK}</a>
+      <span data-i18n="SOCIAL_PROOF.TEXT_BETWEEN">{en.SOCIAL_PROOF.TEXT_BETWEEN}</span>
+      <a href="/agents/" class="underline decoration-slate-300 underline-offset-2 hover:text-violet-600" data-i18n="SOCIAL_PROOF.CUSTOM_LINK">{en.SOCIAL_PROOF.CUSTOM_LINK}</a>
+      <span data-i18n="SOCIAL_PROOF.TEXT_AFTER">{en.SOCIAL_PROOF.TEXT_AFTER}</span>
     </p>
   </section>
 
@@ -161,9 +183,24 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
                 <span data-i18n={`AUDIENCE_SEGMENTS.ITEMS.${i}.PROBLEM`}>{segment.PROBLEM}</span>{" "}
                 <span data-i18n={`AUDIENCE_SEGMENTS.ITEMS.${i}.SOLUTION`}>{segment.SOLUTION}</span>
               </p>
+
+              {segmentLinks[i].length > 0 && (
+                <div class="mt-auto flex flex-wrap gap-x-4 gap-y-1 pt-4">
+                  {segmentLinks[i].map((link) => (
+                    <a href={link.href} class="text-sm font-semibold text-violet-600 hover:text-violet-700" data-i18n={`AUDIENCE_SEGMENTS.LINKS.${link.key}`}>
+                      {en.AUDIENCE_SEGMENTS.LINKS[link.key]}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           ))
         }
+      </div>
+      <div class="mt-10 text-center">
+        <a href="/agents" class="text-sm font-semibold text-violet-600 hover:text-violet-700" data-i18n="AUDIENCE_SEGMENTS.EXPLORE_AGENTS_LINK">
+          {en.AUDIENCE_SEGMENTS.EXPLORE_AGENTS_LINK}
+        </a>
       </div>
     </div>
   </section>

@@ -1,7 +1,7 @@
 {
   "SEO": {
-    "TITLE": "AI Chat Widget for Every Business",
-    "DESCRIPTION": "Never Miss a Customer — Mielikkix gives your business a branded AI chat widget that answers customer questions from your own FAQs, documents, and catalog — day or night. Free plan available."
+    "TITLE": "Mielikkix | AI Automation for Small Businesses",
+    "DESCRIPTION": "Mielikkix is a Norway-based AI automation company for small and growing businesses, offering AI chatbots, voice, booking and custom automation."
   },
   "HERO": {
     "EYEBROW": "Never Miss a Customer",
@@ -10,12 +10,22 @@
     "IMAGE_ALT": "Mielikkix AI chat widget answering a customer's question about opening hours and pricing"
   },
   "SOCIAL_PROOF": {
-    "TEXT": "Whether you run a retail store, e-commerce business, clinic, restaurant, hotel, real estate agency, or any service business, Mielikkix helps you engage visitors instantly, capture qualified leads, and grow your business with AI-powered conversations."
+    "TEXT_BEFORE_SEO": "Mielikkix is a Norway-based AI automation company that helps small and growing businesses with AI chatbots, voice receptionists, booking assistants, customer support automation, ",
+    "SEO_LINK": "SEO solutions",
+    "TEXT_BETWEEN": " and ",
+    "CUSTOM_LINK": "custom AI workflows",
+    "TEXT_AFTER": ". We serve businesses in Norway and internationally."
   },
   "AUDIENCE_SEGMENTS": {
     "HEADING_PLAIN": "Built for",
     "HEADING_ACCENT": "how you actually run your business",
-    "SUBHEADING": "Three ways teams like yours are already putting the Force Agents to work.",
+    "SUBHEADING": "Three ways businesses like yours are already using AI agents.",
+    "EXPLORE_AGENTS_LINK": "Explore AI agents →",
+    "LINKS": {
+      "VOICE": "Try Voice Receptionist →",
+      "BOOKING": "Try Booking Assistant →",
+      "SUPPORT": "Try Support Triage →"
+    },
     "ITEMS": [
       {
         "NAME": "Solo & Small-Team Service Providers",
@@ -29,7 +39,7 @@
         "KEY_MESSAGE_TITLE": "One consistent front desk",
         "KEY_MESSAGE_SUBTITLE": "Deployed at every single location",
         "PROBLEM": "Phone coverage varies wildly from site to site, so customers get inconsistent service depending on which location happens to pick up.",
-        "SOLUTION": "Because each Force Agent runs as an independent microservice, the same Voice Receptionist and Booking Assistant configuration can be deployed identically across every location, giving corporate one consistent standard without adding headcount at each site."
+        "SOLUTION": "Because each AI agent runs as an independent microservice, the same Voice Receptionist and Booking Assistant configuration can be deployed identically across every location, giving corporate one consistent standard without adding headcount at each site."
       },
       {
         "NAME": "Growing SaaS & E-commerce Support Teams",

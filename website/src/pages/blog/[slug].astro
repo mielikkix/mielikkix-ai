@@ -82,7 +82,14 @@ const structuredDataNodes = [
         day: "numeric",
       })}
       {" · "}
-      {resolvedArticle.author_name}
+      {/*
+        Byline is the company, matching BlogPosting.author (#organization)
+        below. The API's author_name is just the full_name of whichever
+        dashboard admin account created the article (see
+        apps/api/app/api/public_articles.py), not an editorial author
+        profile -- so it isn't rendered as a person's byline.
+      */}
+      Mielikkix
     </p>
     <h1 class="font-display mt-2 text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
       {resolvedArticle.title}

@@ -17,10 +17,18 @@ const productLinks = [
     <div class="grid gap-10 md:grid-cols-3">
       <div>
         <a href="/" class="font-display text-xl font-bold tracking-tight">
-          Mielikki<span class="brand-gradient-text">X</span>
+          Mielikki<span class="brand-gradient-text">x</span>
         </a>
         <p class="mt-3 max-w-xs text-sm text-slate-500" data-i18n="FOOTER.TAGLINE">
           {enFooter.FOOTER.TAGLINE}
+        </p>
+        <p class="mt-3 text-sm text-slate-500" data-i18n="FOOTER.LOCATION">
+          {enFooter.FOOTER.LOCATION}
+        </p>
+        <!-- Label and email are separate: data-i18n replaces textContent, which would drop the link. -->
+        <p class="mt-1 text-sm text-slate-500">
+          <span data-i18n="FOOTER.CONTACT_LABEL">{enFooter.FOOTER.CONTACT_LABEL}</span>{" "}
+          <a href="mailto:post@mielikkix.no" class="hover:text-violet-600">post@mielikkix.no</a>
         </p>
       </div>
 

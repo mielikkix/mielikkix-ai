@@ -24,7 +24,7 @@
     "INDUSTRY_LABEL": "Industry",
     "INDUSTRY_OPTIONS": ["Restaurant", "Retail", "Healthcare", "Real Estate", "Professional Services", "Other"],
     "INTEREST_LABEL": "What are you interested in?",
-    "INTEREST_OPTIONS": ["AI Chatbot", "AI Voice Agent", "Customer Support", "Review & Reputation", "Other"],
+    "INTEREST_OPTIONS": ["Mielikkix Chat Widget", "AI Voice Agent", "Customer Support", "Review & Reputation", "Other"],
     "MESSAGE_LABEL": "Anything specific you want to see?",
     "CONSENT_LABEL": "Yes, I'd like to receive Mielikkix product updates, AI automation tips, news and offers by email. You can unsubscribe at any time.",
     "PRIVACY_LINK": "Read our privacy policy",

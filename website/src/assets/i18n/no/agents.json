@@ -1,7 +1,7 @@
 {
   "SEO": {
     "TITLE": "AI-agenter for bedriften din",
-    "DESCRIPTION": "AI-chatbot, talerresepsjonist, bookingassistent og SEO-revisjon og optimalisering -- klare AI-løsninger fra Mielikkix. Pluss utvikling av skreddersydde AI-agenter for alt bedriften din trenger å automatisere."
+    "DESCRIPTION": "Mielikkix Chat Widget, talerresepsjonist, bookingassistent og SEO Audit & Optimize -- klare AI-løsninger fra Mielikkix. Pluss utvikling av skreddersydde AI-agenter for alt bedriften din trenger å automatisere."
   },
   "HERO": {
     "LINE1": "AI-agenter bygget",
@@ -16,25 +16,25 @@
     "SUBHEADING": "Klare AI-løsninger designet for å automatisere de viktigste kundevendte arbeidsflytene.",
     "ITEMS": [
       {
-        "NAME": "AI-chatbot",
+        "NAME": "Mielikkix Chat Widget",
         "DESCRIPTION": "AI-drevne kundesamtaler døgnet rundt som svarer på spørsmål, fanger opp leads og hjelper kunder umiddelbart.",
         "STATUS": "Kjerneløsning",
-        "CTA": "Utforsk chatboten"
+        "CTA": "Utforsk Mielikkix Chat Widget"
       },
       {
         "NAME": "Talerresepsjonist",
         "DESCRIPTION": "En AI-resepsjonist som svarer på anrop, håndterer kundespørsmål, fanger opp henvendelser og kan hjelpe med avtaler.",
-        "STATUS": "Live demo",
+        "STATUS": "Tilpasset pris",
         "CTA": "Prøv talerresepsjonisten"
       },
       {
         "NAME": "Bookingassistent",
         "DESCRIPTION": "En AI-bookingassistent som hjelper kunder med å bestille time og håndtere bookingrelaterte samtaler.",
-        "STATUS": "Live demo",
+        "STATUS": "Tilpasset pris",
         "CTA": "Prøv bookingassistenten"
       },
       {
-        "NAME": "SEO-revisjon og optimalisering",
+        "NAME": "SEO Audit & Optimize",
         "DESCRIPTION": "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan på ren norsk -- tekniske og innholdsmessige SEO-funn, pluss et AI-skrevet sammendrag av hva du bør fikse først.",
         "STATUS": "Nyhet",
         "CTA": "Se priser"
@@ -44,7 +44,7 @@
   "ADDITIONAL_AGENTS": {
     "HEADING": "Flere AI-agenter vi har bygget",
     "SUBHEADING": "Utforsk flere AI-automatiseringsmuligheter utviklet av Mielikkix.",
-    "BADGE": "Demo tilgjengelig",
+    "BADGE": "Tilpasset pris",
     "CTA": "Se demo",
     "ITEMS": [
       {
@@ -57,6 +57,7 @@
       },
       {
         "NAME": "WhatsApp Concierge",
+        "BADGE": "Kun demo",
         "DESCRIPTION": "Svarer på kundespørsmål og fanger opp leads direkte i WhatsApp -- samtalen kundene dine allerede har åpen."
       }
     ]

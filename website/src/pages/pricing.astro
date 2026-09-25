@@ -144,6 +144,10 @@ const planAccents = [
         ))
       }
     </div>
+    <div class="mt-10 text-center">
+      <p class="text-sm text-slate-600" data-i18n="GET_STARTED_NOTE">{en.GET_STARTED_NOTE}</p>
+      <p class="mt-1 text-xs text-slate-400" data-i18n="DISPLAY_NOTE">{en.DISPLAY_NOTE}</p>
+    </div>
   </section>
 
   <!--
@@ -158,17 +162,23 @@ const planAccents = [
   -->
   <section class="border-t border-slate-100 bg-white py-16">
     <div class="mx-auto max-w-2xl px-6 text-center">
-      <h2 class="font-display text-3xl font-bold text-slate-900">Add Force Crew agents</h2>
+      <h2 class="font-display text-3xl font-bold text-slate-900" data-i18n="AGENTS_SECTION.HEADING">{en.AGENTS_SECTION.HEADING}</h2>
+      {/* Segmented so the product links survive the client-side language swap; segments carry their own spaces. */}
       <p class="mt-3 text-sm text-slate-500">
-        The plans above cover the Chat Widget. Force Crew agents like SEO Audit & Optimize,
-        Voice Receptionist, and Booking Assistant are separate, one-time or custom-priced
-        add-ons on top of any plan.
+        <span data-i18n="AGENTS_SECTION.TEXT_BEFORE">{en.AGENTS_SECTION.TEXT_BEFORE}</span>
+        <a href="/agent-pricing/" class="font-semibold text-violet-600 hover:text-violet-700" data-i18n="AGENTS_SECTION.LINK_SEO">{en.AGENTS_SECTION.LINK_SEO}</a>
+        <span data-i18n="AGENTS_SECTION.TEXT_SEP_1">{en.AGENTS_SECTION.TEXT_SEP_1}</span>
+        <a href="/demo/voice-receptionist/" class="font-semibold text-violet-600 hover:text-violet-700" data-i18n="AGENTS_SECTION.LINK_VOICE">{en.AGENTS_SECTION.LINK_VOICE}</a>
+        <span data-i18n="AGENTS_SECTION.TEXT_SEP_2">{en.AGENTS_SECTION.TEXT_SEP_2}</span>
+        <a href="/demo/booking-assistant/" class="font-semibold text-violet-600 hover:text-violet-700" data-i18n="AGENTS_SECTION.LINK_BOOKING">{en.AGENTS_SECTION.LINK_BOOKING}</a>
+        <span data-i18n="AGENTS_SECTION.TEXT_AFTER">{en.AGENTS_SECTION.TEXT_AFTER}</span>
       </p>
       <a
         href="/agent-pricing"
+        data-i18n="AGENTS_SECTION.CTA"
         class="mt-6 inline-block rounded-full brand-gradient px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-105"
       >
-        See agent pricing
+        {en.AGENTS_SECTION.CTA}
       </a>
     </div>
   </section>

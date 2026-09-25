@@ -1,7 +1,7 @@
 {
   "SEO": {
     "TITLE": "AI Agents for Your Business",
-    "DESCRIPTION": "AI Chatbot, Voice Receptionist, Booking Assistant, and SEO Audit & Optimize -- ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
+    "DESCRIPTION": "Mielikkix Chat Widget, Voice Receptionist, Booking Assistant, and SEO Audit & Optimize -- ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
   },
   "HERO": {
     "LINE1": "AI Agents Built",
@@ -16,21 +16,21 @@
     "SUBHEADING": "Ready-to-demo AI solutions designed to automate the most important customer-facing workflows.",
     "ITEMS": [
       {
-        "NAME": "AI Chatbot",
+        "NAME": "Mielikkix Chat Widget",
         "DESCRIPTION": "24/7 AI-powered customer conversations that answer questions, capture leads, and help customers instantly.",
         "STATUS": "Core Solution",
-        "CTA": "Explore Chatbot"
+        "CTA": "Explore Mielikkix Chat Widget"
       },
       {
         "NAME": "Voice Receptionist",
         "DESCRIPTION": "An AI receptionist that answers calls, handles customer questions, captures requests, and can assist with appointments.",
-        "STATUS": "Live Demo",
+        "STATUS": "Custom Pricing",
         "CTA": "Try Voice Receptionist"
       },
       {
         "NAME": "Booking Assistant",
         "DESCRIPTION": "An AI booking assistant that helps customers schedule appointments and manage booking-related conversations.",
-        "STATUS": "Live Demo",
+        "STATUS": "Custom Pricing",
         "CTA": "Try Booking Assistant"
       },
       {
@@ -44,7 +44,7 @@
   "ADDITIONAL_AGENTS": {
     "HEADING": "More AI Agents We've Built",
     "SUBHEADING": "Explore additional AI automation capabilities developed by Mielikkix.",
-    "BADGE": "Demo Available",
+    "BADGE": "Custom Pricing",
     "CTA": "View Demo",
     "ITEMS": [
       {
@@ -57,6 +57,7 @@
       },
       {
         "NAME": "WhatsApp Concierge",
+        "BADGE": "Demo Only",
         "DESCRIPTION": "Answers customer questions and captures leads right inside WhatsApp -- the conversation your customers already have open."
       }
     ]

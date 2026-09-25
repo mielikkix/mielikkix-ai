@@ -1,15 +1,17 @@
 {
   "SEO": {
-    "TITLE": "Priser",
-    "DESCRIPTION": "Enkel, ærlig prising fra Mielikkix — en reelt brukbar gratis plan, pluss Basic-, Business- og Vekst-nivåer for voksende bedrifter."
+    "TITLE": "Priser for Mielikkix Chat Widget",
+    "DESCRIPTION": "Enkel, ærlig prising for Mielikkix Chat Widget — en reelt brukbar gratis plan, pluss Basic-, Business- og Vekst-nivåer for voksende bedrifter."
   },
   "PAGE_HERO": {
     "LINE1": "Enkel,",
     "LINE2": "ærlig prising",
-    "SUBHEADING": "Start gratis. Betal først når Mielikkix faktisk gjør nytte for seg."
+    "SUBHEADING": "Start Mielikkix Chat Widget gratis. Betal først når den faktisk gjør nytte for seg."
   },
   "MOST_POPULAR_BADGE": "⭐ Mest populær",
   "SAVINGS_BADGE": "2 måneder gratis ved årlig fakturering",
+  "GET_STARTED_NOTE": "For å komme i gang: book en demo og fortell oss hva du vil automatisere.",
+  "DISPLAY_NOTE": "Prisene vises i valgt valuta og er omregnet fra USD etter gjeldende valutakurser.",
   "PLANS": [
     {
       "NAME": "Gratis",
@@ -123,6 +125,17 @@
         "A": "Ja. Den er bevisst begrenset (1 nettside, 50 samtaler/mnd) slik at du kan prøve produktet fullt ut — ikke en tidsbegrenset prøveperiode."
       }
     ]
+  },
+  "AGENTS_SECTION": {
+    "HEADING": "Utforsk AI-agentene våre",
+    "TEXT_BEFORE": "Planene ovenfor gjelder Mielikkix Chat Widget. AI-agentene våre — som ",
+    "LINK_SEO": "SEO Audit & Optimize",
+    "TEXT_SEP_1": ", ",
+    "LINK_VOICE": "talerresepsjonist",
+    "TEXT_SEP_2": " og ",
+    "LINK_BOOKING": "bookingassistent",
+    "TEXT_AFTER": " — er egne tilbud for spesifikke arbeidsprosesser i bedriften, med egen prising.",
+    "CTA": "Se priser for AI-agenter"
   },
   "CTA": {
     "HEADING": "Fortsatt usikker?",

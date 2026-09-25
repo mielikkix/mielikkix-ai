@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { voiceReceptionistNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
 
 // Not linked from the header nav (see Header.astro) -- reachable only via
@@ -13,8 +14,9 @@ import PageHero from "../../components/PageHero.astro";
 
 <Layout
   title="Talk to Our Voice Receptionist"
-  description="An early preview of Mielikkix's AI Voice Receptionist -- talk to it live, right in your browser."
+  description="Try a live demo of Mielikkix's AI Voice Receptionist -- talk to it right in your browser. Custom pricing based on your business."
   path="/demo/voice-receptionist"
+  structuredDataNodes={[voiceReceptionistNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
     <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
@@ -24,7 +26,7 @@ import PageHero from "../../components/PageHero.astro";
   <PageHero
     line1="Meet Mielikkix's"
     line2="Voice Receptionist"
-    subheading="An early preview -- talk to it right now, using your own microphone."
+    subheading="A live demo -- talk to it right now, using your own microphone. Custom pricing based on your business."
   />
 
   <section class="mx-auto max-w-lg px-6 py-16">

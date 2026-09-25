@@ -33,6 +33,12 @@ const STORAGE_KEY = "mielikkix:lang";
 export const LANG_CHANGE_EVENT = "mielikkix:langchange";
 const TITLE_SUFFIX = " · Mielikkix";
 
+// Layout.astro sets body[data-title-suffix="off"] on pages whose title already
+// includes the brand (its titleSuffix={false} prop) -- keep both in sync.
+function titleSuffix(): string {
+  return document.body.dataset.titleSuffix === "off" ? "" : TITLE_SUFFIX;
+}
+
 type TranslationDict = Record<string, unknown>;
 
 // Vite code-splits every JSON file into its own lazy chunk — only the language/page
@@ -118,13 +124,13 @@ function applyAttributes(dict: TranslationDict): void {
 function applyDocTitle(dict: TranslationDict): void {
   const el = document.querySelector<HTMLElement>("[data-i18n-doc-title]");
   const key = el?.getAttribute("data-i18n-doc-title");
-  if (key) document.title = `${t(dict, key)}${TITLE_SUFFIX}`;
+  if (key) document.title = `${t(dict, key)}${titleSuffix()}`;
 }
 
 function applyMetaTitles(dict: TranslationDict): void {
   document.querySelectorAll<HTMLMetaElement>("[data-i18n-meta-title]").forEach((el) => {
     const key = el.getAttribute("data-i18n-meta-title");
-    if (key) el.setAttribute("content", `${t(dict, key)}${TITLE_SUFFIX}`);
+    if (key) el.setAttribute("content", `${t(dict, key)}${titleSuffix()}`);
   });
 }
 

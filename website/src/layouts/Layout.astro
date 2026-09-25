@@ -22,9 +22,16 @@ interface Props {
    * WebSite node below references Organization as its publisher).
    */
   structuredDataNodes?: Record<string, unknown>[];
+  /**
+   * Set false when `title` (and its titleKey translations) already contains the
+   * brand, e.g. the homepage's "Mielikkix | ...", so it isn't doubled. Mirrored to
+   * the client-side i18n title swap via body[data-title-suffix].
+   */
+  titleSuffix?: boolean;
 }
 
-const { title, description, path = "/", page, titleKey, descriptionKey, structuredDataNodes } = Astro.props;
+const { title, description, path = "/", page, titleKey, descriptionKey, structuredDataNodes, titleSuffix = true } = Astro.props;
+const fullTitle = titleSuffix ? `${title} · Mielikkix` : title;
 const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
 
 // Every route here builds to a directory + index.html (astro.config.mjs's default
@@ -57,8 +64,19 @@ const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
 // Stable @id values (site root + #organization / #website) let WebSite reference
 // Organization as its publisher without duplicating data or creating two
 // unlinked entities.
+// email/address/knowsAbout/slogan are limited to what's already public on the
+// site (post@mielikkix.no and Norway on /privacy, the footer tagline, the
+// products on /agents) -- nothing here that isn't substantiated elsewhere.
+// address is country-only on purpose: it says where Mielikkix is BASED, not
+// where it serves (Norway and internationally, per the homepage) -- which is
+// also why there's no areaServed: a Norway-only list would misstate that, and
+// an arbitrary country list/"Worldwide" would be unsubstantiated. Full address
+// waits for the completed company registration.
 const siteRootUrl = new URL("/", siteUrl).toString();
-const logoUrl = new URL("/favicon.png", siteUrl).toString();
+// Dedicated structured-data logo: a square, ~17 KB 512x512 export of the same
+// mark as favicon.png (which is ~960 KB and non-square). Keep width/height in
+// sync with the actual file if it's ever regenerated.
+const logoUrl = new URL("/mielikkix-logo.png", siteUrl).toString();
 const organizationId = `${siteRootUrl}#organization`;
 const websiteId = `${siteRootUrl}#website`;
 const structuredData = {
@@ -69,9 +87,26 @@ const structuredData = {
       "@id": organizationId,
       name: "Mielikkix",
       url: siteRootUrl,
-      logo: logoUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: logoUrl,
+        width: 512,
+        height: 512,
+      },
       description:
-        "Mielikkix is an AI automation company providing AI chatbot, voice receptionist, booking assistant, and other AI automation solutions for businesses.",
+        "Mielikkix is a Norway-based AI automation company that helps small and growing businesses with AI chatbots, voice receptionists, booking assistants, customer support automation, SEO solutions and custom AI workflows. We serve businesses in Norway and internationally.",
+      email: "post@mielikkix.no",
+      address: { "@type": "PostalAddress", addressCountry: "NO" },
+      knowsAbout: [
+        "AI chatbots",
+        "AI voice receptionists",
+        "AI booking assistants",
+        "AI customer support automation",
+        "SEO auditing",
+        "AI agent development",
+        "business automation",
+      ],
+      slogan: "Never Miss a Customer",
     },
     {
       "@type": "WebSite",
@@ -103,17 +138,18 @@ const structuredData = {
     -->
     <script is:inline src="/i18n-guard.js"></script>
 
-    <title data-i18n-doc-title={titleKey}>{title} · Mielikkix</title>
+    <title data-i18n-doc-title={titleKey}>{fullTitle}</title>
     <meta name="description" content={description} data-i18n-meta-desc={descriptionKey} />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mielikkix" />
     <meta property="og:url" content={canonicalUrl} />
-    <meta property="og:title" content={`${title} · Mielikkix`} data-i18n-meta-title={titleKey} />
+    <meta property="og:title" content={fullTitle} data-i18n-meta-title={titleKey} />
     <meta property="og:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta property="og:image" content={ogImage} />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={`${title} · Mielikkix`} data-i18n-meta-title={titleKey} />
+    <meta name="twitter:title" content={fullTitle} data-i18n-meta-title={titleKey} />
     <meta name="twitter:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta name="twitter:image" content={ogImage} />
 
@@ -137,7 +173,7 @@ const structuredData = {
       </>
     )}
   </head>
-  <body class="bg-slate-50 text-slate-900 antialiased" data-page={page}>
+  <body class="bg-slate-50 text-slate-900 antialiased" data-page={page} data-title-suffix={titleSuffix ? undefined : "off"}>
     <Header />
     <main>
       <slot />

@@ -2,6 +2,12 @@
 import Layout from "../layouts/Layout.astro";
 import PageHero from "../components/PageHero.astro";
 import en from "../assets/i18n/en/demo.json";
+
+// Submitted <option> values, index-aligned with FORM.INTEREST_OPTIONS. Kept
+// separate from the visible labels because the API maps these exact strings to
+// Mailchimp tags (apps/api/app/services/lead_service.py INTEREST_TAGS) -- a
+// label can be renamed (e.g. "Mielikkix Chat Widget") without breaking tagging.
+const interestValues = ["AI Chatbot", "AI Voice Agent", "Customer Support", "Review & Reputation", "Other"];
 ---
 
 <Layout
@@ -109,7 +115,7 @@ import en from "../assets/i18n/en/demo.json";
           >
             {
               en.FORM.INTEREST_OPTIONS.map((option, i) => (
-                <option value={option} data-i18n={`FORM.INTEREST_OPTIONS.${i}`}>{option}</option>
+                <option value={interestValues[i] ?? option} data-i18n={`FORM.INTEREST_OPTIONS.${i}`}>{option}</option>
               ))
             }
           </select>

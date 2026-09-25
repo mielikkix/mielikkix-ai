@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { chatWidgetNode } from "../lib/offeringSchema";
 import FeatureBentoCard from "../components/FeatureBentoCard.astro";
 import CTASection from "../components/CTASection.astro";
 import PageHero from "../components/PageHero.astro";
@@ -15,6 +16,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
   path="/features"
+  structuredDataNodes={[chatWidgetNode]}
   page="features"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
@@ -28,7 +30,10 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
     subheadingKey="PAGE_HERO.SUBHEADING"
   >
     <div slot="extra" class="relative mx-auto mt-6 max-w-3xl text-center">
-      <p class="text-lg text-indigo-50" data-i18n="PAGE_HERO.EXTRA_INTRO">
+      <p class="text-lg font-medium text-white" data-i18n="PAGE_HERO.DEFINITION">
+        {en.PAGE_HERO.DEFINITION}
+      </p>
+      <p class="mt-3 text-lg text-indigo-50" data-i18n="PAGE_HERO.EXTRA_INTRO">
         {en.PAGE_HERO.EXTRA_INTRO}
       </p>
       <div class="mt-6 flex flex-wrap justify-center gap-3">

@@ -1,12 +1,13 @@
 {
   "SEO": {
-    "TITLE": "Chat Widget Features",
+    "TITLE": "Mielikkix Chat Widget Features",
     "DESCRIPTION": "Everything the Mielikkix Chat Widget does to automate customer support, capture leads, and grow your business."
   },
   "PAGE_HERO": {
-    "LINE1": "Powerful Chat Widget Features for",
+    "LINE1": "Powerful Mielikkix Chat Widget Features for",
     "LINE2": "Modern Businesses",
     "SUBHEADING": "Everything the Mielikkix Chat Widget does to automate customer support, capture leads, and grow your business.",
+    "DEFINITION": "The Mielikkix Chat Widget is an AI chatbot for your website, trained on your own FAQs, documents and catalog, that answers customers and captures leads 24/7.",
     "EXTRA_INTRO": "Whether you're a retail store, clinic, restaurant, coaching center, real estate agency, or service business, Mielikkix helps you engage visitors 24/7 and convert them into customers."
   },
   "VALUE_PROPS": [
@@ -273,7 +274,7 @@
     "SUBHEADING": "Book a free demo and we'll set up your FAQs, documents, and catalog together."
   },
   "AGENTS_CALLOUT": {
-    "TEXT": "Looking for more than a chat widget? Explore the Force Crew — 10 AI agents for voice, booking, support, and more.",
+    "TEXT": "Looking for more than a chat widget? Explore AI agents built for business — for voice, booking, support, and more.",
     "CTA": "See the Agents"
   }
 }

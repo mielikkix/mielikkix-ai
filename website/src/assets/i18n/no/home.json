@@ -1,7 +1,7 @@
 {
   "SEO": {
-    "TITLE": "AI-chattevindu for små bedrifter",
-    "DESCRIPTION": "Gå aldri glipp av en kunde — Mielikkix gir bedriften din et AI-chattevindu med egen merkevare som svarer på kundespørsmål ut fra dine egne FAQ-er, dokumenter og produktkatalog — døgnet rundt. Gratis plan tilgjengelig."
+    "TITLE": "Mielikkix | AI-automatisering for bedrifter",
+    "DESCRIPTION": "Mielikkix er et norsk AI-automatiseringsselskap for små og voksende bedrifter, med AI-chatbot, stemmeassistent, booking og skreddersydd automatisering."
   },
   "HERO": {
     "EYEBROW": "Gå aldri glipp av en kunde",
@@ -10,12 +10,22 @@
     "IMAGE_ALT": "Mielikkix AI-chattevindu som svarer på et kundespørsmål om åpningstider og priser"
   },
   "SOCIAL_PROOF": {
-    "TEXT": "Enten du driver en butikk, nettbutikk, klinikk, restaurant, hotell, eiendomsmeglerfirma eller en annen type tjenestevirksomhet, hjelper Mielikkix deg med å engasjere besøkende umiddelbart, fange opp kvalifiserte potensielle kunder og få virksomheten til å vokse ved hjelp av AI-drevne samtaler."
+    "TEXT_BEFORE_SEO": "Mielikkix er et norsk AI-automatiseringsselskap som hjelper små og voksende bedrifter med AI-chatboter, stemmeassistenter, bookingassistenter, kundestøtte, ",
+    "SEO_LINK": "SEO-løsninger",
+    "TEXT_BETWEEN": " og ",
+    "CUSTOM_LINK": "skreddersydde AI-arbeidsflyter",
+    "TEXT_AFTER": ". Vi betjener bedrifter i Norge og internasjonalt."
   },
   "AUDIENCE_SEGMENTS": {
     "HEADING_PLAIN": "Bygget for",
     "HEADING_ACCENT": "slik du faktisk driver bedriften din",
-    "SUBHEADING": "Tre måter team som ditt allerede setter Force-agentene i arbeid.",
+    "SUBHEADING": "Tre måter bedrifter som din allerede bruker AI-agenter på.",
+    "EXPLORE_AGENTS_LINK": "Utforsk AI-agenter →",
+    "LINKS": {
+      "VOICE": "Prøv talerresepsjonisten →",
+      "BOOKING": "Prøv bookingassistenten →",
+      "SUPPORT": "Prøv supporttriagen →"
+    },
     "ITEMS": [
       {
         "NAME": "Selvstendige og små tjenesteytende team",
@@ -29,7 +39,7 @@
         "KEY_MESSAGE_TITLE": "Én konsekvent resepsjon",
         "KEY_MESSAGE_SUBTITLE": "Satt i drift på hver eneste lokasjon",
         "PROBLEM": "Telefondekningen varierer sterkt fra sted til sted, så kundene får ulik service avhengig av hvilken lokasjon som tilfeldigvis svarer.",
-        "SOLUTION": "Fordi hver Force-agent kjører som en uavhengig mikrotjeneste, kan samme konfigurasjon av Voice Receptionist og Booking Assistant rulles ut identisk på hver lokasjon — én felles standard for hele kjeden, uten å øke bemanningen på hvert enkelt sted."
+        "SOLUTION": "Fordi hver AI-agent kjører som en uavhengig mikrotjeneste, kan samme konfigurasjon av Voice Receptionist og Booking Assistant rulles ut identisk på hver lokasjon — én felles standard for hele kjeden, uten å øke bemanningen på hvert enkelt sted."
       },
       {
         "NAME": "Voksende SaaS- og nettbutikk-supportteam",

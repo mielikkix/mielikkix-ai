@@ -1,15 +1,17 @@
 {
   "SEO": {
-    "TITLE": "Pricing",
-    "DESCRIPTION": "Simple, honest Mielikkix pricing — a genuinely usable free plan, plus Basic, Business, and Growth tiers for growing businesses."
+    "TITLE": "Mielikkix Chat Widget Pricing",
+    "DESCRIPTION": "Simple, honest pricing for the Mielikkix Chat Widget — a genuinely usable free plan, plus Basic, Business, and Growth tiers for growing businesses."
   },
   "PAGE_HERO": {
     "LINE1": "Simple,",
     "LINE2": "honest pricing",
-    "SUBHEADING": "Start free. Upgrade only when your business outgrows the free plan."
+    "SUBHEADING": "Start the Mielikkix Chat Widget free. Upgrade only when your business outgrows the free plan."
   },
   "MOST_POPULAR_BADGE": "⭐ Most Popular",
   "SAVINGS_BADGE": "2 months free, billed yearly",
+  "GET_STARTED_NOTE": "To get started, book a demo and tell us what you want to automate.",
+  "DISPLAY_NOTE": "Prices are displayed in your selected currency and converted from USD using current exchange rates.",
   "PLANS": [
     {
       "NAME": "Free",
@@ -123,6 +125,17 @@
         "A": "Yes. It's intentionally limited (1 website, 50 conversations/mo) so you can fully try the product, not a time-boxed trial."
       }
     ]
+  },
+  "AGENTS_SECTION": {
+    "HEADING": "Explore our AI agents",
+    "TEXT_BEFORE": "The plans above cover the Mielikkix Chat Widget. Our AI agents — like ",
+    "LINK_SEO": "SEO Audit & Optimize",
+    "TEXT_SEP_1": ", ",
+    "LINK_VOICE": "Voice Receptionist",
+    "TEXT_SEP_2": ", and ",
+    "LINK_BOOKING": "Booking Assistant",
+    "TEXT_AFTER": " — are separate offerings for specific business workflows, with their own pricing.",
+    "CTA": "See agent pricing"
   },
   "CTA": {
     "HEADING": "Still deciding?",

@@ -1,0 +1,154 @@
+---
+// Cookie-consent banner (see src/lib/consent.ts for the rules it enforces).
+// Server-rendered hidden; the script shows it only when there's no valid stored
+// choice, or when a [data-consent-open] control (footer "Cookie settings") is used.
+// Strings live in footer.json's CONSENT block because the "footer" namespace is
+// loaded on every page (translationService.loadTranslations).
+import enFooter from "../assets/i18n/en/footer.json";
+
+const c = enFooter.CONSENT;
+const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID ?? "";
+---
+
+<div
+  id="consent-banner"
+  role="dialog"
+  aria-modal="false"
+  aria-labelledby="consent-title"
+  aria-describedby="consent-text"
+  data-ga-id={gaMeasurementId}
+  hidden
+  class="fixed inset-x-4 bottom-4 z-[2147483647] max-w-lg rounded-2xl border border-slate-200 bg-white p-5 text-slate-700 shadow-2xl sm:left-6 sm:right-auto sm:bottom-6"
+>
+  <h2 id="consent-title" tabindex="-1" class="font-display text-base font-bold text-slate-900 outline-none" data-i18n="CONSENT.TITLE">
+    {c.TITLE}
+  </h2>
+  <p id="consent-text" class="mt-2 text-sm leading-relaxed">
+    <span data-i18n="CONSENT.TEXT">{c.TEXT}</span>{" "}
+    <a href="/cookies" class="font-semibold text-violet-600 underline" data-i18n="CONSENT.LEARN_MORE">{c.LEARN_MORE}</a>
+  </p>
+
+  <fieldset id="consent-settings" hidden class="mt-4 space-y-3 border-t border-slate-100 pt-4">
+    <legend class="sr-only" data-i18n="CONSENT.SETTINGS">{c.SETTINGS}</legend>
+    <label class="flex items-start gap-3 text-sm">
+      <input type="checkbox" checked disabled class="mt-1 h-4 w-4" />
+      <span>
+        <span class="font-semibold text-slate-900" data-i18n="CONSENT.NECESSARY_TITLE">{c.NECESSARY_TITLE}</span><br />
+        <span data-i18n="CONSENT.NECESSARY_DESC">{c.NECESSARY_DESC}</span>
+      </span>
+    </label>
+    <label class="flex items-start gap-3 text-sm">
+      <input id="consent-analytics" type="checkbox" class="mt-1 h-4 w-4 accent-violet-600" />
+      <span>
+        <span class="font-semibold text-slate-900" data-i18n="CONSENT.ANALYTICS_TITLE">{c.ANALYTICS_TITLE}</span><br />
+        <span data-i18n="CONSENT.ANALYTICS_DESC">{c.ANALYTICS_DESC}</span>
+      </span>
+    </label>
+  </fieldset>
+
+  <!-- Accept and Reject share one style on purpose: equal prominence, no nudging. -->
+  <div class="mt-4 flex flex-wrap gap-2">
+    <button type="button" data-consent-action="reject" class="consent-btn" data-i18n="CONSENT.REJECT_ALL">{c.REJECT_ALL}</button>
+    <button type="button" data-consent-action="accept" class="consent-btn" data-i18n="CONSENT.ACCEPT_ALL">{c.ACCEPT_ALL}</button>
+    <button type="button" data-consent-action="settings" aria-controls="consent-settings" aria-expanded="false" class="consent-btn-secondary" data-i18n="CONSENT.SETTINGS">{c.SETTINGS}</button>
+    <button type="button" data-consent-action="save" hidden class="consent-btn" data-i18n="CONSENT.SAVE">{c.SAVE}</button>
+  </div>
+</div>
+
+<style>
+  .consent-btn,
+  .consent-btn-secondary {
+    flex: 1 1 auto;
+    border-radius: 9999px;
+    padding: 0.55rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .consent-btn {
+    background: var(--color-slate-900, #1a1a1a);
+    color: #fff;
+    border: 1px solid var(--color-slate-900, #1a1a1a);
+  }
+  .consent-btn-secondary {
+    background: #fff;
+    color: var(--color-slate-900, #1a1a1a);
+    border: 1px solid var(--color-slate-300, #bdb8b2);
+  }
+  .consent-btn:focus-visible,
+  .consent-btn-secondary:focus-visible {
+    outline: 2px solid var(--color-violet-600, #e05e00);
+    outline-offset: 2px;
+  }
+</style>
+
+<script>
+  import { readConsent, writeConsent, enableAnalytics, disableAnalytics } from "../lib/consent";
+
+  const banner = document.getElementById("consent-banner");
+  if (banner) {
+    const gaId = banner.dataset.gaId ?? "";
+    const settings = document.getElementById("consent-settings") as HTMLFieldSetElement;
+    const analyticsBox = document.getElementById("consent-analytics") as HTMLInputElement;
+    const settingsBtn = banner.querySelector<HTMLButtonElement>('[data-consent-action="settings"]')!;
+    const saveBtn = banner.querySelector<HTMLButtonElement>('[data-consent-action="save"]')!;
+    let returnFocusTo: HTMLElement | null = null;
+
+    const apply = (analytics: boolean) => {
+      if (analytics) enableAnalytics(gaId);
+      else disableAnalytics(gaId);
+    };
+
+    const showSettings = (show: boolean) => {
+      settings.hidden = !show;
+      saveBtn.hidden = !show;
+      settingsBtn.setAttribute("aria-expanded", String(show));
+    };
+
+    const open = (withSettings: boolean) => {
+      analyticsBox.checked = readConsent()?.analytics ?? false;
+      showSettings(withSettings);
+      banner.hidden = false;
+    };
+
+    const close = () => {
+      banner.hidden = true;
+      returnFocusTo?.focus();
+      returnFocusTo = null;
+    };
+
+    const decide = (analytics: boolean) => {
+      writeConsent({ analytics });
+      apply(analytics);
+      close();
+    };
+
+    banner.addEventListener("click", (event) => {
+      const action = (event.target as HTMLElement).closest<HTMLElement>("[data-consent-action]")?.dataset.consentAction;
+      if (action === "accept") decide(true);
+      else if (action === "reject") decide(false);
+      else if (action === "save") decide(analyticsBox.checked);
+      else if (action === "settings") showSettings(settingsBtn.getAttribute("aria-expanded") !== "true");
+    });
+
+    // Escape dismisses a banner reopened from "Cookie settings" (a choice is
+    // already stored). A first visit keeps it open -- until a choice is made
+    // nothing optional loads anyway.
+    banner.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && readConsent()) close();
+    });
+
+    document.addEventListener("click", (event) => {
+      const opener = (event.target as HTMLElement).closest<HTMLElement>("[data-consent-open]");
+      if (!opener) return;
+      event.preventDefault();
+      returnFocusTo = opener;
+      open(true);
+      document.getElementById("consent-title")?.focus();
+    });
+
+    const stored = readConsent();
+    if (stored) apply(stored.analytics);
+    else open(false);
+  }
+</script>

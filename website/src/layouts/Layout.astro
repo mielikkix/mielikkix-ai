@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import ConsentBanner from "../components/ConsentBanner.astro";
 
 interface Props {
   title: string;
@@ -47,10 +48,9 @@ const ogImage = new URL("/og-image.png", siteUrl).toString();
 // no PUBLIC_PLAUSIBLE_DOMAIN means no third-party script and no tracking request.
 const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
 
-// Same inactive-until-configured convention as Plausible above -- no
-// PUBLIC_GA_MEASUREMENT_ID means no gtag script and no tracking request.
-// GA4 for mielikkix.ai only; mielikkix.com/.no are untouched.
-const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
+// GA4 (PUBLIC_GA_MEASUREMENT_ID) is NOT rendered here: it's only injected
+// client-side by ConsentBanner after the visitor opts in to analytics
+// (GDPR/ekomloven -- see src/lib/consent.ts). mielikkix.com/.no are untouched.
 
 // Organization + WebSite structured data (schema.org), identical on every page --
 // this is the structured, machine-readable signal that the entity "Mielikkix" is
@@ -158,20 +158,6 @@ const structuredData = {
     {plausibleDomain && (
       <script is:inline data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script>
     )}
-
-    {gaMeasurementId && (
-      <>
-        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}></script>
-        <!--
-          gtag's own config call needs to run as inline JS, which the CSP
-          (public/.htaccess) doesn't allow without 'unsafe-inline' -- so,
-          same reasoning as the /demo/*.js files (see ARCHITECTURE.md), the
-          bootstrap logic lives in an external file and just reads the ID
-          off this tag's own data attribute.
-        -->
-        <script is:inline src="/ga4-init.js" data-ga-id={gaMeasurementId}></script>
-      </>
-    )}
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased" data-page={page} data-title-suffix={titleSuffix ? undefined : "off"}>
     <Header />
@@ -179,6 +165,7 @@ const structuredData = {
       <slot />
     </main>
     <Footer />
+    <ConsentBanner />
     <script>
       import { initI18n, getStoredLanguage, SUPPORTED_LANGUAGES } from "../lib/i18n/translationService";
       import { init as initCurrency } from "../stores/currencyStore";

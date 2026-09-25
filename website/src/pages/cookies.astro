@@ -1,0 +1,170 @@
+---
+import LegalLayout from "../components/LegalLayout.astro";
+import { COOKIES, CONSENT_COOKIE } from "../config/legal";
+
+// Table rows come from src/config/legal.ts COOKIES -- add a row there whenever
+// the site, app or widget starts writing a new cookie/storage key.
+const surfaces = [
+  { id: "website", en: "mielikkix.ai (this website)", no: "mielikkix.ai (dette nettstedet)" },
+  { id: "widget", en: "Mielikkix chat widget (on this site and on customers' sites)", no: "Mielikkix-chatwidget (på dette nettstedet og på kunders nettsteder)" },
+  { id: "app", en: "app.mielikkix.ai (dashboard)", no: "app.mielikkix.ai (dashbord)" },
+] as const;
+
+const kindLabel = {
+  cookie: { en: "Cookie", no: "Informasjonskapsel" },
+  localStorage: { en: "localStorage", no: "localStorage" },
+  sessionStorage: { en: "sessionStorage", no: "sessionStorage" },
+};
+const t = {
+  en: { name: "Name", type: "Type", purpose: "Purpose", duration: "Duration", party: "Party", consent: "Consent needed", yes: "Yes", no: "No", first: "First party", third: "Third party" },
+  no: { name: "Navn", type: "Type", purpose: "Formål", duration: "Varighet", party: "Part", consent: "Krever samtykke", yes: "Ja", no: "Nei", first: "Førstepart", third: "Tredjepart" },
+};
+---
+
+<LegalLayout
+  doc="cookies"
+  titleKey="COOKIES"
+  description="Every cookie and browser-storage key used by mielikkix.ai, the Mielikkix chat widget and app.mielikkix.ai, and how to change your consent."
+>
+  <Fragment slot="en">
+    <section>
+      <p>
+        Cookies and similar technologies (localStorage, sessionStorage) store small pieces of information in your
+        browser. Under the Norwegian Electronic Communications Act (ekomloven § 2-7b) and the GDPR, we only use storage
+        that isn't strictly necessary if you consent to it.
+      </p>
+    </section>
+    <section>
+      <h2>Your choice</h2>
+      <p>
+        On your first visit to mielikkix.ai you can <strong>accept all</strong>, <strong>reject all</strong> or choose
+        in <strong>settings</strong>. Until you choose, nothing optional loads. We store your choice in the
+        {" "}<code>{CONSENT_COOKIE}</code> cookie for 12 months, then ask again. We also ask again when this policy changes
+        materially. You can change or withdraw your choice at any time:
+      </p>
+      <p><button type="button" data-consent-open class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Open cookie settings</button></p>
+      <p>
+        If you withdraw consent, we stop Google Analytics and delete its <code>_ga</code> cookies. Fonts are served from
+        our own server, so no font request goes to Google.
+      </p>
+    </section>
+    {
+      surfaces.map((surface) => (
+        <section>
+          <h2>{surface.en}</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>{t.en.name}</th><th>{t.en.type}</th><th>{t.en.purpose}</th><th>{t.en.duration}</th><th>{t.en.party}</th><th>{t.en.consent}</th></tr>
+              </thead>
+              <tbody>
+                {COOKIES.filter((c) => c.surface === surface.id).map((c) => (
+                  <tr>
+                    <td><code>{c.name}</code></td>
+                    <td>{kindLabel[c.kind].en}</td>
+                    <td>{c.purpose.en}</td>
+                    <td>{c.duration.en}</td>
+                    <td>{c.party === "first" ? t.en.first : t.en.third}</td>
+                    <td>{c.consentRequired ? t.en.yes : t.en.no}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))
+    }
+    <section>
+      <h2>Other third-party requests</h2>
+      <ul>
+        <li>
+          <strong>Exchange rates (api.frankfurter.dev):</strong> the pricing pages fetch today's exchange rate from your
+          browser. This sets no cookies, but your IP address is visible to that service.
+        </li>
+        <li>
+          <strong>Chat widget (app.mielikkix.ai):</strong> the chat bubble's script loads from our own app domain. It stores
+          nothing until you open the chat.
+        </li>
+      </ul>
+    </section>
+    <section>
+      <h2>For businesses embedding the Mielikkix widget</h2>
+      <p>
+        The widget writes <code>mielikkix_session</code> (sessionStorage) only once a visitor opens the chat. It's
+        strictly necessary to hold the conversation together and is cleared when the tab closes. Please list it in your
+        own cookie and privacy notices.
+      </p>
+    </section>
+  </Fragment>
+
+  <Fragment slot="no">
+    <section>
+      <p>
+        Informasjonskapsler og lignende teknologi (localStorage, sessionStorage) lagrer små biter med informasjon i
+        nettleseren din. Etter ekomloven § 2-7b og GDPR bruker vi bare lagring som ikke er strengt nødvendig hvis du
+        samtykker.
+      </p>
+    </section>
+    <section>
+      <h2>Ditt valg</h2>
+      <p>
+        Første gang du besøker mielikkix.ai kan du <strong>godta alle</strong>, <strong>avvise alle</strong> eller velge
+        selv under <strong>innstillinger</strong>. Før du har valgt, lastes ingenting valgfritt. Valget ditt lagres i
+        informasjonskapselen <code>{CONSENT_COOKIE}</code> i 12 måneder, og så spør vi igjen. Vi spør også på nytt ved
+        vesentlige endringer i denne erklæringen. Du kan når som helst endre eller trekke tilbake valget:
+      </p>
+      <p><button type="button" data-consent-open class="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Åpne innstillinger for informasjonskapsler</button></p>
+      <p>
+        Trekker du tilbake samtykket, stopper vi Google Analytics og sletter <code>_ga</code>-informasjonskapslene.
+        Skrifttyper leveres fra vår egen server, så ingen forespørsel om skrifttyper går til Google.
+      </p>
+    </section>
+    {
+      surfaces.map((surface) => (
+        <section>
+          <h2>{surface.no}</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>{t.no.name}</th><th>{t.no.type}</th><th>{t.no.purpose}</th><th>{t.no.duration}</th><th>{t.no.party}</th><th>{t.no.consent}</th></tr>
+              </thead>
+              <tbody>
+                {COOKIES.filter((c) => c.surface === surface.id).map((c) => (
+                  <tr>
+                    <td><code>{c.name}</code></td>
+                    <td>{kindLabel[c.kind].no}</td>
+                    <td>{c.purpose.no}</td>
+                    <td>{c.duration.no}</td>
+                    <td>{c.party === "first" ? t.no.first : t.no.third}</td>
+                    <td>{c.consentRequired ? t.no.yes : t.no.no}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))
+    }
+    <section>
+      <h2>Andre forespørsler til tredjeparter</h2>
+      <ul>
+        <li>
+          <strong>Valutakurser (api.frankfurter.dev):</strong> prissidene henter dagens valutakurs fra nettleseren din.
+          Det settes ingen informasjonskapsler, men tjenesten ser IP-adressen din.
+        </li>
+        <li>
+          <strong>Chatwidget (app.mielikkix.ai):</strong> skriptet til chatboblen lastes fra vårt eget app-domene. Det
+          lagrer ingenting før du åpner chatten.
+        </li>
+      </ul>
+    </section>
+    <section>
+      <h2>For bedrifter som bruker Mielikkix-widgeten</h2>
+      <p>
+        Widgeten skriver <code>mielikkix_session</code> (sessionStorage) først når en besøkende åpner chatten. Den er
+        strengt nødvendig for å holde samtalen samlet og slettes når fanen lukkes. Ta den med i deres egne erklæringer om
+        informasjonskapsler og personvern.
+      </p>
+    </section>
+  </Fragment>
+</LegalLayout>

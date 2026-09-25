@@ -1,0 +1,174 @@
+---
+import LegalLayout from "../components/LegalLayout.astro";
+import Fact from "../components/Fact.astro";
+import { COMPANY } from "../config/legal";
+
+const email = COMPANY.privacyEmail;
+---
+
+<LegalLayout
+  doc="dpa"
+  titleKey="DPA"
+  description="Mielikkix's Data Processing Agreement (GDPR article 28) for customers whose end-user data we process."
+>
+  <Fragment slot="en">
+    <section>
+      <p>
+        This Data Processing Agreement ("DPA") is part of the <a href="/terms">Terms of Service</a> between the Customer
+        (controller) and {COMPANY.legalName}, org. no. <Fact value={COMPANY.orgNumber} /> (processor). It meets the
+        requirements of GDPR article 28 and applies whenever we process personal data on the Customer's behalf.
+      </p>
+    </section>
+    <section>
+      <h2>1. Subject matter and duration</h2>
+      <p>
+        We process personal data to provide the Mielikkix chat widget, AI agents and dashboard to the Customer. The DPA
+        lasts as long as we process personal data for the Customer.
+      </p>
+    </section>
+    <section>
+      <h2>2. Nature and purpose</h2>
+      <p>
+        Storing, retrieving, analysing (including with AI language models), transmitting and deleting data, only to
+        answer the Customer's end users, capture leads, book appointments, handle calls and reviews, and show results in
+        the Customer's dashboard.
+      </p>
+    </section>
+    <section>
+      <h2>3. Data subjects and categories of data</h2>
+      <ul>
+        <li><strong>Data subjects:</strong> the Customer's website visitors, callers, customers and reviewers, and the Customer's staff.</li>
+        <li>
+          <strong>Data:</strong> chat messages and AI replies; names, email addresses, phone numbers and messages from
+          lead and booking forms; appointment times; caller phone numbers and call audio (transcribed in real time, not
+          stored); public reviews and replies; technical data such as session IDs.
+        </li>
+        <li>
+          <strong>Special categories</strong> (GDPR art. 9) are not meant to be processed. The Customer must not configure
+          the service to collect them without our written agreement.
+        </li>
+      </ul>
+    </section>
+    <section>
+      <h2>4. Our obligations as processor</h2>
+      <ol>
+        <li>We process personal data only on the Customer's documented instructions (these terms, the Customer's settings and written requests), unless the law requires otherwise. If an instruction seems to break data protection law, we will tell the Customer.</li>
+        <li>Everyone with access to the data is bound by confidentiality.</li>
+        <li>We apply the security measures described on our <a href="/security">Security</a> page (GDPR art. 32).</li>
+        <li>We help the Customer respond to data subject requests (access, erasure, etc.), for example by exporting or deleting a given visitor's conversations.</li>
+        <li>We help the Customer with security, breach notification, impact assessments and prior consultations (art. 32–36), within reason.</li>
+        <li>We notify the Customer <strong>without undue delay</strong> after becoming aware of a personal data breach affecting the Customer's data, with the information the Customer needs to meet its own reporting duties.</li>
+        <li>We make available the information needed to show compliance with this DPA and allow audits, on reasonable notice and at the Customer's cost.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>5. Subprocessors</h2>
+      <p>
+        The Customer gives general authorisation for the subprocessors listed on our <a href="/subprocessors">Subprocessors</a>
+        {" "}page. We will notify the Customer at least <Fact value="{{VERIFY: 30}}" /> days before adding or replacing a
+        subprocessor, and the Customer may object on reasonable grounds. If we can't resolve the objection, the Customer
+        may terminate the affected service. We impose the same data protection obligations on every subprocessor and
+        remain responsible for them.
+      </p>
+    </section>
+    <section>
+      <h2>6. International transfers</h2>
+      <p>
+        Where a subprocessor is outside the EEA, transfers rely on an adequacy decision (such as the EU-US Data Privacy
+        Framework) or the EU Standard Contractual Clauses <Fact value="{{VERIFY: mechanism per vendor}}" />.
+      </p>
+    </section>
+    <section>
+      <h2>7. Deletion and return</h2>
+      <p>
+        When the agreement ends, we delete the Customer's personal data within <Fact value="{{VERIFY: 30}}" /> days, unless
+        the law requires us to keep it. If the Customer asks before the account is closed, we return a copy in a
+        machine-readable format first.
+      </p>
+    </section>
+    <section>
+      <h2>8. Contact</h2>
+      <p>Questions about this DPA or requests under it: <a href={`mailto:${email}`}>{email}</a>.</p>
+    </section>
+  </Fragment>
+
+  <Fragment slot="no">
+    <section>
+      <p>
+        Denne databehandleravtalen («DPA-en») er en del av <a href="/terms">vilkårene for bruk</a> mellom Kunden
+        (behandlingsansvarlig) og {COMPANY.legalName}, org.nr. <Fact value={COMPANY.orgNumber} /> (databehandler). Den
+        oppfyller kravene i GDPR artikkel 28 og gjelder når vi behandler personopplysninger på Kundens vegne.
+      </p>
+    </section>
+    <section>
+      <h2>1. Formål og varighet</h2>
+      <p>
+        Vi behandler personopplysninger for å levere Mielikkix-chatwidgeten, AI-agentene og dashbordet til Kunden.
+        Avtalen gjelder så lenge vi behandler personopplysninger for Kunden.
+      </p>
+    </section>
+    <section>
+      <h2>2. Behandlingens art og formål</h2>
+      <p>
+        Lagring, gjenfinning, analyse (også med AI-språkmodeller), overføring og sletting av data, kun for å svare Kundens
+        sluttbrukere, registrere leads, booke avtaler, håndtere samtaler og anmeldelser, og vise resultater i Kundens
+        dashbord.
+      </p>
+    </section>
+    <section>
+      <h2>3. Registrerte og kategorier av opplysninger</h2>
+      <ul>
+        <li><strong>Registrerte:</strong> Kundens besøkende, innringere, kunder og anmeldere, samt Kundens ansatte.</li>
+        <li>
+          <strong>Opplysninger:</strong> chatmeldinger og AI-svar; navn, e-postadresser, telefonnumre og meldinger fra
+          kontakt- og bookingskjemaer; avtaletidspunkter; innringers telefonnummer og samtalelyd (transkribert i sanntid,
+          ikke lagret); offentlige anmeldelser og svar; tekniske data som økt-ID-er.
+        </li>
+        <li>
+          <strong>Særlige kategorier</strong> (GDPR art. 9) skal ikke behandles. Kunden skal ikke sette opp tjenesten til
+          å samle inn slike opplysninger uten skriftlig avtale med oss.
+        </li>
+      </ul>
+    </section>
+    <section>
+      <h2>4. Våre plikter som databehandler</h2>
+      <ol>
+        <li>Vi behandler personopplysninger bare etter Kundens dokumenterte instrukser (disse vilkårene, Kundens innstillinger og skriftlige henvendelser), med mindre loven krever noe annet. Hvis en instruks ser ut til å bryte personvernregelverket, sier vi fra til Kunden.</li>
+        <li>Alle med tilgang til opplysningene har taushetsplikt.</li>
+        <li>Vi har sikkerhetstiltakene som er beskrevet under <a href="/security">Sikkerhet</a> (GDPR art. 32).</li>
+        <li>Vi hjelper Kunden med å besvare henvendelser fra registrerte (innsyn, sletting osv.), for eksempel ved å eksportere eller slette en besøkendes samtaler.</li>
+        <li>Vi bistår Kunden med sikkerhet, avviksmelding, konsekvensvurderinger og forhåndsdrøftinger (art. 32–36), innenfor rimelighetens grenser.</li>
+        <li>Vi varsler Kunden <strong>uten ugrunnet opphold</strong> etter at vi har blitt kjent med et avvik som berører Kundens data, med informasjonen Kunden trenger for å oppfylle egen meldeplikt.</li>
+        <li>Vi gjør tilgjengelig informasjonen som trengs for å vise at avtalen følges, og tillater revisjon med rimelig varsel og for Kundens regning.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>5. Underleverandører</h2>
+      <p>
+        Kunden gir generell godkjenning av underleverandørene på siden <a href="/subprocessors">Underleverandører</a>. Vi
+        varsler Kunden minst <Fact value="{{VERIFY: 30}}" /> dager før vi legger til eller bytter en underleverandør, og
+        Kunden kan protestere på saklig grunnlag. Løser vi ikke innsigelsen, kan Kunden si opp den berørte tjenesten. Alle
+        underleverandører pålegges de samme personvernpliktene, og vi er ansvarlige for dem.
+      </p>
+    </section>
+    <section>
+      <h2>6. Overføring til tredjeland</h2>
+      <p>
+        Der en underleverandør er utenfor EØS, bygger overføringen på en tilstrekkelighetsbeslutning (som EU–US Data
+        Privacy Framework) eller EUs standardkontraktsbestemmelser <Fact value="{{VERIFY: overføringsgrunnlag per leverandør}}" />.
+      </p>
+    </section>
+    <section>
+      <h2>7. Sletting og tilbakelevering</h2>
+      <p>
+        Når avtalen opphører, sletter vi Kundens personopplysninger innen <Fact value="{{VERIFY: 30}}" /> dager, med mindre
+        loven krever at vi beholder dem. Ber Kunden om det før kontoen avsluttes, leverer vi først en kopi i et
+        maskinlesbart format.
+      </p>
+    </section>
+    <section>
+      <h2>8. Kontakt</h2>
+      <p>Spørsmål om denne avtalen eller henvendelser etter den: <a href={`mailto:${email}`}>{email}</a>.</p>
+    </section>
+  </Fragment>
+</LegalLayout>

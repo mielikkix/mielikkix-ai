@@ -6,6 +6,31 @@
     "PRODUCT_HEADING": "Produkt",
     "GET_STARTED_HEADING": "Kom i gang",
     "GET_STARTED_TEXT": "Gratis plan tilgjengelig — ingen kort nødvendig.",
-    "COPYRIGHT": "© {{YEAR}} Mielikkix. Alle rettigheter forbeholdt."
+    "COPYRIGHT": "© {{YEAR}} Mielikkix. Alle rettigheter forbeholdt.",
+    "LEGAL_HEADING": "Juridisk",
+    "PRIVACY": "Personvernerklæring",
+    "TERMS": "Vilkår for bruk",
+    "COOKIES": "Informasjonskapsler",
+    "DPA": "Databehandleravtale",
+    "SUBPROCESSORS": "Underleverandører",
+    "SECURITY": "Sikkerhet",
+    "COOKIE_SETTINGS": "Innstillinger for informasjonskapsler"
+  },
+  "CONSENT": {
+    "TITLE": "Dine personvernvalg",
+    "TEXT": "Vi bruker nødvendige informasjonskapsler for at nettstedet skal fungere. Med ditt samtykke bruker vi også Google Analytics for å forstå hvordan nettstedet brukes. Analyse er av med mindre du godtar, og du kan endre valget når som helst under «Innstillinger for informasjonskapsler» nederst på siden.",
+    "LEARN_MORE": "Om informasjonskapsler",
+    "ACCEPT_ALL": "Godta alle",
+    "REJECT_ALL": "Avvis alle",
+    "SETTINGS": "Innstillinger",
+    "SAVE": "Lagre valg",
+    "NECESSARY_TITLE": "Nødvendige",
+    "NECESSARY_DESC": "Husker språk, valuta og ditt valg om informasjonskapsler. Alltid på.",
+    "ANALYTICS_TITLE": "Analyse (Google Analytics)",
+    "ANALYTICS_DESC": "Anonym statistikk om sidebesøk. Setter _ga-informasjonskapsler og sender data til Google (USA)."
+  },
+  "LEGAL": {
+    "LAST_UPDATED": "Sist oppdatert",
+    "VERSION": "Versjon"
   }
 }

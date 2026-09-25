@@ -1,0 +1,217 @@
+---
+import LegalLayout from "../components/LegalLayout.astro";
+import Fact from "../components/Fact.astro";
+import { COMPANY } from "../config/legal";
+
+const email = COMPANY.privacyEmail;
+---
+
+<LegalLayout
+  doc="terms"
+  titleKey="TERMS"
+  description="Terms of Service for businesses using Mielikkix: the Chat Widget, AI agents and the Mielikkix dashboard."
+>
+  <Fragment slot="en">
+    <section>
+      <p>
+        These terms apply between <strong>{COMPANY.legalName}</strong> (org. no. <Fact value={COMPANY.orgNumber} />,
+        "Mielikkix", "we") and the business that creates an account ("Customer", "you"). By creating an account or using
+        the service you accept these terms on behalf of your business, and confirm that you are 18 or older and allowed
+        to bind it.
+      </p>
+    </section>
+    <section>
+      <h2>1. The service</h2>
+      <p>
+        Mielikkix provides an AI chat widget, AI agents (such as Voice Receptionist, Booking Assistant, Support Triage,
+        Review &amp; Reputation and SEO Audit) and a dashboard at app.mielikkix.ai. The features you can use depend on your
+        plan. We may improve and change features, but we won't materially reduce a paid feature during a paid period
+        without telling you in advance.
+      </p>
+    </section>
+    <section>
+      <h2>2. Your account</h2>
+      <ul>
+        <li>Give accurate information and keep your login details safe. You are responsible for activity on your account.</li>
+        <li>The service is for business use only and not for consumers.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>3. Plans, prices and payment</h2>
+      <p>
+        Prices are shown on our <a href="/pricing">pricing</a> and <a href="/agent-pricing">agent pricing</a> pages. Paid
+        plans are billed in advance for each billing period <Fact value="{{VERIFY: billing terms, payment deadline, VAT}}" />.
+        You can cancel at any time; cancellation takes effect at the end of the current period. Fees already paid are not
+        refunded unless the law requires it.
+      </p>
+    </section>
+    <section>
+      <h2>4. Acceptable use</h2>
+      <p>You must not use the service to:</p>
+      <ul>
+        <li>break the law, including privacy, consumer protection and marketing laws;</li>
+        <li>send spam or unsolicited calls or messages;</li>
+        <li>present the AI as a human when asked, or hide that visitors are talking to an AI;</li>
+        <li>process special categories of personal data (such as health data) unless we have agreed to it in writing;</li>
+        <li>try to break, overload or reverse-engineer the service, or access other customers' data.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>5. Your content and data</h2>
+      <p>
+        You keep all rights to the content you upload (FAQs, documents, products) and the data your end users generate.
+        You give us permission to use it only to provide the service to you. When we process personal data about your
+        end users, we act as your processor under our <a href="/dpa">Data Processing Agreement</a>, which is part of these
+        terms. You are responsible for having a legal basis for that processing and for telling your end users about it,
+        including in your own privacy and cookie notices.
+      </p>
+    </section>
+    <section>
+      <h2>6. AI output</h2>
+      <p>
+        AI-generated answers, drafts and analyses can be wrong. You are responsible for checking the knowledge you give
+        the AI and for how you use its output. Review replies are only published after your approval.
+      </p>
+    </section>
+    <section>
+      <h2>7. Availability and support</h2>
+      <p>
+        We aim for high availability but don't guarantee uninterrupted service. We may carry out maintenance, and we
+        will try to give notice beforehand. Support is available at <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </section>
+    <section>
+      <h2>8. Liability</h2>
+      <p>
+        We are not liable for indirect or consequential loss, including lost profits, revenue or data. Our total
+        liability in any 12-month period is limited to the fees you paid us in that period. These limits do not apply
+        to gross negligence or wilful misconduct. <Fact value="{{VERIFY: liability cap wording with lawyer}}" />
+      </p>
+    </section>
+    <section>
+      <h2>9. Suspension and termination</h2>
+      <p>
+        We may suspend an account that seriously or repeatedly breaks these terms, or that puts the service or others at
+        risk. Where we can, we'll warn you first. You can close your account at any time by emailing
+        {" "}<a href={`mailto:${email}`}>{email}</a>. When the account closes, we delete your data as described in our
+        {" "}<a href="/privacy">Privacy Policy</a> and the DPA.
+      </p>
+    </section>
+    <section>
+      <h2>10. Changes to these terms</h2>
+      <p>
+        We may change these terms. We'll notify you of material changes at least 30 days before they take effect. If you
+        keep using the service after that, the new terms apply; if you don't accept them, you can cancel.
+      </p>
+    </section>
+    <section>
+      <h2>11. Governing law</h2>
+      <p>
+        These terms are governed by Norwegian law. Disputes go before the Norwegian courts, with
+        {" "}<Fact value="{{VERIFY: Oslo tingrett}}" /> as the agreed venue.
+      </p>
+    </section>
+  </Fragment>
+
+  <Fragment slot="no">
+    <section>
+      <p>
+        Disse vilkårene gjelder mellom <strong>{COMPANY.legalName}</strong> (org.nr. <Fact value={COMPANY.orgNumber} />,
+        «Mielikkix», «vi») og bedriften som oppretter en konto («Kunden», «du»). Ved å opprette en konto eller bruke
+        tjenesten godtar du vilkårene på vegne av bedriften, og bekrefter at du er 18 år eller eldre og har rett til å
+        forplikte den.
+      </p>
+    </section>
+    <section>
+      <h2>1. Tjenesten</h2>
+      <p>
+        Mielikkix leverer en AI-chatwidget, AI-agenter (som Voice Receptionist, Booking Assistant, Support Triage,
+        Review &amp; Reputation og SEO Audit) og et dashbord på app.mielikkix.ai. Hvilke funksjoner du har tilgang til,
+        avhenger av abonnementet. Vi kan forbedre og endre funksjoner, men vi reduserer ikke en betalt funksjon vesentlig i
+        en betalt periode uten å varsle deg på forhånd.
+      </p>
+    </section>
+    <section>
+      <h2>2. Kontoen din</h2>
+      <ul>
+        <li>Oppgi riktige opplysninger og hold innloggingen din sikker. Du er ansvarlig for aktivitet på kontoen.</li>
+        <li>Tjenesten er kun for næringsbruk og ikke for forbrukere.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>3. Abonnement, priser og betaling</h2>
+      <p>
+        Prisene står på sidene for <a href="/pricing">priser</a> og <a href="/agent-pricing">agentpriser</a>. Betalte
+        abonnementer faktureres forskuddsvis per periode <Fact value="{{VERIFY: betalingsvilkår, forfall, mva.}}" />. Du kan si
+        opp når som helst; oppsigelsen gjelder fra slutten av inneværende periode. Innbetalte beløp refunderes ikke med
+        mindre loven krever det.
+      </p>
+    </section>
+    <section>
+      <h2>4. Akseptabel bruk</h2>
+      <p>Du kan ikke bruke tjenesten til å:</p>
+      <ul>
+        <li>bryte loven, blant annet personvern-, forbruker- og markedsføringsregler;</li>
+        <li>sende spam eller uønskede anrop eller meldinger;</li>
+        <li>utgi AI-en for å være et menneske når noen spør, eller skjule at besøkende snakker med en AI;</li>
+        <li>behandle særlige kategorier av personopplysninger (som helseopplysninger) uten skriftlig avtale med oss;</li>
+        <li>forsøke å bryte ned, overbelaste eller omgå tjenesten, eller få tilgang til andre kunders data.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>5. Ditt innhold og dine data</h2>
+      <p>
+        Du beholder alle rettigheter til innholdet du laster opp (FAQ-er, dokumenter, produkter) og dataene sluttbrukerne
+        dine skaper. Du gir oss rett til å bruke det kun for å levere tjenesten til deg. Når vi behandler
+        personopplysninger om sluttbrukerne dine, er vi din databehandler etter vår
+        {" "}<a href="/dpa">databehandleravtale</a>, som er en del av disse vilkårene. Du er ansvarlig for å ha rettslig grunnlag
+        for behandlingen og for å informere sluttbrukerne, også i egne personvern- og cookie-erklæringer.
+      </p>
+    </section>
+    <section>
+      <h2>6. AI-generert innhold</h2>
+      <p>
+        AI-genererte svar, utkast og analyser kan være feil. Du er ansvarlig for å kontrollere kunnskapen du gir AI-en og
+        for hvordan du bruker resultatet. Svar på anmeldelser publiseres først etter at du har godkjent dem.
+      </p>
+    </section>
+    <section>
+      <h2>7. Tilgjengelighet og support</h2>
+      <p>
+        Vi har som mål høy tilgjengelighet, men garanterer ikke uavbrutt drift. Vi kan utføre vedlikehold, og prøver å
+        varsle på forhånd. Support får du på <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </section>
+    <section>
+      <h2>8. Ansvar</h2>
+      <p>
+        Vi er ikke ansvarlige for indirekte tap eller følgetap, som tapt fortjeneste, omsetning eller data. Vårt samlede
+        ansvar i en 12-månedersperiode er begrenset til det du har betalt oss i den perioden. Begrensningene gjelder ikke
+        ved grov uaktsomhet eller forsett. <Fact value="{{VERIFY: ansvarsbegrensning med advokat}}" />
+      </p>
+    </section>
+    <section>
+      <h2>9. Suspensjon og oppsigelse</h2>
+      <p>
+        Vi kan suspendere en konto som alvorlig eller gjentatte ganger bryter vilkårene, eller som setter tjenesten eller
+        andre i fare. Når det er mulig, varsler vi først. Du kan avslutte kontoen når som helst ved å sende e-post til
+        {" "}<a href={`mailto:${email}`}>{email}</a>. Når kontoen avsluttes, sletter vi dataene dine som beskrevet i
+        {" "}<a href="/privacy">personvernerklæringen</a> og databehandleravtalen.
+      </p>
+    </section>
+    <section>
+      <h2>10. Endringer i vilkårene</h2>
+      <p>
+        Vi kan endre vilkårene. Vesentlige endringer varsles minst 30 dager før de trer i kraft. Fortsetter du å bruke
+        tjenesten etter det, gjelder de nye vilkårene; godtar du dem ikke, kan du si opp.
+      </p>
+    </section>
+    <section>
+      <h2>11. Lovvalg og verneting</h2>
+      <p>
+        Vilkårene reguleres av norsk rett. Tvister behandles av norske domstoler, med
+        {" "}<Fact value="{{VERIFY: Oslo tingrett}}" /> som avtalt verneting.
+      </p>
+    </section>
+  </Fragment>
+</LegalLayout>

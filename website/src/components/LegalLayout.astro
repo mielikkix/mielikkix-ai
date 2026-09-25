@@ -1,0 +1,126 @@
+---
+// Shared shell for the legal pages (/privacy, /terms, /dpa, /subprocessors,
+// /cookies, /security). Each page supplies a full English and a full Norwegian
+// (bokmål) body via the "en" / "no" slots; only the one matching the visitor's
+// chosen language is shown. Legal prose is written per language rather than
+// pushed through the key-by-key i18n JSON, which suits short UI strings, not
+// long documents. English is the server-rendered default like everywhere else.
+import Layout from "../layouts/Layout.astro";
+import enFooter from "../assets/i18n/en/footer.json";
+import noFooter from "../assets/i18n/no/footer.json";
+import { LEGAL_DOCS } from "../config/legal";
+
+interface Props {
+  doc: keyof typeof LEGAL_DOCS;
+  /** Key in footer.json's FOOTER block holding this page's title (e.g. "PRIVACY"). */
+  titleKey: keyof typeof enFooter.FOOTER;
+  description: string;
+}
+
+const { doc, titleKey, description } = Astro.props;
+const { version, updated } = LEGAL_DOCS[doc];
+const titles = { en: enFooter.FOOTER[titleKey], no: noFooter.FOOTER[titleKey] };
+const langs = [
+  { code: "en", lang: "en", updatedLabel: enFooter.LEGAL.LAST_UPDATED, versionLabel: enFooter.LEGAL.VERSION },
+  { code: "no", lang: "nb", updatedLabel: noFooter.LEGAL.LAST_UPDATED, versionLabel: noFooter.LEGAL.VERSION },
+] as const;
+---
+
+<Layout title={titles.en} description={description} path={`/${doc}`} titleKey={`FOOTER.${titleKey}`}>
+  <Fragment set:html="<!-- LEGAL REVIEW REQUIRED -->" />
+  <section class="legal-page mx-auto max-w-3xl px-6 py-16">
+    {
+      langs.map(({ code, lang, updatedLabel, versionLabel }) => (
+        <article data-legal-lang={code} lang={lang} hidden={code !== "en"}>
+          <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">{titles[code]}</h1>
+          <p class="mt-2 text-sm text-slate-500">
+            {updatedLabel}: <time datetime={updated}>{updated}</time> · {versionLabel}: <code>{version}</code>
+          </p>
+          <div class="mt-10 space-y-10 text-base leading-relaxed text-slate-700">
+            {code === "en" ? <slot name="en" /> : <slot name="no" />}
+          </div>
+        </article>
+      ))
+    }
+  </section>
+</Layout>
+
+<style is:global>
+  .legal-page h2 {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-slate-900, #1a1a1a);
+  }
+  .legal-page h3 {
+    margin-top: 1rem;
+    font-weight: 600;
+    color: var(--color-slate-900, #1a1a1a);
+  }
+  .legal-page h2 + *,
+  .legal-page p + p,
+  .legal-page h3 + * {
+    margin-top: 0.75rem;
+  }
+  .legal-page ul {
+    margin-top: 0.5rem;
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  .legal-page ol {
+    margin-top: 0.5rem;
+    list-style: decimal;
+    padding-left: 1.25rem;
+  }
+  .legal-page li + li {
+    margin-top: 0.5rem;
+  }
+  .legal-page a {
+    color: var(--color-indigo-600, #d8921f);
+    text-decoration: underline;
+  }
+  .legal-page code {
+    border-radius: 0.25rem;
+    background: var(--color-slate-100, #efe8e1);
+    padding: 0.1rem 0.35rem;
+    font-size: 0.875em;
+  }
+  .legal-page .table-wrap {
+    overflow-x: auto;
+  }
+  .legal-page table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .legal-page th,
+  .legal-page td {
+    border-bottom: 1px solid var(--color-slate-200, #d8d2cc);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+    vertical-align: top;
+  }
+  .legal-page th {
+    color: var(--color-slate-900, #1a1a1a);
+    font-weight: 600;
+  }
+  /* Unresolved facts -- deliberately loud so they can't ship unnoticed. */
+  .legal-page .verify {
+    background: #fef08a;
+    color: #713f12;
+    padding: 0 0.2rem;
+    border-radius: 0.2rem;
+  }
+</style>
+
+<script>
+  import { getStoredLanguage, LANG_CHANGE_EVENT } from "../lib/i18n/translationService";
+
+  const show = (lang: string) => {
+    document.querySelectorAll<HTMLElement>("[data-legal-lang]").forEach((el) => {
+      el.hidden = el.dataset.legalLang !== lang;
+    });
+  };
+  show(getStoredLanguage());
+  document.addEventListener(LANG_CHANGE_EVENT, (event) => show((event as CustomEvent<{ lang: string }>).detail.lang));
+</script>

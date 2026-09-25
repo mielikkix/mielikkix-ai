@@ -6,6 +6,31 @@
     "PRODUCT_HEADING": "Product",
     "GET_STARTED_HEADING": "Get started",
     "GET_STARTED_TEXT": "Free plan available — no card required.",
-    "COPYRIGHT": "© {{YEAR}} Mielikkix. All rights reserved."
+    "COPYRIGHT": "© {{YEAR}} Mielikkix. All rights reserved.",
+    "LEGAL_HEADING": "Legal",
+    "PRIVACY": "Privacy Policy",
+    "TERMS": "Terms of Service",
+    "COOKIES": "Cookie Policy",
+    "DPA": "Data Processing Agreement",
+    "SUBPROCESSORS": "Subprocessors",
+    "SECURITY": "Security",
+    "COOKIE_SETTINGS": "Cookie settings"
+  },
+  "CONSENT": {
+    "TITLE": "Your privacy choices",
+    "TEXT": "We use necessary cookies to make this site work. With your permission we also use Google Analytics to understand how the site is used. Analytics stays off unless you accept, and you can change your mind at any time under \"Cookie settings\" in the footer.",
+    "LEARN_MORE": "Cookie Policy",
+    "ACCEPT_ALL": "Accept all",
+    "REJECT_ALL": "Reject all",
+    "SETTINGS": "Settings",
+    "SAVE": "Save choices",
+    "NECESSARY_TITLE": "Necessary",
+    "NECESSARY_DESC": "Remember your language, currency and cookie choice. Always on.",
+    "ANALYTICS_TITLE": "Analytics (Google Analytics)",
+    "ANALYTICS_DESC": "Anonymous statistics about page visits. Sets _ga cookies and sends data to Google (USA)."
+  },
+  "LEGAL": {
+    "LAST_UPDATED": "Last updated",
+    "VERSION": "Version"
   }
 }

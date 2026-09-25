@@ -1,0 +1,112 @@
+---
+import LegalLayout from "../components/LegalLayout.astro";
+import Fact from "../components/Fact.astro";
+import { COMPANY, SUBPROCESSORS } from "../config/legal";
+
+// Only claims backed by the code: bcrypt password hashing (passlib[bcrypt]),
+// Fernet-encrypted OAuth tokens (apps/api/app/core/encryption.py), httpOnly
+// SameSite=Lax session cookie (apps/api/app/api/auth.py), per-tenant scoping,
+// rate limiting (slowapi), security headers (website/public/.htaccess).
+const email = COMPANY.privacyEmail;
+const hostingRegion = SUBPROCESSORS.find((s) => s.name === "Hostinger")!.location;
+---
+
+<LegalLayout
+  doc="security"
+  titleKey="SECURITY"
+  description="How Mielikkix protects customer and end-user data: hosting, encryption, access control, backups and breach handling."
+>
+  <Fragment slot="en">
+    <section>
+      <h2>Hosting</h2>
+      <p>
+        The app, API and database run on a server at Hostinger (<Fact value={hostingRegion} />). We don't run AI
+        models ourselves. AI processing goes to the providers listed on our <a href="/subprocessors">Subprocessors</a> page.
+      </p>
+    </section>
+    <section>
+      <h2>Encryption</h2>
+      <ul>
+        <li>All traffic to mielikkix.ai, app.mielikkix.ai and api.mielikkix.ai uses HTTPS (TLS), with HSTS enforced.</li>
+        <li>Passwords are hashed with bcrypt and never stored in plain text.</li>
+        <li>OAuth tokens for connected Google accounts are encrypted before storage, with a key held only on our servers.</li>
+        <li>Disk and database encryption at rest: <Fact value="{{VERIFY: VPS disk / database encryption at rest}}" />.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Access control</h2>
+      <ul>
+        <li>Each business can only reach its own data. Every API request is scoped to the signed-in business.</li>
+        <li>Sessions use an httpOnly, SameSite cookie that page scripts can't read.</li>
+        <li>Login and other sensitive endpoints are rate-limited.</li>
+        <li>Only a small number of named staff can access the servers, using individual credentials <Fact value="{{VERIFY: SSH keys / 2FA}}" />.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Backups</h2>
+      <p><Fact value="{{VERIFY: backup frequency, location and retention}}" /></p>
+    </section>
+    <section>
+      <h2>Incidents and breaches</h2>
+      <p>
+        If we detect a security incident, we contain it, assess the risk and document it. If personal data is affected,
+        we notify Datatilsynet within 72 hours where required, and notify affected customers without undue delay so they
+        can meet their own obligations.
+      </p>
+    </section>
+    <section>
+      <h2>Report a vulnerability</h2>
+      <p>
+        Found a security issue? Please email <a href={`mailto:${email}`}>{email}</a> and give us reasonable time to fix it
+        before sharing it with others.
+      </p>
+    </section>
+  </Fragment>
+
+  <Fragment slot="no">
+    <section>
+      <h2>Hosting</h2>
+      <p>
+        Appen, API-et og databasen kjører på en server hos Hostinger (<Fact value={hostingRegion} />). Vi kjører ikke
+        AI-modeller selv. AI-behandling går til leverandørene på siden <a href="/subprocessors">Underleverandører</a>.
+      </p>
+    </section>
+    <section>
+      <h2>Kryptering</h2>
+      <ul>
+        <li>All trafikk til mielikkix.ai, app.mielikkix.ai og api.mielikkix.ai går over HTTPS (TLS), med HSTS.</li>
+        <li>Passord hashes med bcrypt og lagres aldri i klartekst.</li>
+        <li>OAuth-tokener for tilkoblede Google-kontoer krypteres før lagring, med en nøkkel som bare finnes på våre servere.</li>
+        <li>Kryptering av disk og database: <Fact value="{{VERIFY: kryptering av VPS-disk / database}}" />.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Tilgangskontroll</h2>
+      <ul>
+        <li>Hver bedrift har bare tilgang til egne data. Hver API-forespørsel er avgrenset til den innloggede bedriften.</li>
+        <li>Økter bruker en httpOnly-, SameSite-informasjonskapsel som skript på siden ikke kan lese.</li>
+        <li>Innlogging og andre sensitive endepunkter har begrensning på antall forespørsler.</li>
+        <li>Bare et fåtall navngitte ansatte har tilgang til serverne, med personlige påloggingsdetaljer <Fact value="{{VERIFY: SSH-nøkler / 2FA}}" />.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Sikkerhetskopier</h2>
+      <p><Fact value="{{VERIFY: hyppighet, plassering og lagringstid for sikkerhetskopier}}" /></p>
+    </section>
+    <section>
+      <h2>Hendelser og avvik</h2>
+      <p>
+        Oppdager vi en sikkerhetshendelse, begrenser vi den, vurderer risikoen og dokumenterer den. Berøres
+        personopplysninger, melder vi til Datatilsynet innen 72 timer der det kreves, og varsler berørte kunder uten
+        ugrunnet opphold slik at de kan oppfylle egne plikter.
+      </p>
+    </section>
+    <section>
+      <h2>Melde en sårbarhet</h2>
+      <p>
+        Har du funnet et sikkerhetsproblem? Send e-post til <a href={`mailto:${email}`}>{email}</a>, og gi oss rimelig tid
+        til å rette det før du deler det med andre.
+      </p>
+    </section>
+  </Fragment>
+</LegalLayout>

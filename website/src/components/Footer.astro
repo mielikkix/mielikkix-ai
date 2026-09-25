@@ -10,6 +10,16 @@ const productLinks = [
   { href: "/pricing", label: en.NAV.PRICING, key: "NAV.PRICING" },
   { href: "/demo", label: en.BUTTONS.BOOK_DEMO, key: "BUTTONS.BOOK_DEMO" },
 ];
+
+const f = enFooter.FOOTER;
+const legalLinks = [
+  { href: "/privacy", label: f.PRIVACY, key: "FOOTER.PRIVACY" },
+  { href: "/terms", label: f.TERMS, key: "FOOTER.TERMS" },
+  { href: "/cookies", label: f.COOKIES, key: "FOOTER.COOKIES" },
+  { href: "/dpa", label: f.DPA, key: "FOOTER.DPA" },
+  { href: "/subprocessors", label: f.SUBPROCESSORS, key: "FOOTER.SUBPROCESSORS" },
+  { href: "/security", label: f.SECURITY, key: "FOOTER.SECURITY" },
+];
 ---
 
 <footer class="border-t border-slate-100 bg-slate-50">
@@ -68,7 +78,25 @@ const productLinks = [
 
     <div class="mt-10 flex flex-col gap-3 border-t border-slate-200 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
       <span data-i18n="FOOTER.COPYRIGHT">{enFooter.FOOTER.COPYRIGHT.replace("{{YEAR}}", String(year))}</span>
-      <a href="/privacy" class="hover:text-violet-600">Privacy Policy</a>
+      <nav aria-label="Legal" data-i18n-attr="aria-label:FOOTER.LEGAL_HEADING">
+        <ul class="flex flex-wrap gap-x-4 gap-y-2">
+          {
+            legalLinks.map((link) => (
+              <li>
+                <a href={link.href} data-i18n={link.key} class="hover:text-violet-600">
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+          <li>
+            <!-- Reopens the consent banner (ConsentBanner.astro) so a choice can be withdrawn as easily as given. -->
+            <button type="button" data-consent-open data-i18n="FOOTER.COOKIE_SETTINGS" class="cursor-pointer hover:text-violet-600">
+              {f.COOKIE_SETTINGS}
+            </button>
+          </li>
+        </ul>
+      </nav>
     </div>
   </div>
 </footer>

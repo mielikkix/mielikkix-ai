@@ -1,220 +1,548 @@
 ---
-import Layout from "../layouts/Layout.astro";
+import LegalLayout from "../components/LegalLayout.astro";
+import Fact from "../components/Fact.astro";
+import { COMPANY } from "../config/legal";
 
-// Plain legal page -- no PageHero/i18n-JSON here on purpose (this is a
-// legal document, not marketing copy that should be auto-translated).
-// Written to satisfy Google's OAuth app verification requirement (a real,
-// publicly reachable privacy policy that specifically discloses what
-// Google user data this app accesses and how -- see the "Google Calendar
-// data" section below, which is the section Google's reviewers actually
-// check). Entity: Mielikkix AS, a Norwegian company currently mid-
-// registration (bank account + Brønnøysund registration in process as of
-// 2026-08-28) -- worded below as "in process," not as an already-completed
-// registration, since claiming a finished registration before it exists
-// would misstate our own legal status. Revisit this wording once
-// registration completes. No registered postal address is published yet
-// for the same reason -- email contact is sufficient for a privacy policy
-// and doesn't require one.
-const lastUpdated = "August 28, 2026";
+// Also the privacy policy Google's OAuth app verification reviews: the
+// "Google user data" section must keep disclosing exactly which Google scopes
+// are requested and how the data is used (see files/GOOGLE_OAUTH_VERIFICATION.md).
+// Keep the scope list in sync with the scopes requested in apps/api/app.
+// Retention: conversation_history_days in apps/api/app/core/plans.py only limits
+// what the dashboard SHOWS -- nothing deletes old conversations yet (GDPR
+// Phase 5), so this page must not promise automatic deletion.
+const email = COMPANY.privacyEmail;
 ---
 
-<Layout
-  title="Privacy Policy"
-  description="How Mielikkix collects, uses, and protects data -- including what Google Calendar data this app accesses and why."
-  path="/privacy"
+<LegalLayout
+  doc="privacy"
+  titleKey="PRIVACY"
+  description="How Mielikkix AS collects, uses and protects personal data: legal bases, subprocessors, transfers, retention, your rights and Google user data."
 >
-  <section class="mx-auto max-w-3xl px-6 py-16">
-    <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">Privacy Policy</h1>
-    <p class="mt-2 text-sm text-slate-500">Last updated: {lastUpdated}</p>
+  <Fragment slot="en">
+    <section>
+      <p>
+        This policy explains what personal data Mielikkix collects, why, on what legal basis, who we share it with,
+        how long we keep it and what rights you have. It covers the website mielikkix.ai, the dashboard
+        app.mielikkix.ai, our API, the Mielikkix chat widget and our AI agents.
+      </p>
+    </section>
 
-    <div class="prose-legal mt-10 space-y-10 text-base leading-relaxed text-slate-700">
-      <section>
-        <p>
-          Mielikkix ("Mielikkix," "we," "us") provides an AI-powered chat, booking, and voice
-          receptionist platform that businesses embed on their own websites and phone lines. This
-          policy explains what data we collect, how we use it, and -- specifically, since this app
-          integrates with Google Calendar -- exactly what Google user data we access and why.
-        </p>
-        <p class="mt-3">
-          Mielikkix is operated by <strong>Mielikkix AS</strong>, a company being registered in
-          Norway (registration in process). Mielikkix AS is the data controller for the personal
-          data described in this policy.
-        </p>
-      </section>
+    <section>
+      <h2>1. Who we are</h2>
+      <p>
+        The data controller is <strong>{COMPANY.legalName}</strong>, org. no. <Fact value={COMPANY.orgNumber} />,
+        {" "}<Fact value={COMPANY.address} />, {COMPANY.country}. Contact for all privacy questions:
+        {" "}<a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Who this policy covers</h2>
-        <ul class="mt-3 list-disc space-y-2 pl-5">
-          <li>
-            <strong>Businesses</strong> that create a Mielikkix account (the dashboard user) to
-            configure and run their chatbot, booking assistant, or voice receptionist.
-          </li>
-          <li>
-            <strong>End visitors</strong> who interact with a business's Mielikkix-powered chat
-            widget, booking flow, or phone line -- these are the business's own customers, not
-            Mielikkix's.
-          </li>
-        </ul>
-      </section>
+    <section>
+      <h2>2. Our two roles: controller and processor</h2>
+      <ul>
+        <li>
+          <strong>Controller</strong> for data about our own customers (businesses and their dashboard users), visitors
+          to mielikkix.ai, people who request a demo, and people who chat with the Mielikkix chatbot on our own website.
+        </li>
+        <li>
+          <strong>Processor</strong> for data about our customers' own end users: people who chat with a customer's
+          widget, call a customer's Voice Receptionist number or book through a customer's Booking Assistant. The
+          business you contacted is the controller for that data and its privacy policy applies; we process it only on
+          its instructions under our <a href="/dpa">Data Processing Agreement</a>. Please send requests about that data
+          to the business. If you contact us, we will forward your request.
+        </li>
+      </ul>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Data we collect</h2>
-        <h3 class="mt-4 font-semibold text-slate-900">From businesses (dashboard accounts)</h3>
-        <ul class="mt-2 list-disc space-y-2 pl-5">
-          <li>Name, email, and hashed password used to sign in.</li>
-          <li>Business profile details you provide (business name, industry, uploaded FAQs, documents, and products used to ground your chatbot's answers).</li>
-          <li>Plan and billing tier selection (no payment card details are processed or stored by Mielikkix directly today).</li>
-        </ul>
-        <h3 class="mt-4 font-semibold text-slate-900">From end visitors, via a business's widget/phone line</h3>
-        <ul class="mt-2 list-disc space-y-2 pl-5">
-          <li>Chat messages sent to a business's chatbot, and the AI's replies, kept as a conversation history for that business (retention length depends on the business's plan).</li>
-          <li>Lead details a visitor submits (name, email, phone, message), shared with that business.</li>
-          <li>Booking details (name, email, phone, requested appointment time) when a visitor books an appointment through Booking Assistant.</li>
-          <li>For phone calls to a business's Voice Receptionist line: the call audio is transcribed to text by our telephony provider to carry on the conversation; call transcripts are held only in memory for the duration of the call today and are not currently written to a database.</li>
-        </ul>
-      </section>
+    <section>
+      <h2>3. What we collect, why, and our legal basis</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Data</th><th>Purpose</th><th>Legal basis (GDPR art. 6)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Name, email, hashed password, business profile, uploaded FAQs/documents/products, plan</td>
+              <td>Create and run your account and provide the service</td>
+              <td>Contract (6(1)(b))</td>
+            </tr>
+            <tr>
+              <td>Billing and invoicing records</td>
+              <td>Accounting</td>
+              <td>Legal obligation (6(1)(c)), Norwegian Bookkeeping Act</td>
+            </tr>
+            <tr>
+              <td>Demo requests and contact messages (name, email, phone, company, message)</td>
+              <td>Answer you and arrange a demo</td>
+              <td>Steps before a contract (6(1)(b)) / legitimate interest (6(1)(f))</td>
+            </tr>
+            <tr>
+              <td>Chats with the Mielikkix chatbot on mielikkix.ai, and any lead details you give it</td>
+              <td>Answer your questions and follow up if you ask us to</td>
+              <td>Legitimate interest (6(1)(f))</td>
+            </tr>
+            <tr>
+              <td>Server and security logs (IP address, timestamps, request data)</td>
+              <td>Security, abuse prevention, troubleshooting</td>
+              <td>Legitimate interest (6(1)(f))</td>
+            </tr>
+            <tr>
+              <td>Website usage statistics (Google Analytics)</td>
+              <td>Understand how the website is used and improve it</td>
+              <td>Consent (6(1)(a)), only if you click "Accept"</td>
+            </tr>
+            <tr>
+              <td>Product-update emails</td>
+              <td>Send news and tips</td>
+              <td>Consent (6(1)(a)), withdraw any time via the unsubscribe link</td>
+            </tr>
+            <tr>
+              <td>End-user data processed for our customers (see section 2)</td>
+              <td>Provide the chat, booking and voice services to the customer</td>
+              <td>Determined by the customer as controller; we act under the DPA</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>End-user data we process for customers</h3>
+      <ul>
+        <li>Chat messages sent to a business's chatbot, and the AI's replies, kept as conversation history for that business.</li>
+        <li>Lead details a visitor submits (name, email, phone, message), shared with that business.</li>
+        <li>Booking details (name, email, phone, requested appointment time) when a visitor books through Booking Assistant.</li>
+        <li>
+          For phone calls to a business's Voice Receptionist line: the call audio is transcribed to text by our telephony
+          provider to carry on the conversation; call transcripts are held only in memory for the duration of the call
+          today and are not currently written to a database.
+        </li>
+      </ul>
+    </section>
 
-      <section id="google-calendar-data">
-        <h2 class="font-display text-xl font-bold text-slate-900">Google Calendar data (Google API Services)</h2>
-        <p class="mt-3">
-          Booking Assistant lets a business connect their own Google Calendar so the assistant can
-          check real availability and create real appointments on that business's behalf. This is
-          entirely opt-in: a business only connects if they choose to use Booking Assistant, by
-          signing in with their own Google account through Google's own consent screen.
-        </p>
-        <p class="mt-3">When a business connects their calendar, we request exactly two Google Calendar scopes:</p>
-        <ul class="mt-2 list-disc space-y-2 pl-5">
-          <li>
-            <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm">calendar.freebusy</code> -- read-only
-            access to when the connected calendar is busy or free. We never read the contents,
-            titles, descriptions, or attendees of a business's existing calendar events -- only
-            whether a given time slot is already taken.
-          </li>
-          <li>
-            <code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm">calendar.events</code> -- lets
-            Mielikkix create new calendar events representing appointments booked through the
-            assistant, with the visitor who booked as an attendee (so Google emails them a
-            calendar invite directly). We do not read, modify, or delete events we did not
-            create.
-          </li>
-        </ul>
-        <p class="mt-3">
-          We also request basic account email (<code class="rounded bg-slate-100 px-1.5 py-0.5 text-sm">userinfo.email</code>)
-          solely so the business's own dashboard can show them which Google account is connected
-          (e.g. "Connected as: owner@theirbusiness.com").
-        </p>
-        <p class="mt-3">
-          <strong>How this data is stored:</strong> the OAuth refresh token Google issues is
-          encrypted at rest before it is ever written to our database, using a symmetric key held
-          only on our own servers. It is decrypted only in memory, immediately before making a
-          calendar API call on that business's behalf, and is never logged, emailed, or exposed to
-          any other business.
-        </p>
-        <p class="mt-3">
-          <strong>How this data is used:</strong> solely to check real-time availability and create
-          the specific appointments a business's own visitors book through that business's
-          Booking Assistant. We do not use Google user data for advertising, do not sell it, do not
-          share it with any third party except the Google Calendar API itself (to perform the
-          calendar action) and the business that owns the connection, and do not use it to train
-          any AI model.
-        </p>
-        <p class="mt-3">
-          A business can disconnect their calendar at any time from their own Settings page, which
-          deletes the stored refresh token immediately. Disconnecting does not delete
-          already-created calendar events (those are removed the normal way, directly in Google
-          Calendar).
-        </p>
-        <p class="mt-3">
-          Mielikkix's use and transfer of information received from Google APIs adheres to the
-          <a
-            href="https://developers.google.com/terms/api-services-user-data-policy"
-            class="text-indigo-600 underline"
-            target="_blank"
-            rel="noopener noreferrer">Google API Services User Data Policy</a
-          >, including the Limited Use requirements.
-        </p>
-      </section>
+    <section>
+      <h2>4. AI processing</h2>
+      <p>
+        Our products use large language models from external providers (see <a href="/subprocessors">Subprocessors</a>)
+        to generate replies, classify support messages, draft review responses and analyse websites. The chatbot and
+        voice assistant are AI systems, not people. They do not make decisions with legal or similarly significant
+        effects about you (GDPR art. 22). We do not use customer or end-user data to train AI models, and our
+        providers' API terms do not allow them to either <Fact value="{{VERIFY: confirm each provider's API data-use terms}}" />.
+      </p>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Other service providers we use</h2>
-        <p class="mt-3">
-          We rely on the following third-party services to operate Mielikkix. Each only receives
-          the data needed to perform its specific function:
-        </p>
-        <ul class="mt-2 list-disc space-y-2 pl-5">
-          <li><strong>Groq</strong> -- processes chat/voice messages to generate AI replies.</li>
-          <li><strong>Google Calendar API</strong> -- as described above, for Booking Assistant.</li>
-          <li><strong>Twilio</strong> -- carries and transcribes phone calls to a business's Voice Receptionist number.</li>
-          <li><strong>Resend</strong> -- delivers transactional emails (lead notifications, booking notifications, password resets).</li>
-        </ul>
-      </section>
+    <section id="google-calendar-data">
+      <h2>5. Google user data (Google API Services)</h2>
+      <h3>Google Calendar (Booking Assistant)</h3>
+      <p>
+        Booking Assistant lets a business connect their own Google Calendar so the assistant can check real
+        availability and create real appointments on that business's behalf. This is entirely opt-in: a business only
+        connects if they choose to use Booking Assistant, by signing in with their own Google account through Google's
+        own consent screen.
+      </p>
+      <p>When a business connects their calendar, we request exactly two Google Calendar scopes:</p>
+      <ul>
+        <li>
+          <code>calendar.freebusy</code> -- read-only access to when the connected calendar is busy or free. We never read
+          the contents, titles, descriptions, or attendees of a business's existing calendar events -- only whether a
+          given time slot is already taken.
+        </li>
+        <li>
+          <code>calendar.events</code> -- lets Mielikkix create new calendar events representing appointments booked
+          through the assistant, with the visitor who booked as an attendee (so Google emails them a calendar invite
+          directly). We do not read, modify, or delete events we did not create.
+        </li>
+      </ul>
+      <p>
+        We also request basic account email (<code>userinfo.email</code>) solely so the business's own dashboard can
+        show them which Google account is connected (e.g. "Connected as: owner@theirbusiness.com").
+      </p>
+      <h3>Google Business Profile (Review &amp; Reputation)</h3>
+      <p>
+        With <code>business.manage</code>, a business that connects its Google Business Profile lets us read the
+        reviews on its own locations and publish the replies that the business has approved. We don't change anything
+        else on the profile.
+      </p>
+      <h3>Google Analytics and Search Console (SEO Audit)</h3>
+      <p>
+        With the read-only scopes <code>analytics.readonly</code> and <code>webmasters.readonly</code>, a business that
+        connects them lets us read its own website traffic and search-performance figures to prioritise its SEO audit.
+        We never change its Analytics or Search Console settings.
+      </p>
+      <h3>How Google user data is stored and used</h3>
+      <p>
+        <strong>How this data is stored:</strong> the OAuth refresh token Google issues is encrypted at rest before it
+        is ever written to our database, using a symmetric key held only on our own servers. It is decrypted only in
+        memory, immediately before making an API call on that business's behalf, and is never logged, emailed, or
+        exposed to any other business.
+      </p>
+      <p>
+        <strong>How this data is used:</strong> solely to provide the feature the business connected it for (checking
+        availability and creating bookings, handling its reviews, or its SEO audit). We do not use Google user data for
+        advertising, do not sell it, do not share it with any third party except the Google API itself and the business
+        that owns the connection, and do not use it to train any AI model.
+      </p>
+      <p>
+        A business can disconnect any Google integration at any time from its own Settings page, which deletes the
+        stored refresh token immediately. Disconnecting Calendar does not delete already-created calendar events (those
+        are removed the normal way, directly in Google Calendar).
+      </p>
+      <p>
+        Mielikkix's use and transfer of information received from Google APIs adheres to the
+        {" "}<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>,
+        including the Limited Use requirements.
+      </p>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Data retention</h2>
-        <p class="mt-3">
-          Conversation history is retained according to a business's plan (from 7 days up to
-          unlimited, depending on tier). A business can delete their uploaded documents, FAQs, and
-          products at any time from their dashboard. Account deletion is currently handled by
-          contacting us directly (see "Contact us" below) rather than a self-serve control; we
-          delete the requesting business's account data once we've verified the request.
-        </p>
-      </section>
+    <section>
+      <h2>6. Who we share data with</h2>
+      <p>
+        We use carefully chosen service providers (subprocessors), each receiving only what it needs for its task. The
+        full, current list, with purpose and location, is on our <a href="/subprocessors">Subprocessors</a> page. We do
+        not sell personal data. We may also disclose data if the law requires it.
+      </p>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Security</h2>
-        <p class="mt-3">
-          Passwords are hashed, never stored in plain text. OAuth refresh tokens (including Google
-          Calendar tokens) are encrypted at rest. Dashboard sessions use httpOnly authentication
-          cookies. Access to a business's own data is scoped to that business only.
-        </p>
-      </section>
+    <section>
+      <h2>7. Transfers outside the EEA</h2>
+      <p>
+        Several providers (for example Groq, OpenAI, Anthropic, Google, Twilio and Resend) are based in the USA. When
+        personal data is transferred there, we rely on the EU-US Data Privacy Framework where the provider is
+        certified, or on the EU Standard Contractual Clauses <Fact value="{{VERIFY: mechanism per vendor}}" />. You can ask
+        us for a copy of the relevant safeguards.
+      </p>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Your rights</h2>
-        <p class="mt-3">
-          As Mielikkix AS is a Norwegian company, processing of personal data is governed by the
-          Norwegian Personal Data Act and the GDPR as it applies in Norway. Depending on your
-          relationship to us, you have the right to:
-        </p>
-        <ul class="mt-2 list-disc space-y-2 pl-5">
-          <li>Access the personal data we hold about you.</li>
-          <li>Correct inaccurate or incomplete personal data.</li>
-          <li>Request deletion of your personal data ("right to be forgotten").</li>
-          <li>Restrict or object to certain processing.</li>
-          <li>Receive your data in a portable format, where technically feasible.</li>
-          <li>Withdraw consent at any time, where processing is based on consent.</li>
-          <li>
-            Lodge a complaint with the Norwegian Data Protection Authority
-            (<a href="https://www.datatilsynet.no" class="text-indigo-600 underline" target="_blank" rel="noopener noreferrer">Datatilsynet</a>)
-            if you believe your data has been processed unlawfully.
-          </li>
-        </ul>
-        <p class="mt-3">
-          We process a business's account data to perform our contract with that business
-          (providing the chat/booking/voice platform), and we process an end visitor's data on
-          behalf of, and under instruction from, the business they contacted -- Mielikkix acts as
-          a data processor for that visitor data, and the business itself is the controller for
-          their own customers. To exercise any of the above rights, contact us at the address
-          below.
-        </p>
-      </section>
+    <section>
+      <h2>8. How long we keep data</h2>
+      <ul>
+        <li><strong>Account data:</strong> while your account is active; deleted within <Fact value="{{VERIFY: 30}}" /> days after you close it, except what we must keep by law.</li>
+        <li><strong>Accounting records:</strong> 5 years after the end of the financial year (Norwegian Bookkeeping Act).</li>
+        <li>
+          <strong>Conversation history and leads (processed for customers):</strong> kept while the business's account is
+          active, or until the business deletes it or asks us to. When the account is closed, it is deleted along with
+          the account. Your plan decides how much history you can see in the dashboard. Automatic deletion after a set
+          retention period is on the way <Fact value="{{VERIFY: max retention period}}" />.
+        </li>
+        <li><strong>Voice calls:</strong> transcripts are only held in memory during the call and are not stored.</li>
+        <li><strong>Demo requests:</strong> <Fact value="{{VERIFY: 12 months}}" /> after our last contact, unless you become a customer.</li>
+        <li><strong>Server logs:</strong> <Fact value="{{VERIFY: log retention}}" />.</li>
+        <li><strong>Google Analytics data:</strong> <Fact value="{{VERIFY: GA4 data retention setting, 2 or 14 months}}" />.</li>
+      </ul>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Changes to this policy</h2>
-        <p class="mt-3">
-          We may update this policy as Mielikkix's features change. Material changes will be
-          reflected by updating the "Last updated" date above.
-        </p>
-      </section>
+    <section>
+      <h2>9. Cookies</h2>
+      <p>
+        mielikkix.ai only uses necessary storage unless you accept analytics in our cookie banner. Google Analytics
+        loads only after you accept, and you can change your choice any time under "Cookie settings" in the footer. Fonts
+        are served from our own server. See the <a href="/cookies">Cookie Policy</a> for every cookie and storage key.
+      </p>
+    </section>
 
-      <section>
-        <h2 class="font-display text-xl font-bold text-slate-900">Contact us</h2>
-        <p class="mt-3">
-          Questions about this policy or your data: <a href="mailto:post@mielikkix.no" class="text-indigo-600 underline">post@mielikkix.no</a>.
-          Mielikkix AS, Norway (company registration in process; a registered postal address will
-          be added here once registration completes).
-        </p>
-      </section>
-    </div>
-  </section>
-</Layout>
+    <section>
+      <h2>10. Security</h2>
+      <p>
+        Passwords are hashed, never stored in plain text. OAuth refresh tokens are encrypted at rest. Traffic is
+        encrypted with TLS. Dashboard sessions use httpOnly cookies. Each business can only access its own data. More on
+        our <a href="/security">Security</a> page.
+      </p>
+    </section>
+
+    <section>
+      <h2>11. Your rights</h2>
+      <p>Under the GDPR and the Norwegian Personal Data Act you have the right to:</p>
+      <ul>
+        <li>access the personal data we hold about you;</li>
+        <li>have inaccurate data corrected;</li>
+        <li>have your data erased ("right to be forgotten");</li>
+        <li>restrict processing;</li>
+        <li>data portability (receive your data in a machine-readable format);</li>
+        <li>object to processing based on legitimate interest;</li>
+        <li>withdraw consent at any time, without affecting processing that took place before.</li>
+      </ul>
+      <p>
+        Email <a href={`mailto:${email}`}>{email}</a> to use any of these rights. We answer within one month, and may ask
+        you to verify your identity first. Account holders can currently close their account by emailing us; self-service
+        export and deletion in the dashboard are coming.
+      </p>
+      <p>
+        You can complain to the Norwegian Data Protection Authority,
+        {" "}<a href="https://www.datatilsynet.no" target="_blank" rel="noopener noreferrer">Datatilsynet</a>. In the UK you can
+        complain to the <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer">Information Commissioner's Office (ICO)</a>.
+      </p>
+    </section>
+
+    <section>
+      <h2>12. Children</h2>
+      <p>Our services are for businesses and not directed at children. Account holders must be 18 or older.</p>
+    </section>
+
+    <section>
+      <h2>13. Changes</h2>
+      <p>
+        We will update this policy when our services or the law change. The date and version at the top show the current
+        version. If a change is material, we will tell account holders by email or in the dashboard.
+      </p>
+    </section>
+  </Fragment>
+
+  <Fragment slot="no">
+    <section>
+      <p>
+        Denne erklæringen forklarer hvilke personopplysninger Mielikkix samler inn, hvorfor, på hvilket rettslig
+        grunnlag, hvem vi deler dem med, hvor lenge vi lagrer dem og hvilke rettigheter du har. Den gjelder nettstedet
+        mielikkix.ai, dashbordet app.mielikkix.ai, API-et vårt, Mielikkix-chatwidgeten og AI-agentene våre.
+      </p>
+    </section>
+
+    <section>
+      <h2>1. Hvem vi er</h2>
+      <p>
+        Behandlingsansvarlig er <strong>{COMPANY.legalName}</strong>, org.nr. <Fact value={COMPANY.orgNumber} />,
+        {" "}<Fact value={COMPANY.address} />, Norge. Kontakt for alle personvernspørsmål:
+        {" "}<a href={`mailto:${email}`}>{email}</a>.
+      </p>
+    </section>
+
+    <section>
+      <h2>2. Våre to roller: behandlingsansvarlig og databehandler</h2>
+      <ul>
+        <li>
+          <strong>Behandlingsansvarlig</strong> for opplysninger om våre egne kunder (bedrifter og deres dashbordbrukere),
+          besøkende på mielikkix.ai, personer som ber om en demo, og personer som chatter med Mielikkix-chatboten på vårt
+          eget nettsted.
+        </li>
+        <li>
+          <strong>Databehandler</strong> for opplysninger om kundenes egne sluttbrukere: personer som chatter med en kundes
+          widget, ringer en kundes Voice Receptionist-nummer eller booker via en kundes Booking Assistant. Bedriften du
+          kontaktet er behandlingsansvarlig for disse opplysningene, og bedriftens personvernerklæring gjelder. Vi
+          behandler dem bare etter bedriftens instrukser i henhold til vår <a href="/dpa">databehandleravtale</a>.
+          Send henvendelser om slike opplysninger til bedriften. Kontakter du oss, videresender vi henvendelsen.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>3. Hva vi samler inn, hvorfor og rettslig grunnlag</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Opplysninger</th><th>Formål</th><th>Rettslig grunnlag (GDPR art. 6)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Navn, e-post, hashet passord, bedriftsprofil, opplastede FAQ-er/dokumenter/produkter, abonnement</td>
+              <td>Opprette og drifte kontoen din og levere tjenesten</td>
+              <td>Avtale (6(1)(b))</td>
+            </tr>
+            <tr>
+              <td>Fakturerings- og regnskapsopplysninger</td>
+              <td>Regnskap</td>
+              <td>Rettslig forpliktelse (6(1)(c)), bokføringsloven</td>
+            </tr>
+            <tr>
+              <td>Demoforespørsler og henvendelser (navn, e-post, telefon, bedrift, melding)</td>
+              <td>Svare deg og avtale en demo</td>
+              <td>Tiltak før avtaleinngåelse (6(1)(b)) / berettiget interesse (6(1)(f))</td>
+            </tr>
+            <tr>
+              <td>Samtaler med Mielikkix-chatboten på mielikkix.ai, og kontaktopplysninger du oppgir der</td>
+              <td>Svare på spørsmålene dine og følge opp hvis du ber om det</td>
+              <td>Berettiget interesse (6(1)(f))</td>
+            </tr>
+            <tr>
+              <td>Server- og sikkerhetslogger (IP-adresse, tidspunkter, forespørselsdata)</td>
+              <td>Sikkerhet, forebygging av misbruk, feilsøking</td>
+              <td>Berettiget interesse (6(1)(f))</td>
+            </tr>
+            <tr>
+              <td>Bruksstatistikk for nettstedet (Google Analytics)</td>
+              <td>Forstå hvordan nettstedet brukes og forbedre det</td>
+              <td>Samtykke (6(1)(a)), bare hvis du klikker «Godta»</td>
+            </tr>
+            <tr>
+              <td>E-post med produktnyheter</td>
+              <td>Sende nyheter og tips</td>
+              <td>Samtykke (6(1)(a)), kan trekkes tilbake når som helst via avmeldingslenken</td>
+            </tr>
+            <tr>
+              <td>Sluttbrukeropplysninger vi behandler for kunder (se punkt 2)</td>
+              <td>Levere chat-, booking- og taletjenestene til kunden</td>
+              <td>Fastsettes av kunden som behandlingsansvarlig; vi handler etter databehandleravtalen</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Sluttbrukeropplysninger vi behandler for kunder</h3>
+      <ul>
+        <li>Chatmeldinger sendt til en bedrifts chatbot, og AI-ens svar, lagret som samtalehistorikk for bedriften.</li>
+        <li>Kontaktopplysninger en besøkende sender inn (navn, e-post, telefon, melding), som deles med bedriften.</li>
+        <li>Bookingopplysninger (navn, e-post, telefon, ønsket tidspunkt) når en besøkende booker via Booking Assistant.</li>
+        <li>
+          For telefonsamtaler til en bedrifts Voice Receptionist-linje: samtalelyden gjøres om til tekst av vår
+          telefonileverandør for å føre samtalen; transkripsjonen holdes kun i minnet mens samtalen pågår og lagres i dag
+          ikke i en database.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. AI-behandling</h2>
+      <p>
+        Produktene våre bruker store språkmodeller fra eksterne leverandører (se <a href="/subprocessors">Underleverandører</a>)
+        for å lage svar, klassifisere supporthenvendelser, lage utkast til svar på anmeldelser og analysere nettsteder.
+        Chatboten og taleassistenten er AI-systemer, ikke mennesker. De tar ikke avgjørelser som har rettsvirkning eller
+        tilsvarende betydelig virkning for deg (GDPR art. 22). Vi bruker ikke kunde- eller sluttbrukerdata til å trene
+        AI-modeller, og leverandørenes API-vilkår tillater heller ikke dem å gjøre det <Fact value="{{VERIFY: bekreft hver leverandørs API-vilkår for databruk}}" />.
+      </p>
+    </section>
+
+    <section>
+      <h2>5. Opplysninger fra Google (Google API Services)</h2>
+      <h3>Google Kalender (Booking Assistant)</h3>
+      <p>
+        Booking Assistant lar en bedrift koble til sin egen Google Kalender slik at assistenten kan sjekke reell
+        tilgjengelighet og opprette avtaler på vegne av bedriften. Dette er helt frivillig: en bedrift kobler bare til hvis
+        den velger å bruke Booking Assistant, ved å logge inn med sin egen Google-konto via Googles eget samtykkebilde.
+      </p>
+      <p>Når en bedrift kobler til kalenderen, ber vi om nøyaktig to Google Kalender-tilganger:</p>
+      <ul>
+        <li>
+          <code>calendar.freebusy</code> – kun lesetilgang til når kalenderen er opptatt eller ledig. Vi leser aldri innhold,
+          titler, beskrivelser eller deltakere i bedriftens eksisterende avtaler, bare om et tidspunkt allerede er opptatt.
+        </li>
+        <li>
+          <code>calendar.events</code> – lar Mielikkix opprette nye kalenderavtaler for bookinger gjort via assistenten, med
+          den besøkende som deltaker (slik at Google sender dem en kalenderinvitasjon direkte). Vi leser, endrer eller
+          sletter ikke avtaler vi ikke har opprettet selv.
+        </li>
+      </ul>
+      <p>
+        Vi ber også om kontoens e-postadresse (<code>userinfo.email</code>) kun for å vise bedriften hvilken Google-konto
+        som er tilkoblet i dashbordet.
+      </p>
+      <h3>Google Bedriftsprofil (Review &amp; Reputation)</h3>
+      <p>
+        Med <code>business.manage</code> lar en bedrift som kobler til sin Google Bedriftsprofil oss lese anmeldelsene på
+        egne lokasjoner og publisere svar som bedriften har godkjent. Vi endrer ikke noe annet på profilen.
+      </p>
+      <h3>Google Analytics og Search Console (SEO-revisjon)</h3>
+      <p>
+        Med lesetilgangene <code>analytics.readonly</code> og <code>webmasters.readonly</code> lar en bedrift som kobler
+        dem til oss lese nettstedets egen trafikk og søkeytelse for å prioritere SEO-revisjonen. Vi endrer aldri
+        innstillinger i Analytics eller Search Console.
+      </p>
+      <h3>Lagring og bruk av opplysninger fra Google</h3>
+      <p>
+        OAuth-tokenet Google utsteder krypteres før det lagres i databasen, med en nøkkel som bare finnes på våre egne
+        servere. Det dekrypteres kun i minnet rett før et API-kall på bedriftens vegne, og blir aldri logget, sendt på
+        e-post eller vist til andre bedrifter.
+      </p>
+      <p>
+        Opplysningene brukes kun til funksjonen bedriften koblet dem til for (tilgjengelighet og booking, anmeldelser
+        eller SEO-revisjon). Vi bruker dem ikke til reklame, selger dem ikke, deler dem ikke med andre enn Googles eget
+        API og bedriften som eier tilkoblingen, og bruker dem ikke til å trene AI-modeller.
+      </p>
+      <p>
+        En bedrift kan når som helst koble fra en Google-integrasjon under Innstillinger, og da slettes det lagrede
+        tokenet umiddelbart. Å koble fra kalenderen sletter ikke avtaler som allerede er opprettet.
+      </p>
+      <p>
+        Mielikkix sin bruk og overføring av informasjon mottatt fra Google API-er følger
+        {" "}<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>,
+        inkludert kravene om begrenset bruk (Limited Use).
+      </p>
+    </section>
+
+    <section>
+      <h2>6. Hvem vi deler opplysninger med</h2>
+      <p>
+        Vi bruker nøye utvalgte tjenesteleverandører (underleverandører), som hver bare får det de trenger for sin
+        oppgave. Den fullstendige, oppdaterte listen med formål og plassering finner du under
+        {" "}<a href="/subprocessors">Underleverandører</a>. Vi selger ikke personopplysninger. Vi kan også utlevere
+        opplysninger når loven krever det.
+      </p>
+    </section>
+
+    <section>
+      <h2>7. Overføring ut av EØS</h2>
+      <p>
+        Flere leverandører (for eksempel Groq, OpenAI, Anthropic, Google, Twilio og Resend) holder til i USA. Ved
+        overføring dit bygger vi på EU–US Data Privacy Framework der leverandøren er sertifisert, ellers på EUs
+        standardkontraktsbestemmelser <Fact value="{{VERIFY: overføringsgrunnlag per leverandør}}" />. Du kan be oss om en
+        kopi av garantiene.
+      </p>
+    </section>
+
+    <section>
+      <h2>8. Hvor lenge vi lagrer opplysninger</h2>
+      <ul>
+        <li><strong>Kontoopplysninger:</strong> så lenge kontoen er aktiv; slettes innen <Fact value="{{VERIFY: 30}}" /> dager etter at du avslutter den, unntatt det loven krever at vi beholder.</li>
+        <li><strong>Regnskapsmateriale:</strong> 5 år etter regnskapsårets slutt (bokføringsloven).</li>
+        <li>
+          <strong>Samtalehistorikk og leads (behandlet for kunder):</strong> lagres mens bedriftens konto er aktiv, eller
+          til bedriften sletter dem eller ber oss om det. Når kontoen avsluttes, slettes de sammen med den. Abonnementet
+          avgjør hvor mye historikk som vises i dashbordet. Automatisk sletting etter en fast lagringsperiode er på vei
+          {" "}<Fact value="{{VERIFY: maks lagringstid}}" />.
+        </li>
+        <li><strong>Telefonsamtaler:</strong> transkripsjoner holdes kun i minnet under samtalen og lagres ikke.</li>
+        <li><strong>Demoforespørsler:</strong> <Fact value="{{VERIFY: 12 måneder}}" /> etter siste kontakt, med mindre du blir kunde.</li>
+        <li><strong>Serverlogger:</strong> <Fact value="{{VERIFY: lagringstid for logger}}" />.</li>
+        <li><strong>Google Analytics-data:</strong> <Fact value="{{VERIFY: GA4-lagringsinnstilling, 2 eller 14 måneder}}" />.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9. Informasjonskapsler</h2>
+      <p>
+        mielikkix.ai bruker bare nødvendig lagring med mindre du godtar analyse i banneret vårt. Google Analytics lastes
+        først når du har godtatt, og du kan endre valget når som helst under «Innstillinger for informasjonskapsler» nederst
+        på siden. Skrifttyper leveres fra vår egen server. Se <a href="/cookies">Informasjonskapsler</a> for alle
+        informasjonskapsler og lagringsnøkler.
+      </p>
+    </section>
+
+    <section>
+      <h2>10. Sikkerhet</h2>
+      <p>
+        Passord hashes og lagres aldri i klartekst. OAuth-tokener krypteres. Trafikk krypteres med TLS.
+        Dashbordøkter bruker httpOnly-informasjonskapsler. Hver bedrift har bare tilgang til egne data. Les mer under
+        {" "}<a href="/security">Sikkerhet</a>.
+      </p>
+    </section>
+
+    <section>
+      <h2>11. Dine rettigheter</h2>
+      <p>Etter GDPR og personopplysningsloven har du rett til å:</p>
+      <ul>
+        <li>få innsyn i opplysningene vi har om deg;</li>
+        <li>få rettet uriktige opplysninger;</li>
+        <li>få opplysningene slettet («retten til å bli glemt»);</li>
+        <li>kreve begrenset behandling;</li>
+        <li>dataportabilitet (få opplysningene i et maskinlesbart format);</li>
+        <li>protestere mot behandling basert på berettiget interesse;</li>
+        <li>trekke tilbake samtykke når som helst, uten at det påvirker behandling som skjedde før.</li>
+      </ul>
+      <p>
+        Send e-post til <a href={`mailto:${email}`}>{email}</a> for å bruke rettighetene dine. Vi svarer innen én måned, og
+        kan be deg bekrefte identiteten din først. Kontoinnehavere kan i dag avslutte kontoen ved å sende oss e-post;
+        selvbetjent eksport og sletting i dashbordet kommer.
+      </p>
+      <p>
+        Du kan klage til <a href="https://www.datatilsynet.no" target="_blank" rel="noopener noreferrer">Datatilsynet</a>.
+        I Storbritannia kan du klage til <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer">Information Commissioner's Office (ICO)</a>.
+      </p>
+    </section>
+
+    <section>
+      <h2>12. Barn</h2>
+      <p>Tjenestene våre er for bedrifter og ikke rettet mot barn. Kontoinnehavere må være 18 år eller eldre.</p>
+    </section>
+
+    <section>
+      <h2>13. Endringer</h2>
+      <p>
+        Vi oppdaterer erklæringen når tjenestene eller regelverket endres. Dato og versjon øverst viser gjeldende versjon.
+        Ved vesentlige endringer varsler vi kontoinnehavere på e-post eller i dashbordet.
+      </p>
+    </section>
+  </Fragment>
+</LegalLayout>

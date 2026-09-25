@@ -1,4 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap");
+/*
+ * Open Sans is self-hosted (bundled from @fontsource-variable, served from our own
+ * origin) instead of fonts.googleapis.com -- loading it from Google sent every
+ * visitor's IP to Google before any consent (GDPR; see /cookies).
+ */
+@import "@fontsource-variable/open-sans/wght.css";
 @import "tailwindcss";
 
 /*
@@ -44,7 +49,7 @@
 }
 
 :root {
-  --font-body: Colfax, colfax-web, "Proxima Nova", "Open Sans", "Gill Sans MT", "Gill Sans", Corbel, Arial, sans-serif;
+  --font-body: Colfax, colfax-web, "Proxima Nova", "Open Sans Variable", "Open Sans", "Gill Sans MT", "Gill Sans", Corbel, Arial, sans-serif;
 }
 
 body {

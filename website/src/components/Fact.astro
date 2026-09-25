@@ -1,0 +1,11 @@
+---
+// Renders a fact from src/config/legal.ts. Unresolved "{{VERIFY: ...}}" values
+// are highlighted (see .legal-page .verify in LegalLayout) so they're visible
+// in review and impossible to miss before launch.
+interface Props {
+  value: string;
+}
+const { value } = Astro.props;
+---
+
+{value.includes("{{VERIFY") ? <mark class="verify">{value}</mark> : value}

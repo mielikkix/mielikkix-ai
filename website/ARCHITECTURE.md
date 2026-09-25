@@ -18,7 +18,7 @@ public routes to the dashboard app.
 |---|---|---|
 | Framework | [Astro](https://astro.build) (static output) | Ships zero JS by default — every page here is static HTML/CSS, only the demo form has a few lines of vanilla JS. Best-in-class Lighthouse/Core Web Vitals scores, which directly affects Google ranking for local/small-business search. |
 | Styling | Tailwind CSS v4 (via `@tailwindcss/vite`) | Same utility approach as `apps/dashboard/`, so styling knowledge transfers. Tailwind v4 needs no `tailwind.config.js` — theme tokens (colors, etc.) come from Tailwind's default palette plus a couple of custom CSS variables in `src/styles/global.css`. |
-| Fonts | Open Sans (Google Fonts), loaded via `@import` in `global.css` — the only font actually fetched; used for both headings and body | Free, fast, no build step needed. |
+| Fonts | Open Sans, self-hosted via `@fontsource-variable/open-sans` (`@import` in `global.css`), used for both headings and body | Served from our own origin: loading from fonts.googleapis.com sent every visitor's IP to Google before consent (GDPR). |
 | SEO | `@astrojs/sitemap` + per-page meta/OG/Twitter tags in `Layout.astro` + `public/robots.txt` | Sitemap and robots.txt are the baseline for organic discovery; per-page `<title>`/`<meta description>` drive click-through from search results. |
 | Hosting (actual) | Hostinger shared hosting | The domain `mielikkix.ai` is registered and hosted on Hostinger; since this site builds to plain static files with no server process, the shared hosting plan already in place for the domain is sufficient — deploy by uploading `dist/` to `public_html` (no VPS needed for this piece). Vercel/Netlify/Cloudflare Pages would also work (see note below) but aren't the current plan. |
 
@@ -105,12 +105,23 @@ let the two drift.
 - **Analytics scaffolding is in `Layout.astro` but inactive** — a Plausible snippet is wired up
   behind `PUBLIC_PLAUSIBLE_DOMAIN`; it renders nothing until that env var is set to a real domain
   registered with a Plausible account. Sign up, add the var to `.env.production`, redeploy.
-- **GA4 scaffolding is also in `Layout.astro` but inactive** — a gtag snippet (loader script +
-  `public/ga4-init.js`, kept external for the same CSP reason as the `/demo/*.js` files) is wired
-  up behind `PUBLIC_GA_MEASUREMENT_ID` (see `.env.example`); it renders nothing until that env var
-  is set to a real GA4 Measurement ID. The CSP in `public/.htaccess` already allowlists
-  `www.googletagmanager.com` (script-src) and `www.google-analytics.com`/`www.googletagmanager.com`
-  (connect-src) for when it's turned on. website/-only — mielikkix.com/.no are not wired up.
+- **GA4 is consent-gated (GDPR / ekomloven § 2-7b)** — `components/ConsentBanner.astro` (in
+  `Layout.astro`) + `src/lib/consent.ts`. Nothing is requested from Google until the visitor clicks
+  "Accept all" (or enables Analytics in "Settings"); only then is the gtag loader injected, with
+  Consent Mode v2 defaults all `denied` and only `analytics_storage` upgraded. The choice is stored
+  in the first-party `mx_consent` cookie (12 months, carries `CONSENT_VERSION` from
+  `src/config/legal.ts` — bump it to re-ask everyone). The footer's "Cookie settings" button
+  (`[data-consent-open]`) reopens the banner; rejecting/withdrawing sets `ga-disable-<ID>` and deletes
+  `_ga*` cookies. Banner strings live in `footer.json`'s `CONSENT` block (the always-loaded
+  namespace). Needs `PUBLIC_GA_MEASUREMENT_ID`; unset = no GA at all. CSP in `public/.htaccess`
+  allowlists `*.google-analytics.com`/`*.analytics.google.com`/`*.googletagmanager.com` (GA4's
+  EU hits go to `region1.google-analytics.com`). website/-only — mielikkix.com/.no are not wired up.
+- **Legal pages** — `/privacy`, `/terms`, `/dpa`, `/subprocessors`, `/cookies`, `/security`, all on
+  `components/LegalLayout.astro`, which takes a full English and a full Norwegian body (named slots
+  `en`/`no`) and shows the one matching the stored language. The shared facts (company details,
+  document versions, the subprocessor list, the cookie table) live in `src/config/legal.ts`: update
+  them there, not per page. Unconfirmed facts are `{{VERIFY: …}}` values, rendered highlighted by
+  `components/Fact.astro`. Resolve them all, and get a lawyer's review, before launch.
 - **No testimonials/social proof yet** — the home page has a placeholder social-proof strip
   ("Built for retail shops, clinics, restaurants...") instead of real customer logos/quotes, since
   Mielikkix doesn't have paying customers yet. Replace once available — don't fabricate

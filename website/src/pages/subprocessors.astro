@@ -1,0 +1,109 @@
+---
+import LegalLayout from "../components/LegalLayout.astro";
+import Fact from "../components/Fact.astro";
+import { SUBPROCESSORS, CUSTOMER_CONNECTED_SERVICES, COMPANY } from "../config/legal";
+
+// Rows come from src/config/legal.ts SUBPROCESSORS -- update the list there.
+const t = {
+  en: { vendor: "Vendor", purpose: "Purpose", data: "Data processed", location: "Location", transfer: "Transfer mechanism" },
+  no: { vendor: "Leverandør", purpose: "Formål", data: "Opplysninger", location: "Plassering", transfer: "Overføringsgrunnlag" },
+};
+---
+
+<LegalLayout
+  doc="subprocessors"
+  titleKey="SUBPROCESSORS"
+  description="The third-party service providers Mielikkix uses to process personal data, what they do, where they are and on what transfer basis."
+>
+  <Fragment slot="en">
+    <section>
+      <p>
+        These are the service providers (subprocessors) that process personal data on our behalf. We give each one only
+        the data it needs, and each is bound by a data processing agreement. Customers with a
+        {" "}<a href="/dpa">Data Processing Agreement</a> will be told before we add or replace a subprocessor. To be
+        notified, email <a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a>.
+      </p>
+    </section>
+    <section>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>{t.en.vendor}</th><th>{t.en.purpose}</th><th>{t.en.data}</th><th>{t.en.location}</th><th>{t.en.transfer}</th></tr>
+          </thead>
+          <tbody>
+            {SUBPROCESSORS.map((s) => (
+              <tr>
+                <td><strong>{s.name}</strong></td>
+                <td>{s.purpose.en}</td>
+                <td>{s.data.en}</td>
+                <td><Fact value={s.location} /></td>
+                <td><Fact value={s.transfer} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>Services a business connects itself</h2>
+      <p>
+        If a business connects its own account with one of these services, data flows between Mielikkix and that
+        account on the business's instructions. They are the business's own providers, not our subprocessors:
+      </p>
+      <ul>{CUSTOMER_CONNECTED_SERVICES.map((s) => <li>{s}</li>)}</ul>
+    </section>
+    <section>
+      <h2>On our own website</h2>
+      <p>
+        Google Analytics (Google Ireland Ltd / Google LLC) runs on mielikkix.ai only if you accept analytics cookies. See
+        the <a href="/cookies">Cookie Policy</a>.
+      </p>
+    </section>
+  </Fragment>
+
+  <Fragment slot="no">
+    <section>
+      <p>
+        Dette er tjenesteleverandørene (underleverandørene) som behandler personopplysninger på våre vegne. Hver av dem
+        får bare de opplysningene de trenger, og alle er bundet av en databehandleravtale. Kunder med en
+        {" "}<a href="/dpa">databehandleravtale</a> varsles før vi legger til eller bytter en underleverandør. Send e-post til
+        {" "}<a href={`mailto:${COMPANY.privacyEmail}`}>{COMPANY.privacyEmail}</a> for å få varsler.
+      </p>
+    </section>
+    <section>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>{t.no.vendor}</th><th>{t.no.purpose}</th><th>{t.no.data}</th><th>{t.no.location}</th><th>{t.no.transfer}</th></tr>
+          </thead>
+          <tbody>
+            {SUBPROCESSORS.map((s) => (
+              <tr>
+                <td><strong>{s.name}</strong></td>
+                <td>{s.purpose.no}</td>
+                <td>{s.data.no}</td>
+                <td><Fact value={s.location} /></td>
+                <td><Fact value={s.transfer} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section>
+      <h2>Tjenester en bedrift kobler til selv</h2>
+      <p>
+        Hvis en bedrift kobler sin egen konto hos en av disse tjenestene til Mielikkix, går data mellom Mielikkix og den
+        kontoen etter bedriftens instrukser. De er bedriftens egne leverandører, ikke våre underleverandører:
+      </p>
+      <ul>{CUSTOMER_CONNECTED_SERVICES.map((s) => <li>{s}</li>)}</ul>
+    </section>
+    <section>
+      <h2>På vårt eget nettsted</h2>
+      <p>
+        Google Analytics (Google Ireland Ltd / Google LLC) kjører på mielikkix.ai bare hvis du godtar
+        analyse-informasjonskapsler. Se <a href="/cookies">Informasjonskapsler</a>.
+      </p>
+    </section>
+  </Fragment>
+</LegalLayout>

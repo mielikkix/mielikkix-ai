@@ -38,6 +38,21 @@ export function AdvancedSection({ form, set, advancedMut }: Props) {
             privacy and cookie notices: it stores a session ID in the visitor's browser (sessionStorage) only once they
             open the chat.
           </p>
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-slate-300"
+              checked={!!form.require_chat_consent}
+              onChange={set('require_chat_consent')}
+            />
+            <span>
+              <span className="block text-base font-medium text-slate-700">Ask visitors to agree before chatting</span>
+              <span className="block text-sm text-slate-500">
+                The widget shows an "I agree / Cancel" screen explaining that they're talking to an AI, how their
+                messages are handled, and links to the privacy policies. The chat only starts after they agree.
+              </span>
+            </span>
+          </label>
           <div>
             <label htmlFor="retention" className="block text-base font-medium text-slate-700 mb-1">
               Delete visitor conversations after

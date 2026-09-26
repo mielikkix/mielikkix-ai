@@ -1,7 +1,7 @@
 from typing import Optional, Dict, List
 from urllib.parse import urlparse
 from uuid import UUID
-from pydantic import BaseModel, StrictInt, field_validator
+from pydantic import BaseModel, StrictBool, StrictInt, field_validator
 
 from ..core.legal import (
     CONVERSATION_RETENTION_DEFAULT_DAYS,
@@ -58,6 +58,7 @@ class BusinessSettingsOut(BaseModel):
     llm_model: Optional[str]
     privacy_policy_url: Optional[str] = None
     conversation_retention_days: int = CONVERSATION_RETENTION_DEFAULT_DAYS
+    require_chat_consent: bool = False
 
     class Config:
         from_attributes = True
@@ -69,6 +70,8 @@ class PublicBusinessSettingsOut(BaseModel):
     primary_color: str
     # Linked from the widget's AI notice; null = only Mielikkix's own link shows.
     privacy_policy_url: Optional[str] = None
+    # True = the widget asks the visitor to agree before the chat starts.
+    require_chat_consent: bool = False
 
     class Config:
         from_attributes = True
@@ -91,6 +94,7 @@ class BusinessSettingsUpdate(BaseModel):
     # "" clears it (exclude_none would skip a None).
     privacy_policy_url: Optional[str] = None
     conversation_retention_days: Optional[StrictInt] = None
+    require_chat_consent: Optional[StrictBool] = None
 
     @field_validator("privacy_policy_url")
     @classmethod

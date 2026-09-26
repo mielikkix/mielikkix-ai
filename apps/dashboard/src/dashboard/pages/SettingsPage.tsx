@@ -37,7 +37,10 @@ export function SettingsPage() {
   useEffect(() => { if (data) setForm(data) }, [data])
 
   const set = (k: keyof Settings) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }))
+    setForm((f) => ({
+      ...f,
+      [k]: e.target instanceof HTMLInputElement && e.target.type === 'checkbox' ? e.target.checked : e.target.value,
+    }))
 
   // Each section saves only the fields it owns (matching the
   // languages/business-hours mutations further below, which already did
@@ -64,6 +67,7 @@ export function SettingsPage() {
         // "" clears it server-side; the select stores a string, the API wants an int.
         privacy_policy_url: form.privacy_policy_url ?? '',
         conversation_retention_days: Number(form.conversation_retention_days ?? 90),
+        require_chat_consent: !!form.require_chat_consent,
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings'] }),
   })

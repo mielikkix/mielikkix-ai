@@ -36,6 +36,12 @@ export interface WidgetStrings {
   aiNotice: string
   privacyLink: string
   mielikkixPrivacyLink: string
+  // Optional per-business "I agree" screen shown before the chat starts.
+  consentTitle: string
+  consentPoints: string[]
+  consentPrivacyIntro: string
+  consentAgree: string
+  consentCancel: string
 }
 
 const EN: WidgetStrings = {
@@ -70,6 +76,15 @@ const EN: WidgetStrings = {
   aiNotice: "You're chatting with an AI assistant, not a person. It can make mistakes.",
   privacyLink: 'Privacy',
   mielikkixPrivacyLink: 'How Mielikkix handles data',
+  consentTitle: "By clicking 'I agree' and using this chat, you confirm that:",
+  consentPoints: [
+    "You understand you're chatting with an AI assistant, not a person, and its answers can be wrong.",
+    'Your messages are stored and processed by this business and its service providers, including AI providers, to answer you.',
+    "You won't share sensitive information such as health details, passwords or payment card numbers.",
+  ],
+  consentPrivacyIntro: 'You have read the privacy information:',
+  consentAgree: 'I agree',
+  consentCancel: 'Cancel',
 }
 
 const WIDGET_STRINGS: Record<string, WidgetStrings> = {
@@ -106,6 +121,15 @@ const WIDGET_STRINGS: Record<string, WidgetStrings> = {
     aiNotice: 'Du chatter med en AI-assistent, ikke et menneske. Den kan ta feil.',
     privacyLink: 'Personvern',
     mielikkixPrivacyLink: 'Slik behandler Mielikkix data',
+    consentTitle: "Ved å klikke «Jeg godtar» og bruke denne chatten bekrefter du at:",
+    consentPoints: [
+      'Du forstår at du chatter med en AI-assistent, ikke et menneske, og at svarene kan være feil.',
+      'Meldingene dine lagres og behandles av denne bedriften og dens tjenesteleverandører, inkludert AI-leverandører, for å svare deg.',
+      'Du ikke deler sensitiv informasjon som helseopplysninger, passord eller kortnumre.',
+    ],
+    consentPrivacyIntro: 'Du har lest personverninformasjonen:',
+    consentAgree: 'Jeg godtar',
+    consentCancel: 'Avbryt',
   },
 }
 

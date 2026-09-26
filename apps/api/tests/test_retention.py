@@ -65,6 +65,28 @@ def test_privacy_url_is_public_and_clearable(client, business):
     assert client.get(f"/api/businesses/{bid}/public-settings").json()["privacy_policy_url"] is None
 
 
+def test_chat_consent_off_by_default_and_per_business(client, signup):
+    on, off = signup(), signup()
+    for acct in (on, off):
+        assert client.get("/api/businesses/me/settings", headers=acct["headers"]).json()["require_chat_consent"] is False
+        assert client.get(f"/api/businesses/{acct['business_id']}/public-settings").json()["require_chat_consent"] is False
+    resp = client.patch("/api/businesses/me/settings", json={"require_chat_consent": True}, headers=on["headers"])
+    assert resp.status_code == 200 and resp.json()["require_chat_consent"] is True
+    assert client.get(f"/api/businesses/{on['business_id']}/public-settings").json()["require_chat_consent"] is True
+    assert client.get(f"/api/businesses/{off['business_id']}/public-settings").json()["require_chat_consent"] is False
+    # Saving other settings doesn't reset it.
+    client.patch("/api/businesses/me/settings", json={"contact_phone": "+4712345678"}, headers=on["headers"])
+    assert client.get(f"/api/businesses/{on['business_id']}/public-settings").json()["require_chat_consent"] is True
+    client.patch("/api/businesses/me/settings", json={"require_chat_consent": False}, headers=on["headers"])
+    assert client.get(f"/api/businesses/{on['business_id']}/public-settings").json()["require_chat_consent"] is False
+
+
+@pytest.mark.parametrize("bad", ["yes", 1, "true"])
+def test_chat_consent_must_be_boolean(client, business, bad):
+    resp = client.patch("/api/businesses/me/settings", json={"require_chat_consent": bad}, headers=business["headers"])
+    assert resp.status_code == 422
+
+
 # --- nightly retention ------------------------------------------------------------------
 
 def test_expired_conversations_deleted_per_tenant_setting(client, db_session, signup):

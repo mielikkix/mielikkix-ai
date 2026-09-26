@@ -51,6 +51,7 @@ export interface Settings {
   llm_model: string | null
   privacy_policy_url: string | null
   conversation_retention_days: number
+  require_chat_consent: boolean
 }
 
 // Small curated list rather than every ISO code -- keeps the picker usable;

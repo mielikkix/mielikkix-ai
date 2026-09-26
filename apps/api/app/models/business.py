@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, JSON, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, JSON, ForeignKey, false
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from ..core.database import Base
@@ -81,6 +81,9 @@ class BusinessSettings(Base):
     # Days an end-user conversation is kept after its last activity before
     # the nightly job deletes it (core/legal.py CONVERSATION_RETENTION_*).
     conversation_retention_days = Column(Integer, nullable=False, default=90, server_default="90")
+    # Opt-in: the widget shows an "I agree / Cancel" screen before the chat
+    # starts (and before it stores anything in the visitor's browser).
+    require_chat_consent = Column(Boolean, nullable=False, default=False, server_default=false())
 
     business = relationship("Business", back_populates="settings", foreign_keys=[business_id],
                             primaryjoin="BusinessSettings.business_id == Business.id")

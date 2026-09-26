@@ -51,6 +51,7 @@ def get_public_settings(business_id: str, db: Session = Depends(get_db)):
         languages=languages,
         primary_color=primary_color,
         privacy_policy_url=s.privacy_policy_url if s else None,
+        require_chat_consent=bool(s.require_chat_consent) if s else False,
     )
 
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MessageCircle, X } from 'lucide-react'
-import { ChatWindow } from './ChatWindow'
+import { ChatWindow, MIELIKKIX_PRIVACY_URL } from './ChatWindow'
+import { ConsentGate } from './ConsentGate'
 import { widgetStrings } from './i18n'
 
 interface Props {
@@ -13,6 +14,17 @@ interface Props {
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_WELCOME_MESSAGE = 'Hi! How can I help you today?'
+// Written only once the visitor clicks "I agree", so they aren't asked again
+// on every page of the same visit. Holds the business ID it was given for.
+const CONSENT_KEY = 'mielikkix_chat_consent'
+
+function readConsent(businessId: string): boolean {
+  try {
+    return sessionStorage.getItem(CONSENT_KEY) === businessId
+  } catch {
+    return false
+  }
+}
 
 export function Widget({
   businessId,
@@ -25,6 +37,10 @@ export function Widget({
   const [fetchedWelcomeMessage, setFetchedWelcomeMessage] = useState<string | null>(null)
   const [fetchedPrimaryColor, setFetchedPrimaryColor] = useState<string | null>(null)
   const [privacyPolicyUrl, setPrivacyPolicyUrl] = useState<string | null>(null)
+  // null until public-settings has loaded -- the chat isn't shown before then,
+  // so a business that requires consent never flashes an ungated chat.
+  const [requireConsent, setRequireConsent] = useState<boolean | null>(null)
+  const [agreed, setAgreed] = useState(() => readConsent(businessId))
   // The business's first configured language -- not the visitor's browser locale,
   // which has no relationship to what a visitor is about to type. Once the visitor
   // sends a message, ChatWindow takes over and tracks the conversation's actual
@@ -45,10 +61,12 @@ export function Widget({
         if (typeof data?.privacy_policy_url === 'string' && /^https?:\/\//i.test(data.privacy_policy_url)) {
           setPrivacyPolicyUrl(data.privacy_policy_url)
         }
+        setRequireConsent(data?.require_chat_consent === true)
       })
       .catch(() => {
         // Silently keep the default/prop values if this fails — never block
         // the widget from opening over a settings fetch error.
+        if (!cancelled) setRequireConsent(false)
       })
     return () => {
       cancelled = true
@@ -61,6 +79,15 @@ export function Widget({
   // picking a color in Settings applies to the live widget with no embed-code edits. The
   // data-color attribute still works as a manual override if the fetch fails or is skipped.
   const resolvedPrimaryColor = fetchedPrimaryColor ?? primaryColor
+
+  const agree = () => {
+    setAgreed(true)
+    try {
+      sessionStorage.setItem(CONSENT_KEY, businessId)
+    } catch {
+      // Storage blocked: they'll just be asked again on the next page.
+    }
+  }
 
   return (
     <div className="fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-3">
@@ -80,7 +107,26 @@ export function Widget({
               <X size={18} />
             </button>
           </div>
-          <ChatWindow businessId={businessId} primaryColor={resolvedPrimaryColor} welcomeMessage={resolvedWelcomeMessage} apiBaseUrl={apiBaseUrl} initialLang={primaryLang} privacyPolicyUrl={privacyPolicyUrl} />
+          {requireConsent === null ? (
+            <div className="flex flex-1 items-center justify-center" aria-busy="true">
+              <span className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+                ))}
+              </span>
+            </div>
+          ) : requireConsent && !agreed ? (
+            <ConsentGate
+              lang={primaryLang}
+              primaryColor={resolvedPrimaryColor}
+              privacyPolicyUrl={privacyPolicyUrl}
+              mielikkixPrivacyUrl={MIELIKKIX_PRIVACY_URL}
+              onAgree={agree}
+              onCancel={() => setOpen(false)}
+            />
+          ) : (
+            <ChatWindow businessId={businessId} primaryColor={resolvedPrimaryColor} welcomeMessage={resolvedWelcomeMessage} apiBaseUrl={apiBaseUrl} initialLang={primaryLang} privacyPolicyUrl={privacyPolicyUrl} />
+          )}
         </div>
       )}
 

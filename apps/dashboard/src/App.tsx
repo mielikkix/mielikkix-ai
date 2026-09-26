@@ -45,7 +45,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Menu size={22} />
           </button>
           <span className="text-lg font-bold tracking-tight">
-            Mielikki<span className="brand-gradient-text">X</span>
+            Mielikki<span className="brand-gradient-text">x</span>
           </span>
         </div>
         {/* Printing an SEO audit report (SeoPage's own "Print / Save as PDF" button)

@@ -45,7 +45,7 @@ export function Sidebar({ open, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <span className="text-2xl font-bold tracking-tight">
-            Mielikki<span className="brand-gradient-text">X</span>
+            Mielikki<span className="brand-gradient-text">x</span>
           </span>
           <button
             onClick={onClose}

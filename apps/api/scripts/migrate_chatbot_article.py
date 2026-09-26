@@ -1,7 +1,7 @@
 """One-off migration: moves the existing hand-written "Chatbot for Small
 Businesses" article (website/src/pages/blog/chatbot-for-small-businesses.astro)
 into the Article database table, so it becomes a normal database-backed
-article manageable through MielikkiX Admin -> Articles, per this feature's
+article manageable through Mielikkix Admin -> Articles, per this feature's
 "single source of truth" architecture requirement.
 
 Content is extracted PROGRAMMATICALLY from the actual .astro file (the
@@ -142,7 +142,7 @@ def main():
         print(f"published_at: {article.published_at.isoformat()}")
         print()
         print("Next steps (manual, deliberately not automated by this script):")
-        print("  1. Verify the article in MielikkiX Admin -> Articles.")
+        print("  1. Verify the article in Mielikkix Admin -> Articles.")
         print("  2. Rebuild the website (npm run build in website/) and confirm")
         print("     /blog/chatbot-for-small-businesses/ renders correctly.")
         print("  3. Only once verified, delete the old .astro file:")

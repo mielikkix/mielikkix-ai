@@ -27,7 +27,7 @@
     "NECESSARY_TITLE": "Nødvendige",
     "NECESSARY_DESC": "Husker språk, valuta og ditt valg om informasjonskapsler. Alltid på.",
     "ANALYTICS_TITLE": "Analyse (Google Analytics)",
-    "ANALYTICS_DESC": "Anonym statistikk om sidebesøk. Setter _ga-informasjonskapsler og sender data til Google (USA)."
+    "ANALYTICS_DESC": "Statistikk om hvordan nettstedet brukes. Setter _ga-informasjonskapsler og sender data til Google (Google Ireland Ltd / Google LLC, USA)."
   },
   "LEGAL": {
     "LAST_UPDATED": "Sist oppdatert",

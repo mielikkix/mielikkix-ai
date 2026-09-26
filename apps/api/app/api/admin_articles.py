@@ -1,4 +1,4 @@
-"""MielikkiX Admin -> Articles. Same protection pattern as app/api/admin.py:
+"""Mielikkix Admin -> Articles. Same protection pattern as app/api/admin.py:
 gated once at the router level via require_platform_admin, so a route added
 here later can't be left accidentally unprotected. This is deliberately a
 separate router file from admin.py (rather than more routes bolted onto

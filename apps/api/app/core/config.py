@@ -381,7 +381,7 @@ class Settings(BaseSettings):
     # optional third-party key in this file.
     google_pagespeed_api_key: str = ""
 
-    # MielikkiX Admin -> Articles: publish-to-live pipeline (app/services/
+    # Mielikkix Admin -> Articles: publish-to-live pipeline (app/services/
     # deploy_service.py). Left empty, publishing an article still saves it
     # to the live database as the source of truth, but deploy_service
     # reports deployment_status="failed" with a clear reason instead of

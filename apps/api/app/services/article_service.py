@@ -1,4 +1,4 @@
-"""MielikkiX Admin -> Articles: the platform's blog/SEO content system.
+"""Mielikkix Admin -> Articles: the platform's blog/SEO content system.
 
 The `articles` table (app/models/article.py) is the single source of truth
 for content -- there is no Markdown-file or second-CMS system anywhere.

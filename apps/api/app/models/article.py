@@ -7,7 +7,7 @@ from ..core.database import Base
 
 
 class Article(Base):
-    """MielikkiX Admin -> Articles (the website's blog/SEO content system).
+    """Mielikkix Admin -> Articles (the website's blog/SEO content system).
 
     No business_id -- same reasoning as Ticket/Booking: articles belong to
     the platform (Mielikkix's own marketing site), not a tenant, so this is

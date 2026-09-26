@@ -29,7 +29,7 @@ export function AuthLayout({
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <a href={MARKETING_URL} className="text-xl font-bold tracking-tight text-slate-900">
-            Mielikki<span className="brand-gradient-text">X</span>
+            Mielikki<span className="brand-gradient-text">x</span>
           </a>
           <nav className="flex items-center gap-6">
             {navLinks.map((link) => (

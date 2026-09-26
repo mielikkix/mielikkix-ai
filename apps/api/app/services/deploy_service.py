@@ -1,4 +1,4 @@
-"""MielikkiX Admin -> Articles: publish-to-live pipeline, the last mile of
+"""Mielikkix Admin -> Articles: publish-to-live pipeline, the last mile of
 
     Admin -> VPS Postgres (source of truth) -> Astro build -> Hostinger
 

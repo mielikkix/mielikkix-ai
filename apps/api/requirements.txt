@@ -73,7 +73,7 @@ python-docx==1.1.2
 openpyxl==3.1.5
 beautifulsoup4==4.15.0
 twilio==9.10.9
-# Article content sanitization (MielikkiX Admin -> Articles) -- the admin
+# Article content sanitization (Mielikkix Admin -> Articles) -- the admin
 # authors raw HTML in a textarea, sanitized server-side before it's ever
 # stored or rendered on the public site. Only platform admins can write
 # articles at all (require_platform_admin), but sanitizing at the trust

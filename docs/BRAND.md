@@ -66,9 +66,9 @@ gap for a future pass, and still blocked on a real `/about` page existing at all
 ## 10. Name
 
 **Resolved.** "Mielikkix" is canonical for all plain text — domain, code, env
-vars, meta tags, docs, emails, API responses, prose. "MielikkiX" (gradient
-"X") is reserved for the visual logo/wordmark treatment only, and appears
-nowhere else now.
+vars, meta tags, docs, emails, API responses, prose. The visual
+logo/wordmark is also "Mielikkix" with a lowercase "x" -- the gradient
+treatment is applied to the "x", but it is never capitalised (2026-09-26).
 
 Repo-wide sweep completed 2026-09-13 (37 files). The wordmark itself
 (`Header.astro`, `Footer.astro`, dashboard `Sidebar.tsx`/`AuthLayout.tsx`) was

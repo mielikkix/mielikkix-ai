@@ -1,4 +1,4 @@
-"""API-level tests for MielikkiX Admin -> Articles (app/api/admin_articles.py).
+"""API-level tests for Mielikkix Admin -> Articles (app/api/admin_articles.py).
 
 Pure CRUD/publish-state logic is covered by test_article_service.py; this
 file covers authorization (the actual non-negotiable requirement -- only

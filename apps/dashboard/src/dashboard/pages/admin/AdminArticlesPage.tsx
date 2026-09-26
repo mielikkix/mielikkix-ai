@@ -41,7 +41,7 @@ const TABS = [
   { key: 'published', label: 'Published', status: 'published' },
 ] as const
 
-// MielikkiX Admin -> Articles. Platform-admin-only (this whole page lives
+// Mielikkix Admin -> Articles. Platform-admin-only (this whole page lives
 // under RequireAdmin in App.tsx, and every API call it makes is gated
 // server-side by require_platform_admin too -- see app/api/
 // admin_articles.py -- so hiding this nav item is a UX nicety here, never

@@ -217,10 +217,11 @@ const email = COMPANY.privacyEmail;
         <li><strong>Records of your agreements and consent choices</strong> (what you accepted and when, including marketing choices and withdrawals): kept in minimised form for 3 years after account deletion to demonstrate compliance and defend legal claims. Only a keyed hash of your email is kept with them, never your name, business or IP address. They are then deleted.</li>
         <li><strong>Accounting records:</strong> 5 years after the end of the financial year (Norwegian Bookkeeping Act).</li>
         <li>
-          <strong>Conversation history and leads (processed for customers):</strong> kept while the business's account is
-          active, or until the business deletes it or asks us to. When the account is closed, it is deleted along with
-          the account. Your plan decides how much history you can see in the dashboard. Automatic deletion after a set
-          retention period is on the way <Fact value="{{VERIFY: max retention period}}" />.
+          <strong>Chat conversations (processed for customers):</strong> automatically deleted after the retention period
+          the business chooses, counted from the last message: 90 days by default, and never more than 365 days. A
+          business can also delete a single conversation, or all data about one visitor, at any time.
+          <strong>Leads</strong> (contact details a visitor chose to leave) are kept as the business's customer records
+          until the business deletes them. Everything is deleted with the business's account.
         </li>
         <li><strong>Voice calls:</strong> transcripts are only held in memory during the call and are not stored.</li>
         <li><strong>Demo requests:</strong> <Fact value="{{VERIFY: 12 months}}" /> after our last contact, unless you become a customer.</li>
@@ -480,10 +481,11 @@ const email = COMPANY.privacyEmail;
         <li><strong>Oversikt over avtaler og samtykker</strong> (hva du godtok og når, inkludert valg om markedsføring og tilbaketrekninger): lagres i minimert form i 3 år etter at kontoen er slettet, for å dokumentere at regelverket er fulgt og for å kunne forsvare rettskrav. Bare en nøkkelbasert hash av e-postadressen din lagres sammen med dem, aldri navn, bedrift eller IP-adresse. Deretter slettes de.</li>
         <li><strong>Regnskapsmateriale:</strong> 5 år etter regnskapsårets slutt (bokføringsloven).</li>
         <li>
-          <strong>Samtalehistorikk og leads (behandlet for kunder):</strong> lagres mens bedriftens konto er aktiv, eller
-          til bedriften sletter dem eller ber oss om det. Når kontoen avsluttes, slettes de sammen med den. Abonnementet
-          avgjør hvor mye historikk som vises i dashbordet. Automatisk sletting etter en fast lagringsperiode er på vei
-          {" "}<Fact value="{{VERIFY: maks lagringstid}}" />.
+          <strong>Chatsamtaler (behandlet for kunder):</strong> slettes automatisk etter lagringstiden bedriften velger,
+          regnet fra siste melding: 90 dager som standard, og aldri mer enn 365 dager. En bedrift kan også når som helst
+          slette én samtale, eller alle data om én besøkende. <strong>Leads</strong> (kontaktopplysninger en besøkende
+          selv har lagt igjen) beholdes som bedriftens kunderegister til bedriften sletter dem. Alt slettes sammen med
+          bedriftens konto.
         </li>
         <li><strong>Telefonsamtaler:</strong> transkripsjoner holdes kun i minnet under samtalen og lagres ikke.</li>
         <li><strong>Demoforespørsler:</strong> <Fact value="{{VERIFY: 12 måneder}}" /> etter siste kontakt, med mindre du blir kunde.</li>

@@ -54,7 +54,14 @@ router = APIRouter(prefix="/api/agents/voice", tags=["voice-receptionist"])
 # comment in _handle_turn) -- so the greeting stays English, with one short
 # added line letting a Norwegian speaker know they can just go ahead in
 # Norwegian instead of forcing a bilingual (and TTS-mispronounced) greeting.
-_GREETING = "Hello, thanks for calling Mielikkix. How can I help you today? You can also speak with me in Norwegian."
+# GDPR Phase 5 / transparency: the caller is told up front that this is an AI
+# and that the call is transcribed (Twilio speech-to-text) but not recorded --
+# there is no <Record> anywhere in this flow; keep this line true if that changes.
+_GREETING = (
+    "Hello, thanks for calling Mielikkix. You're speaking with an AI assistant. "
+    "This call is transcribed in real time so I can help you, but it isn't recorded. "
+    "How can I help you today? You can also speak with me in Norwegian."
+)
 _CLOSING_LINE = "Thanks for calling Mielikkix. Have a great day, goodbye!"
 _CLOSING_LINE_NO = "Takk for at du ringte Mielikkix. Ha en fin dag, ha det bra!"
 _SILENCE_CLOSING_LINE = "I haven't heard anything for a bit, so I'll let you go -- feel free to call back anytime. Goodbye!"
@@ -576,10 +583,11 @@ async def _execute_tool(
     try:
         args = json.loads(tool_call.arguments)
     except (json.JSONDecodeError, TypeError):
-        logger.info("call=%s turn=%s tool=%s invalid_arguments raw=%r", call_sid, turn_count, tool_call.name, tool_call.arguments)
+        # Never log argument VALUES: they carry callers' names, emails, phone numbers.
+        logger.info("call=%s turn=%s tool=%s invalid_arguments", call_sid, turn_count, tool_call.name)
         return json.dumps({"status": "invalid_arguments"})
 
-    logger.info("call=%s turn=%s tool=%s args=%s", call_sid, turn_count, tool_call.name, args)
+    logger.info("call=%s turn=%s tool=%s arg_keys=%s", call_sid, turn_count, tool_call.name, sorted(args) if isinstance(args, dict) else "-")
 
     if tool_call.name == "check_availability":
         try:
@@ -650,7 +658,7 @@ async def _execute_tool(
 
         name, email = args.get("name"), args.get("email")
         if not name or not email:
-            logger.info("call=%s turn=%s propose_booking missing_details name=%r email=%r", call_sid, turn_count, name, email)
+            logger.info("call=%s turn=%s propose_booking missing_details has_name=%s has_email=%s", call_sid, turn_count, bool(name), bool(email))
             return json.dumps({"status": "missing_details"})
         # Confirmed live: speech-to-text can mangle an email badly enough
         # that what the model extracted isn't even shaped like one anymore
@@ -659,7 +667,7 @@ async def _execute_tool(
         # gets asked to repeat it immediately instead of the confirmation
         # step reading back visible garbage.
         if not _EMAIL_SHAPE_PATTERN.match(email):
-            logger.info("call=%s turn=%s propose_booking malformed_email=%r", call_sid, turn_count, email)
+            logger.info("call=%s turn=%s propose_booking malformed_email", call_sid, turn_count)
             return json.dumps(
                 {
                     "status": "invalid_email",
@@ -694,7 +702,7 @@ async def _execute_tool(
                 f"Just to confirm: {_format_slot_for_speech(chosen.start)} for {name}, "
                 f"and I have your email as {email}. Is that correct? Shall I book it?"
             )
-        logger.info("call=%s turn=%s propose_booking -> awaiting_confirmation slot=%s email=%s", call_sid, turn_count, slot_index, email)
+        logger.info("call=%s turn=%s propose_booking -> awaiting_confirmation slot=%s", call_sid, turn_count, slot_index)
         return json.dumps({"status": "awaiting_confirmation", "say": confirmation_text})
 
     if tool_call.name == "create_support_ticket":
@@ -702,8 +710,8 @@ async def _execute_tool(
         issue_description = args.get("issue_description")
         if not customer_name or not issue_description:
             logger.info(
-                "call=%s turn=%s create_support_ticket missing_details name=%r issue=%r",
-                call_sid, turn_count, customer_name, issue_description,
+                "call=%s turn=%s create_support_ticket missing_details has_name=%s has_issue=%s",
+                call_sid, turn_count, bool(customer_name), bool(issue_description),
             )
             return json.dumps({"status": "missing_details"})
 

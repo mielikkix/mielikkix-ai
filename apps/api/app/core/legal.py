@@ -29,3 +29,11 @@ DELETION_GRACE_DAYS = 30
 # still demonstrate consent if a complaint arrives later (GDPR art. 7(1)).
 # Decided 2026-09-26: keep 3 years, linked only to a keyed hash of the email.
 CONSENT_RETENTION_AFTER_DELETION_DAYS = 3 * 365
+
+# GDPR Phase 5: per-tenant retention of end-user chat conversations
+# (business_settings.conversation_retention_days). No "unlimited": the
+# nightly job deletes conversations whose last activity is older than this.
+# MAX is a judgement call -- see docs/privacy/retention-schedule.md.
+CONVERSATION_RETENTION_DEFAULT_DAYS = 90
+CONVERSATION_RETENTION_MIN_DAYS = 1
+CONVERSATION_RETENTION_MAX_DAYS = 365

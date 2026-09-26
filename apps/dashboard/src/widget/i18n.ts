@@ -32,6 +32,10 @@ export interface WidgetStrings {
   bookingBackToDescribe: string
   bookingBackToSlots: string
   bookingBooked: string
+  // GDPR Phase 5 AI disclosure, shown at the top of every conversation.
+  aiNotice: string
+  privacyLink: string
+  mielikkixPrivacyLink: string
 }
 
 const EN: WidgetStrings = {
@@ -63,6 +67,9 @@ const EN: WidgetStrings = {
   bookingBackToDescribe: '← Describe something else',
   bookingBackToSlots: '← Pick a different time',
   bookingBooked: "You're booked!",
+  aiNotice: "You're chatting with an AI assistant, not a person. It can make mistakes.",
+  privacyLink: 'Privacy',
+  mielikkixPrivacyLink: 'How Mielikkix handles data',
 }
 
 const WIDGET_STRINGS: Record<string, WidgetStrings> = {
@@ -96,6 +103,9 @@ const WIDGET_STRINGS: Record<string, WidgetStrings> = {
     bookingBackToDescribe: '← Beskriv noe annet',
     bookingBackToSlots: '← Velg et annet tidspunkt',
     bookingBooked: 'Du er booket!',
+    aiNotice: 'Du chatter med en AI-assistent, ikke et menneske. Den kan ta feil.',
+    privacyLink: 'Personvern',
+    mielikkixPrivacyLink: 'Slik behandler Mielikkix data',
   },
 }
 

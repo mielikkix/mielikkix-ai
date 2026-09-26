@@ -22,6 +22,7 @@ from dataclasses import dataclass
 import httpx
 
 from ..core.config import settings
+from ..core.log_redaction import redact
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def _raise_for_response(response: httpx.Response, action: str) -> None:
         # to the end-user -- see lead_service.py.
         logger.warning(
             "Mailchimp %s failed: status=%s body=%s",
-            action, response.status_code, response.text[:500],
+            action, response.status_code, redact(response.text[:500]),
         )
         raise MailchimpError(f"Mailchimp API error during {action}: HTTP {response.status_code}")
 

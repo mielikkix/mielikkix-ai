@@ -122,6 +122,22 @@ export function DashboardPage() {
         >
           Copy to clipboard
         </button>
+        {/* GDPR Phase 5: the business is the controller for its visitors' data. */}
+        <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          <p className="font-medium text-slate-700">Privacy notes for your website</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5">
+            <li>
+              The widget sets no cookies. Once a visitor opens the chat, it stores one session ID
+              (<code className="bg-white px-1 rounded">mielikkix_session</code>) in sessionStorage, which is cleared when
+              the tab closes. List it in your cookie and privacy notices.
+            </li>
+            <li>Visitors are told they're chatting with an AI assistant, with a link to your privacy policy.</li>
+            <li>
+              Set your privacy policy link and how long conversations are kept under{' '}
+              <a href="/dashboard/settings?tab=advanced" className="text-brand-600 hover:underline">Chatbot Settings → Advanced</a>.
+            </li>
+          </ul>
+        </div>
       </Card>
     </div>
   )

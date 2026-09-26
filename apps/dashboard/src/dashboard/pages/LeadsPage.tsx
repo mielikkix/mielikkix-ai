@@ -36,6 +36,16 @@ export function LeadsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['leads'] }),
   })
 
+  // GDPR Phase 5: a visitor asked this business to delete their data. Removes
+  // this lead, their other leads (same email/phone) and their conversations.
+  const eraseMut = useMutation({
+    mutationFn: (id: string) => api.post('/chat/visitors/erase', { lead_id: id }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['leads'] })
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+    },
+  })
+
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
 
   return (
@@ -74,14 +84,14 @@ export function LeadsPage() {
                 <button
                   onClick={() => setMenuOpen(menuOpen === lead.id ? null : lead.id)}
                   className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
-                  aria-label="Change lead status"
+                  aria-label="Lead actions"
                 >
                   <MoreVertical size={18} />
                 </button>
                 {menuOpen === lead.id && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
-                    <div className="absolute right-0 top-full mt-1 w-36 rounded-xl border border-slate-200 bg-white shadow-md z-20 py-1">
+                    <div className="absolute right-0 top-full mt-1 w-60 rounded-xl border border-slate-200 bg-white shadow-md z-20 py-1">
                       {STATUSES.map((s) => (
                         <button
                           key={s}
@@ -94,6 +104,18 @@ export function LeadsPage() {
                           {s}
                         </button>
                       ))}
+                      <div className="my-1 border-t border-slate-100" />
+                      <button
+                        onClick={() => {
+                          setMenuOpen(null)
+                          if (confirm(`Erase all data for ${lead.name}? This deletes this lead, any other leads with the same email or phone, and their chat conversations. It can't be undone.`)) {
+                            eraseMut.mutate(lead.id)
+                          }
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        Erase all data for this person
+                      </button>
                     </div>
                   </>
                 )}

@@ -75,6 +75,12 @@ class BusinessSettings(Base):
     languages = Column(JSON, default=lambda: ["en"])
     llm_provider = Column(Text, default="groq")
     llm_model = Column(Text, nullable=True)
+    # GDPR Phase 5. The business's OWN privacy policy, linked from the chat
+    # widget's AI notice (the business is the controller for its visitors).
+    privacy_policy_url = Column(Text, nullable=True)
+    # Days an end-user conversation is kept after its last activity before
+    # the nightly job deletes it (core/legal.py CONVERSATION_RETENTION_*).
+    conversation_retention_days = Column(Integer, nullable=False, default=90, server_default="90")
 
     business = relationship("Business", back_populates="settings", foreign_keys=[business_id],
                             primaryjoin="BusinessSettings.business_id == Business.id")

@@ -61,6 +61,9 @@ export function SettingsPage() {
         contact_phone: form.contact_phone,
         llm_provider: form.llm_provider,
         llm_model: form.llm_model,
+        // "" clears it server-side; the select stores a string, the API wants an int.
+        privacy_policy_url: form.privacy_policy_url ?? '',
+        conversation_retention_days: Number(form.conversation_retention_days ?? 90),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings'] }),
   })

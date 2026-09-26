@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
+from ..core.log_redaction import redact
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def _raise_for_response(response: httpx.Response, action: str) -> None:
         # never an echo of the Authorization header or the token itself.
         logger.warning(
             "Mailchimp %s failed: status=%s body=%s",
-            action, response.status_code, response.text[:500],
+            action, response.status_code, redact(response.text[:500]),
         )
         raise MailchimpClientError(f"Mailchimp API error during {action}: HTTP {response.status_code}")
 

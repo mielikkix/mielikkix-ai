@@ -1,6 +1,13 @@
 from typing import Optional, Dict, List
+from urllib.parse import urlparse
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictInt, field_validator
+
+from ..core.legal import (
+    CONVERSATION_RETENTION_DEFAULT_DAYS,
+    CONVERSATION_RETENTION_MAX_DAYS,
+    CONVERSATION_RETENTION_MIN_DAYS,
+)
 
 
 class DayHours(BaseModel):
@@ -49,6 +56,8 @@ class BusinessSettingsOut(BaseModel):
     languages: List[str]
     llm_provider: str
     llm_model: Optional[str]
+    privacy_policy_url: Optional[str] = None
+    conversation_retention_days: int = CONVERSATION_RETENTION_DEFAULT_DAYS
 
     class Config:
         from_attributes = True
@@ -58,6 +67,8 @@ class PublicBusinessSettingsOut(BaseModel):
     welcome_message: str
     languages: List[str]
     primary_color: str
+    # Linked from the widget's AI notice; null = only Mielikkix's own link shows.
+    privacy_policy_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -77,6 +88,34 @@ class BusinessSettingsUpdate(BaseModel):
     languages: Optional[List[str]] = None
     llm_provider: Optional[str] = None
     llm_model: Optional[str] = None
+    # "" clears it (exclude_none would skip a None).
+    privacy_policy_url: Optional[str] = None
+    conversation_retention_days: Optional[StrictInt] = None
+
+    @field_validator("privacy_policy_url")
+    @classmethod
+    def _https_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if v == "":
+            return ""
+        parsed = urlparse(v)
+        if parsed.scheme not in ("https", "http") or not parsed.netloc or " " in v:
+            raise ValueError("Enter a full web address, e.g. https://yourbusiness.com/privacy")
+        return v
+
+    @field_validator("conversation_retention_days")
+    @classmethod
+    def _retention_bounds(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if not CONVERSATION_RETENTION_MIN_DAYS <= v <= CONVERSATION_RETENTION_MAX_DAYS:
+            raise ValueError(
+                f"Conversation retention must be between {CONVERSATION_RETENTION_MIN_DAYS} and "
+                f"{CONVERSATION_RETENTION_MAX_DAYS} days"
+            )
+        return v
 
 
 class BusinessUpdate(BaseModel):

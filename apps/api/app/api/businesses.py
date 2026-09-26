@@ -50,6 +50,7 @@ def get_public_settings(business_id: str, db: Session = Depends(get_db)):
         welcome_message=welcome_message,
         languages=languages,
         primary_color=primary_color,
+        privacy_policy_url=s.privacy_policy_url if s else None,
     )
 
 
@@ -134,6 +135,8 @@ async def update_settings(
     if "languages" in updates:
         plan_service.check_language_limit(business, updates["languages"])
         await _fill_default_fallback_translations(db, s, updates["languages"])
+    if updates.get("privacy_policy_url") == "":
+        updates["privacy_policy_url"] = None
     for field, val in updates.items():
         setattr(s, field, val)
     db.commit()

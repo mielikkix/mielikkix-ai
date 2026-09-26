@@ -24,6 +24,7 @@ export function Widget({
   const [open, setOpen] = useState(false)
   const [fetchedWelcomeMessage, setFetchedWelcomeMessage] = useState<string | null>(null)
   const [fetchedPrimaryColor, setFetchedPrimaryColor] = useState<string | null>(null)
+  const [privacyPolicyUrl, setPrivacyPolicyUrl] = useState<string | null>(null)
   // The business's first configured language -- not the visitor's browser locale,
   // which has no relationship to what a visitor is about to type. Once the visitor
   // sends a message, ChatWindow takes over and tracks the conversation's actual
@@ -40,6 +41,10 @@ export function Widget({
         setPrimaryLang(languages[0] ?? 'en')
         if (data?.welcome_message) setFetchedWelcomeMessage(data.welcome_message)
         if (data?.primary_color) setFetchedPrimaryColor(data.primary_color)
+        // Only http(s) -- the API validates this too, but never trust it into an href.
+        if (typeof data?.privacy_policy_url === 'string' && /^https?:\/\//i.test(data.privacy_policy_url)) {
+          setPrivacyPolicyUrl(data.privacy_policy_url)
+        }
       })
       .catch(() => {
         // Silently keep the default/prop values if this fails — never block
@@ -75,7 +80,7 @@ export function Widget({
               <X size={18} />
             </button>
           </div>
-          <ChatWindow businessId={businessId} primaryColor={resolvedPrimaryColor} welcomeMessage={resolvedWelcomeMessage} apiBaseUrl={apiBaseUrl} initialLang={primaryLang} />
+          <ChatWindow businessId={businessId} primaryColor={resolvedPrimaryColor} welcomeMessage={resolvedWelcomeMessage} apiBaseUrl={apiBaseUrl} initialLang={primaryLang} privacyPolicyUrl={privacyPolicyUrl} />
         </div>
       )}
 

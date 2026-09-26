@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 from ..core.database import get_db
@@ -12,6 +13,8 @@ from ..schemas.chat import ChatMessageRequest, ChatMessageResponse, Conversation
 from ..services.chat_service import handle_message
 from ..models.conversation import Conversation
 from ..models.lead import Lead
+from ..services import retention_service
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -62,6 +65,30 @@ def delete_conversation(
     db.delete(conv)
     db.commit()
     return {"ok": True}
+
+
+class VisitorEraseRequest(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    session_id: Optional[str] = None
+    lead_id: Optional[UUID] = None
+
+
+@router.post("/visitors/erase")
+def erase_visitor(
+    req: VisitorEraseRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """GDPR Phase 5: a business erasing one of ITS visitors' data on that
+    visitor's request (Mielikkix is the processor; see DPA "assistance with
+    data subject requests"). Deletes the visitor's leads and conversations
+    in this business only."""
+    if not req.lead_id and not any(v and v.strip() for v in (req.email, req.phone, req.session_id)):
+        raise HTTPException(status_code=422, detail="Give a lead, or the visitor's email, phone or chat session ID.")
+    return retention_service.erase_visitor(
+        db, current_user.business_id, email=req.email, phone=req.phone, session_id=req.session_id, lead_id=req.lead_id
+    )
 
 
 @router.get("/history/{session_id}", response_model=ConversationOut)

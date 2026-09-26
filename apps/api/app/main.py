@@ -60,16 +60,24 @@ async def _run_due_seo_audits_tick() -> None:
 
 
 async def _nightly_privacy_purge() -> None:
-    """GDPR Phase 4, nightly: hard-deletes accounts past their deletion grace
+    """GDPR, nightly: deletes end-user conversations past each tenant's
+    retention setting (Phase 5), hard-deletes accounts past their deletion grace
     period (then emails the former owners), and erases minimised consent
     records past their retention (account_service.purge_due). Same "own
     session, never let a failure kill the job" shape as the SEO tick above."""
     from .core.database import SessionLocal
     from .notifications import notify_account_deleted
-    from .services import account_service
+    from .services import account_service, retention_service
 
     db = SessionLocal()
     try:
+        # Phase 5: end-user conversations past each tenant's retention setting.
+        # Own try: a failure here mustn't skip the account purge below.
+        try:
+            retention_service.purge_expired_conversations(db)
+        except Exception:
+            db.rollback()
+            logging.getLogger(__name__).exception("Conversation retention purge failed")
         for business_name, emails in account_service.purge_due(db):
             for email in emails:
                 try:

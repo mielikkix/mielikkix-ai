@@ -20,10 +20,13 @@ interface Props {
   // detected from that message, so the lead form and other chrome stay in sync
   // with the conversation instead of a fixed guess made before anyone typed.
   initialLang?: string
+  /** The business's own privacy policy (public-settings), linked from the AI notice. */
+  privacyPolicyUrl?: string | null
 }
 
 const genSession = () => `sess_${Math.random().toString(36).slice(2, 10)}`
 const SESSION_KEY = 'mielikkix_session'
+const MIELIKKIX_PRIVACY_URL = 'https://mielikkix.ai/privacy'
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 
 export function ChatWindow({
@@ -32,6 +35,7 @@ export function ChatWindow({
   primaryColor = '#ff6b00',
   apiBaseUrl = DEFAULT_API_BASE_URL,
   initialLang,
+  privacyPolicyUrl,
 }: Props) {
   const [lang, setLang] = useState(initialLang ?? 'en')
   const strings = widgetStrings(lang)
@@ -102,6 +106,21 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {/* GDPR Phase 5: AI disclosure, always visible above the conversation. */}
+      <p role="note" className="flex-shrink-0 border-b border-gray-100 bg-gray-50 px-4 py-2 text-[11px] leading-snug text-gray-500">
+        {strings.aiNotice}{' '}
+        {privacyPolicyUrl && (
+          <>
+            <a href={privacyPolicyUrl} target="_blank" rel="noopener noreferrer" className="underline">
+              {strings.privacyLink}
+            </a>
+            {' · '}
+          </>
+        )}
+        <a href={MIELIKKIX_PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="underline">
+          {strings.mielikkixPrivacyLink}
+        </a>
+      </p>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.sender === 'visitor' ? 'justify-end' : 'justify-start'}`}>

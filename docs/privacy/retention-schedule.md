@@ -4,7 +4,7 @@ Internal document: how long Mielikkix keeps each kind of data, and what deletes 
 here must match the code. When you change one, change the other in the same commit. Periods marked
 **(judgement call)** are internal decisions that the company's lawyer should confirm.
 
-Last reviewed: 2026-09-26
+Last reviewed: 2026-09-26 (Phase 5: conversation retention added)
 
 ## Account holders (Mielikkix is controller)
 
@@ -50,6 +50,10 @@ This is covered by `tests/test_account.py::test_purge_deletes_all_tenant_data_an
 
 | Data | Kept for | Deleted by |
 |---|---|---|
-| Chat conversations, messages, leads | While the customer's account is active, or until the customer deletes them. **Per-tenant retention limits are Phase 5.** | Account deletion (above) |
+| Chat conversations and their messages | The tenant's `conversation_retention_days`, counted from the last message: default **90**, allowed **1–365** (no "unlimited"). The 365 max is a **(judgement call)** | Nightly job → `retention_service.purge_expired_conversations`. Also account deletion, single-conversation delete, and visitor erasure (`POST /api/chat/visitors/erase`) |
+| Leads (contact details a visitor chose to leave) | Until the tenant deletes them. They are the tenant's customer records. Retention only unlinks them from an expired conversation | Tenant action, visitor erasure, account deletion |
 | Widget `mielikkix_session` (sessionStorage) | Until the browser tab closes | Browser |
 | Voice call transcripts | Only in memory during the call. Never stored | n/a |
+
+Constants: `CONVERSATION_RETENTION_DEFAULT_DAYS` / `_MIN_DAYS` / `_MAX_DAYS` in `apps/api/app/core/legal.py`,
+enforced by `BusinessSettingsUpdate` in `apps/api/app/schemas/business.py`. Tests: `apps/api/tests/test_retention.py`.

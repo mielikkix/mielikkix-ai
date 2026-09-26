@@ -101,7 +101,7 @@ function recommendedAction(analysis) {
 }
 
 function badge(text, className) {
-  return `<span class="rounded-full px-2.5 py-1 text-xs font-semibold ${className}">${text}</span>`;
+  return `<span class="rounded-full px-2.5 py-1 text-xs font-semibold ${className}">${escapeHtml(text)}</span>`;
 }
 
 function escapeHtml(text) {

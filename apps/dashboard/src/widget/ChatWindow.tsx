@@ -225,6 +225,7 @@ export function ChatWindow({
           className="flex-1 rounded-full border px-4 py-2 text-sm outline-none"
           style={{ borderColor: inputFocused ? primaryColor : '#d1d5db' }}
           placeholder={strings.inputPlaceholder}
+          maxLength={2000}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
+from mielikkix_agent_core import AI_SAFETY_RULES
+
 _TONE_STYLES = {
     "friendly": "warm and friendly",
     "formal": "formal and professional",
@@ -73,7 +75,13 @@ _BASE_SYSTEM_PROMPT = (
 
 
 def system_prompt(tone: str, languages: Optional[List[str]] = None) -> str:
-    return f"{_BASE_SYSTEM_PROMPT} {tone_instruction(tone)} {language_instruction(languages)}"
+    return f"{_BASE_SYSTEM_PROMPT} {tone_instruction(tone)} {language_instruction(languages)}\n\n{AI_SAFETY_RULES}"
+
+
+def context_block(context: str) -> str:
+    """Retrieved business content, fenced off so the model can tell it apart
+    from instructions (see AI_SAFETY_RULES)."""
+    return f"Reference material:\n<reference>\n{context}\n</reference>"
 
 
 def format_history(history: Optional[List[Dict[str, str]]]) -> str:

@@ -1,6 +1,6 @@
 import httpx
 from typing import Dict, List, Optional
-from .base import LLMProvider, system_prompt, format_history, language_reminder
+from .base import LLMProvider, system_prompt, format_history, language_reminder, context_block
 from ...core.config import settings
 
 
@@ -21,7 +21,7 @@ class OllamaProvider(LLMProvider):
         full_prompt = (
             f"{system_prompt(tone, languages)}\n\n"
             f"{format_history(history)}"
-            f"Context:\n{context}\n\nQuestion: {prompt}\n{language_reminder(languages)}\nAnswer:"
+            f"{context_block(context)}\n\nQuestion: {prompt}\n{language_reminder(languages)}\nAnswer:"
         )
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(

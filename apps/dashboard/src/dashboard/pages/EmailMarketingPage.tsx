@@ -502,9 +502,13 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
         {bodyHtml && (
           <div>
             <p className="mb-1 text-sm font-medium text-slate-500">Preview</p>
-            <div
-              className="max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white p-4 text-sm"
-              dangerouslySetInnerHTML={{ __html: bodyHtml }}
+            {/* Sandboxed (no scripts, no same-origin access): the HTML is shown as
+                the email would look, but nothing in it can run on app.mielikkix.ai. */}
+            <iframe
+              title="Email preview"
+              sandbox=""
+              srcDoc={bodyHtml}
+              className="h-64 w-full rounded-xl border border-slate-200 bg-white"
             />
           </div>
         )}

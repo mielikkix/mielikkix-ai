@@ -28,12 +28,12 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from twilio.request_validator import RequestValidator
 from twilio.twiml.voice_response import VoiceResponse, Gather
 
-from mielikkix_agent_core import LLMClient, ToolCall
+from mielikkix_agent_core import AI_SAFETY_RULES, LLMClient, ToolCall
 
 from ..core.config import settings
 from ..core.database import get_db
@@ -457,7 +457,7 @@ def _build_system_prompt(context: str, language: str = "en") -> str:
             f"{_SYSTEM_PROMPT_BASE}\n\nUse the following real information about "
             f"Mielikkix to answer the caller's question. If the answer isn't in "
             f"this information, say so plainly and offer to have someone follow "
-            f"up, rather than guessing or inventing details.\n\n{context}"
+            f"up, rather than guessing or inventing details.\n<reference>\n{context}\n</reference>"
         )
     else:
         base = (
@@ -466,6 +466,7 @@ def _build_system_prompt(context: str, language: str = "en") -> str:
             f"to have someone follow up, rather than guessing."
         )
     base += _BOOKING_SYSTEM_PROMPT_ADDENDUM
+    base += f"\n\n{AI_SAFETY_RULES}"
     if language == "no":
         base += _LANGUAGE_INSTRUCTION_NO
     return base
@@ -1149,12 +1150,12 @@ def _reject_twilio_shaped_call_sid(call_sid: str) -> None:
 
 
 class _DevStartRequest(BaseModel):
-    call_sid: str
+    call_sid: str = Field(min_length=1, max_length=100)
 
 
 class _DevTurnRequest(BaseModel):
-    call_sid: str
-    speech: str
+    call_sid: str = Field(min_length=1, max_length=100)
+    speech: str = Field(max_length=1000)
 
 
 class _DevReply(BaseModel):

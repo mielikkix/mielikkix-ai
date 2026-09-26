@@ -41,6 +41,10 @@ import PageHero from "../../components/PageHero.astro";
 
   <section class="mx-auto max-w-lg px-6 py-16">
     <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
+      <p role="note" class="rounded-t-3xl border-b border-slate-100 bg-slate-50 px-5 py-2 text-[11px] leading-snug text-slate-500">
+        You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.
+        <a href="/privacy" class="underline">Privacy</a>
+      </p>
       <div id="transcript" class="flex flex-1 flex-col gap-2 overflow-y-auto p-5"></div>
 
       <div id="slotsWrap" class="hidden max-h-56 flex-col gap-1.5 overflow-y-auto border-t border-slate-100 px-5 py-3"></div>
@@ -50,6 +54,7 @@ import PageHero from "../../components/PageHero.astro";
           id="composerInput"
           type="text"
           autocomplete="off"
+          maxlength="1000"
           placeholder="e.g. a 30 minute consultation next Tuesday afternoon"
           class="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-violet-400"
         />

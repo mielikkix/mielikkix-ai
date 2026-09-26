@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional
-from .base import LLMProvider, system_prompt, language_reminder
+from .base import LLMProvider, system_prompt, language_reminder, context_block
 from ...core.config import settings
 
 
@@ -42,7 +42,7 @@ class GroqProvider(LLMProvider):
     ) -> str:
         client = self._get_client()
         system = system_prompt(tone, languages)
-        user_message = f"Context:\n{context}\n\nQuestion: {prompt}\n{language_reminder(languages)}"
+        user_message = f"{context_block(context)}\n\nQuestion: {prompt}\n{language_reminder(languages)}"
 
         messages = [{"role": "system", "content": system}]
         for turn in history or []:

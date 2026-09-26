@@ -31,7 +31,7 @@ HTTP or FastAPI's request/response cycle at all.
 from datetime import date, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..core.config import settings
@@ -96,14 +96,14 @@ class _SlotOut(BaseModel):
 
 
 class _RequestBookingBody(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=1000)
     # The visitor's own IANA timezone (e.g. from the browser's
     # Intl.DateTimeFormat().resolvedOptions().timeZone), not something we
     # ask the LLM to guess from free text -- people almost never state their
     # timezone in a booking request, so parsing it out of the message would
     # mean asking a clarifying question on nearly every request. The client
     # already knows this precisely; just send it.
-    timezone: str = "UTC"
+    timezone: str = Field(default="UTC", max_length=64)
     # Which tenant this booking is for -- omitted (None) by /dev/busy-style
     # internal callers and the standalone Mielikkix demo page, which always
     # mean Mielikkix's own demo calendar (see booking_service.py's
@@ -162,16 +162,16 @@ async def request_booking(request: Request, body: _RequestBookingBody, db: Sessi
 
 
 class _ConfirmBookingBody(BaseModel):
-    name: str
-    email: str
-    phone: str | None = None
+    name: str = Field(min_length=1, max_length=200)
+    email: str = Field(max_length=254)
+    phone: str | None = Field(default=None, max_length=50)
     # Exactly one of the {start, end} pairs /request returned in `slots` --
     # this route re-validates it's still free rather than trusting that
     # (see confirm_booking()'s docstring), but it isn't re-derived from
     # scratch here.
-    start: str
-    end: str
-    timezone: str = "UTC"
+    start: str = Field(max_length=64)
+    end: str = Field(max_length=64)
+    timezone: str = Field(default="UTC", max_length=64)
     meeting_type: str = "appointment"
     # Ties the resulting Booking row back to the chat session that
     # triggered it, if this came from the chat-widget handoff rather than

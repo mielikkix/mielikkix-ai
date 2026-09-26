@@ -1,14 +1,19 @@
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+# Caps on public, unauthenticated input: every message goes to a paid LLM,
+# so size is bounded here (rate limits only bound the number of requests).
+MAX_CHAT_MESSAGE_CHARS = 2000
+MAX_ID_CHARS = 100
 
 
 class ChatMessageRequest(BaseModel):
-    business_id: str
-    session_id: str
-    message: str
-    visitor_id: Optional[str] = None
+    business_id: str = Field(max_length=MAX_ID_CHARS)
+    session_id: str = Field(min_length=1, max_length=MAX_ID_CHARS)
+    message: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_CHARS)
+    visitor_id: Optional[str] = Field(default=None, max_length=MAX_ID_CHARS)
 
 
 class ChatMessageResponse(BaseModel):

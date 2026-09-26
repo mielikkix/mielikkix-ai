@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from mielikkix_agent_core import LLMClient
+from mielikkix_agent_core import AI_SAFETY_RULES, LLMClient
 
 from ..core.config import settings
 from ..models.ticket import Ticket, TicketMessage
@@ -84,11 +84,11 @@ def _retrieve_context(db: Session, query: str) -> str:
 def _build_system_prompt(context: str) -> str:
     if context:
         return (
-            f"{_CLASSIFICATION_SYSTEM_PROMPT_BASE}\n\nInformation about Mielikkix "
-            f"to use when answering:\n\n{context}"
+            f"{_CLASSIFICATION_SYSTEM_PROMPT_BASE}\n\n{AI_SAFETY_RULES}\n\nInformation about Mielikkix "
+            f"to use when answering:\n<reference>\n{context}\n</reference>"
         )
     return (
-        f"{_CLASSIFICATION_SYSTEM_PROMPT_BASE}\n\nNo specific Mielikkix "
+        f"{_CLASSIFICATION_SYSTEM_PROMPT_BASE}\n\n{AI_SAFETY_RULES}\n\nNo specific Mielikkix "
         f"information is available for this message -- set confidence low "
         f"and be honest about that in your answer rather than guessing."
     )

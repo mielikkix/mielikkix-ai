@@ -153,7 +153,8 @@ const structuredData = {
     <meta name="twitter:description" content={description} data-i18n-meta-desc={descriptionKey} />
     <meta name="twitter:image" content={ogImage} />
 
-    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    {/* Escape "<" so article text in the JSON can never close this <script> tag early. */}
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData).replaceAll("<", String.fromCharCode(92) + "u003c")} />
 
     {plausibleDomain && (
       <script is:inline data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script>

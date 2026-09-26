@@ -6,7 +6,7 @@ seo_service.py.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
@@ -378,8 +378,8 @@ async def chat(
 
 
 class _DemoRequest(BaseModel):
-    review_text: str
-    tone: str | None = None
+    review_text: str = Field(min_length=1, max_length=5000)
+    tone: str | None = Field(default=None, max_length=30)
 
 
 class _DemoResponseOut(BaseModel):

@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional
-from .base import LLMProvider, system_prompt, format_history, language_reminder
+from .base import LLMProvider, system_prompt, format_history, language_reminder, context_block
 from ...core.config import settings
 
 
@@ -30,7 +30,7 @@ class GeminiProvider(LLMProvider):
         full_prompt = (
             f"{system_prompt(tone, languages)}\n\n"
             f"{format_history(history)}"
-            f"Context:\n{context}\n\nQuestion: {prompt}\n{language_reminder(languages)}"
+            f"{context_block(context)}\n\nQuestion: {prompt}\n{language_reminder(languages)}"
         )
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(None, self._model.generate_content, full_prompt)

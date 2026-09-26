@@ -32,21 +32,21 @@
         "KEY_MESSAGE_TITLE": "Never miss a client call again",
         "KEY_MESSAGE_SUBTITLE": "Book appointments while you work",
         "PROBLEM": "Every hour spent with a client is an hour the phone goes unanswered, and each missed call is a booking that walks to a competitor.",
-        "SOLUTION": "The Voice Receptionist answers every call on a real business line 24/7, while the AI-layered Booking Assistant checks live availability and books the appointment on the spot — no front desk required."
+        "SOLUTION": "The Voice Receptionist answers every call on a real business line 24/7, while the AI-powered Booking Assistant checks live availability and books the appointment on the spot — no front desk required."
       },
       {
         "NAME": "Multi-Location Franchise & Chain Operators",
         "KEY_MESSAGE_TITLE": "One consistent front desk",
         "KEY_MESSAGE_SUBTITLE": "Deployed at every single location",
         "PROBLEM": "Phone coverage varies wildly from site to site, so customers get inconsistent service depending on which location happens to pick up.",
-        "SOLUTION": "Because each AI agent runs as an independent microservice, the same Voice Receptionist and Booking Assistant configuration can be deployed identically across every location, giving corporate one consistent standard without adding headcount at each site."
+        "SOLUTION": "Because each AI agent is a self-contained module, the same Voice Receptionist and Booking Assistant setup can be rolled out identically at every location, giving head office one consistent standard without adding staff at each site."
       },
       {
         "NAME": "Growing SaaS & E-commerce Support Teams",
         "KEY_MESSAGE_TITLE": "Sort support tickets instantly",
-        "KEY_MESSAGE_SUBTITLE": "Scale your team not your headcount",
+        "KEY_MESSAGE_SUBTITLE": "Scale support, not headcount",
         "PROBLEM": "As support volume grows faster than headcount, tickets pile up faster than a small team can manually sort and route them.",
-        "SOLUTION": "Support Triage automatically classifies and routes incoming requests the moment they arrive, so a lean team spends its time resolving issues instead of sorting them — and because it's a standalone microservice, it can be added without touching voice or booking systems."
+        "SOLUTION": "Support Triage automatically classifies and routes incoming requests the moment they arrive, so a lean team spends its time resolving issues instead of sorting them — and because it's a standalone module, it can be added without touching your phone or booking setup."
       }
     ]
   },

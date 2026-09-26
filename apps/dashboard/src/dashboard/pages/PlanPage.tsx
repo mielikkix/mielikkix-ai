@@ -214,7 +214,7 @@ function planFeatureLines(entry: PlanCatalogEntry, format: (usd: number) => stri
     FEATURE_LABELS.analytics_tier(features)!,
     limits.max_products === null ? 'Unlimited products' : `${limits.max_products} products in catalog`,
     limits.conversation_history_days === null
-      ? 'Unlimited conversation history'
+      ? 'Conversation history up to your retention setting (max 12 months)'
       : `${limits.conversation_history_days}-day conversation history`,
     FEATURE_LABELS.email_notifications(features)!,
   ]

@@ -1,11 +1,11 @@
 {
   "SEO": {
     "TITLE": "Priser for Mielikkix Chat Widget",
-    "DESCRIPTION": "Enkel, ærlig prising for Mielikkix Chat Widget — en reelt brukbar gratis plan, pluss Basic-, Business- og Vekst-nivåer for voksende bedrifter."
+    "DESCRIPTION": "Enkle, ærlige priser for Mielikkix Chat Widget — en gratisplan som faktisk er nyttig, pluss Basic, Business og Growth for voksende bedrifter."
   },
   "PAGE_HERO": {
-    "LINE1": "Enkel,",
-    "LINE2": "ærlig prising",
+    "LINE1": "Enkle,",
+    "LINE2": "ærlige priser",
     "SUBHEADING": "Start Mielikkix Chat Widget gratis. Betal først når den faktisk gjør nytte for seg."
   },
   "MOST_POPULAR_BADGE": "⭐ Mest populær",
@@ -17,7 +17,7 @@
       "NAME": "Gratis",
       "PRICE_USD": 0,
       "PERIOD": "for alltid",
-      "TAGLINE": "Prøv den for ordentlig, ingen kortdetaljer nødvendig.",
+      "TAGLINE": "Prøv den på ordentlig — uten betalingskort.",
       "CTA": "Start gratis",
       "FEATURED": false,
       "FEATURES": [
@@ -36,7 +36,7 @@
       "NAME": "Basic",
       "PRICE_USD": 24,
       "PERIOD": "/mnd",
-      "TAGLINE": "For én bedrift som finner sin form.",
+      "TAGLINE": "For én bedrift som er i ferd med å finne formen.",
       "CTA": "Velg Basic",
       "FEATURED": false,
       "FEATURES": [
@@ -69,22 +69,22 @@
         "Leadfangst",
         "Avansert analyse",
         "Ubegrenset antall produkter",
-        "Ubegrenset samtalehistorikk",
+        "Samtalehistorikk i opptil 12 måneder",
         "E-post- og WhatsApp-varsler (kommer snart)",
         "Instagram-integrasjon (kommer snart)",
         "Opptil 10 språk",
         "Flervaluta",
         "Tilpasset merkevare",
-        "API-tilgang (+€12/mnd tillegg)",
+        "API-tilgang (tillegg på 12 USD/mnd)",
         "Prioritert support"
       ]
     },
     {
-      "NAME": "Vekst",
+      "NAME": "Growth",
       "PRICE_USD": 96,
       "PERIOD": "/mnd",
       "TAGLINE": "For bedrifter med flere lokasjoner eller høy trafikk.",
-      "CTA": "Velg Vekst",
+      "CTA": "Velg Growth",
       "FEATURED": false,
       "FEATURES": [
         "10 nettsider",
@@ -94,7 +94,7 @@
         "Leadfangst",
         "Avansert analyse",
         "Ubegrenset antall produkter",
-        "Ubegrenset samtalehistorikk",
+        "Samtalehistorikk i opptil 12 måneder",
         "E-post- og WhatsApp-varsler (kommer snart)",
         "Instagram-integrasjon (kommer snart)",
         "Opptil 10 språk",
@@ -110,7 +110,7 @@
     "ITEMS": [
       {
         "Q": "Hva skjer hvis jeg overskrider den månedlige samtalegrensen?",
-        "A": "Widgeten din fortsetter å fungere — ingenting stenges midt i måneden. Ekstra samtaler på betalte planer faktureres med €1,20 per ekstra 100 samtaler. Gratisplanen er den eneste som settes på pause ved grensen, siden den er ment som en smakebit på produktet."
+        "A": "Nye samtaler settes på pause til grensen nullstilles ved starten av neste måned. Samtaler som allerede pågår, blir aldri avbrutt. Trenger du mer? Oppgrader når som helst, så gjelder den høyere grensen med én gang."
       },
       {
         "Q": "Kan jeg betale årlig?",
@@ -122,7 +122,7 @@
       },
       {
         "Q": "Er gratisplanen virkelig gratis for alltid?",
-        "A": "Ja. Den er bevisst begrenset (1 nettside, 50 samtaler/mnd) slik at du kan prøve produktet fullt ut — ikke en tidsbegrenset prøveperiode."
+        "A": "Ja. Det er en permanent plan, ikke en tidsbegrenset prøveperiode. Den er bevisst begrenset (1 nettside, 50 samtaler/mnd), slik at du kan prøve produktet ordentlig før du bestemmer deg."
       }
     ]
   },
@@ -131,10 +131,10 @@
     "TEXT_BEFORE": "Planene ovenfor gjelder Mielikkix Chat Widget. AI-agentene våre — som ",
     "LINK_SEO": "SEO Audit & Optimize",
     "TEXT_SEP_1": ", ",
-    "LINK_VOICE": "talerresepsjonist",
+    "LINK_VOICE": "Voice Receptionist",
     "TEXT_SEP_2": " og ",
-    "LINK_BOOKING": "bookingassistent",
-    "TEXT_AFTER": " — er egne tilbud for spesifikke arbeidsprosesser i bedriften, med egen prising.",
+    "LINK_BOOKING": "Booking Assistant",
+    "TEXT_AFTER": " — er egne tilbud for spesifikke arbeidsprosesser i bedriften, med egne priser.",
     "CTA": "Se priser for AI-agenter"
   },
   "CTA": {

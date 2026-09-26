@@ -22,9 +22,9 @@
     "SUBHEADING": "Tre måter bedrifter som din allerede bruker AI-agenter på.",
     "EXPLORE_AGENTS_LINK": "Utforsk AI-agenter →",
     "LINKS": {
-      "VOICE": "Prøv talerresepsjonisten →",
-      "BOOKING": "Prøv bookingassistenten →",
-      "SUPPORT": "Prøv supporttriagen →"
+      "VOICE": "Prøv Voice Receptionist →",
+      "BOOKING": "Prøv Booking Assistant →",
+      "SUPPORT": "Prøv Support Triage →"
     },
     "ITEMS": [
       {
@@ -39,14 +39,14 @@
         "KEY_MESSAGE_TITLE": "Én konsekvent resepsjon",
         "KEY_MESSAGE_SUBTITLE": "Satt i drift på hver eneste lokasjon",
         "PROBLEM": "Telefondekningen varierer sterkt fra sted til sted, så kundene får ulik service avhengig av hvilken lokasjon som tilfeldigvis svarer.",
-        "SOLUTION": "Fordi hver AI-agent kjører som en uavhengig mikrotjeneste, kan samme konfigurasjon av Voice Receptionist og Booking Assistant rulles ut identisk på hver lokasjon — én felles standard for hele kjeden, uten å øke bemanningen på hvert enkelt sted."
+        "SOLUTION": "Fordi hver AI-agent er en selvstendig modul, kan samme oppsett av Voice Receptionist og Booking Assistant rulles ut likt på hver lokasjon — én felles standard for hele kjeden, uten å øke bemanningen på hvert enkelt sted."
       },
       {
         "NAME": "Voksende SaaS- og nettbutikk-supportteam",
         "KEY_MESSAGE_TITLE": "Sorter supportsaker øyeblikkelig",
-        "KEY_MESSAGE_SUBTITLE": "Skaler teamet ikke bemanningen",
+        "KEY_MESSAGE_SUBTITLE": "Skaler supporten, ikke bemanningen",
         "PROBLEM": "Når supportvolumet vokser raskere enn bemanningen, hoper sakene seg opp raskere enn et lite team klarer å sortere og rute dem manuelt.",
-        "SOLUTION": "Support Triage klassifiserer og ruter innkommende henvendelser automatisk idet de kommer inn, slik at et lite team kan bruke tiden på å løse saker i stedet for å sortere dem — og fordi den er en frittstående mikrotjeneste, kan den legges til uten å røre verken telefoni- eller bestillingssystemene."
+        "SOLUTION": "Support Triage klassifiserer og ruter innkommende henvendelser automatisk idet de kommer inn, slik at et lite team kan bruke tiden på å løse saker i stedet for å sortere dem — og fordi den er en frittstående modul, kan den legges til uten å røre verken telefon- eller bookingoppsettet."
       }
     ]
   },
@@ -59,11 +59,11 @@
   },
   "BENTO": {
     "ONE_LINE_EMBED": {
-      "TITLE": "Ett-linjes installasjon",
+      "TITLE": "Installasjon med én kodelinje",
       "DESCRIPTION": "Legg til én enkelt script-tag på nettsiden din. Ingen app å installere, ingen iframe-hodepine."
     },
     "KNOWS_YOUR_BUSINESS": {
-      "TITLE": "Kjenner faktisk din bedrift",
+      "TITLE": "Kjenner faktisk bedriften din",
       "DESCRIPTION": "Svarer ut fra dine egne FAQ-er, dokumenter og produktkatalog — ikke generisk nettkunnskap.",
       "TAG_FAQS": "FAQ-er",
       "TAG_DOCUMENTS": "Dokumenter",
@@ -82,8 +82,8 @@
       "CONTACT_ME": "Kontakt meg"
     },
     "ON_BRAND": {
-      "TITLE": "På merkevare, hver gang",
-      "DESCRIPTION": "Dine farger, botens navn, din tone — vennlig, formell eller lekende.",
+      "TITLE": "Alltid i tråd med merkevaren",
+      "DESCRIPTION": "Dine farger, ditt botnavn og din tone — vennlig, formell eller leken.",
       "BOT_NAME_LABEL": "Botnavn:",
       "BOT_NAME_VALUE": "Aria"
     },
@@ -115,7 +115,7 @@
     ]
   },
   "PRICING_TEASER": {
-    "HEADING": "Enkel, ærlig prising",
+    "HEADING": "Enkle, ærlige priser",
     "SUBHEADING": "Start gratis. Oppgrader først når du får reell verdi.",
     "SAVINGS_BADGE": "2 måneder gratis ved årlig fakturering",
     "PLANS": [
@@ -144,11 +144,11 @@
         "FEATURED": true
       },
       {
-        "NAME": "Vekst",
+        "NAME": "Growth",
         "STAT": "20 000 samtaler/mnd",
         "PRICE_USD": 96,
         "PERIOD": "/mnd",
-        "CTA": "Velg Vekst",
+        "CTA": "Velg Growth",
         "FEATURED": false
       }
     ],
@@ -157,7 +157,7 @@
     "FOOTER_TEXT_AFTER_LINK": "."
   },
   "CTA": {
-    "HEADING": "Klar for å slutte å miste kunder på grunn av trege svar?",
+    "HEADING": "Klar til å slutte å miste kunder på grunn av trege svar?",
     "SUBHEADING": "Sett opp AI-chattevinduet ditt på få minutter — gratis plan, ingen kredittkort nødvendig."
   }
 }

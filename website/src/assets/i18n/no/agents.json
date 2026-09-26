@@ -1,7 +1,7 @@
 {
   "SEO": {
     "TITLE": "AI-agenter for bedriften din",
-    "DESCRIPTION": "Mielikkix Chat Widget, talerresepsjonist, bookingassistent og SEO Audit & Optimize -- klare AI-løsninger fra Mielikkix. Pluss utvikling av skreddersydde AI-agenter for alt bedriften din trenger å automatisere."
+    "DESCRIPTION": "Mielikkix Chat Widget, Voice Receptionist, Booking Assistant og SEO Audit & Optimize — ferdige AI-løsninger fra Mielikkix. I tillegg utvikler vi skreddersydde AI-agenter for alt bedriften din trenger å automatisere."
   },
   "HERO": {
     "LINE1": "AI-agenter bygget",
@@ -22,20 +22,20 @@
         "CTA": "Utforsk Mielikkix Chat Widget"
       },
       {
-        "NAME": "Talerresepsjonist",
+        "NAME": "Voice Receptionist",
         "DESCRIPTION": "En AI-resepsjonist som svarer på anrop, håndterer kundespørsmål, fanger opp henvendelser og kan hjelpe med avtaler.",
         "STATUS": "Tilpasset pris",
-        "CTA": "Prøv talerresepsjonisten"
+        "CTA": "Prøv Voice Receptionist"
       },
       {
-        "NAME": "Bookingassistent",
+        "NAME": "Booking Assistant",
         "DESCRIPTION": "En AI-bookingassistent som hjelper kunder med å bestille time og håndtere bookingrelaterte samtaler.",
         "STATUS": "Tilpasset pris",
-        "CTA": "Prøv bookingassistenten"
+        "CTA": "Prøv Booking Assistant"
       },
       {
         "NAME": "SEO Audit & Optimize",
-        "DESCRIPTION": "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan på ren norsk -- tekniske og innholdsmessige SEO-funn, pluss et AI-skrevet sammendrag av hva du bør fikse først.",
+        "DESCRIPTION": "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan i et klart og enkelt språk — tekniske og innholdsmessige SEO-funn, pluss et AI-skrevet sammendrag av hva du bør fikse først.",
         "STATUS": "Nyhet",
         "CTA": "Se priser"
       }
@@ -48,17 +48,17 @@
     "CTA": "Se demo",
     "ITEMS": [
       {
-        "NAME": "Supporttriage",
-        "DESCRIPTION": "Sorterer innkommende supporthenvendelser, identifiserer prioritet, utkaster svar og hjelper med å rute saker til riktig team."
+        "NAME": "Support Triage",
+        "DESCRIPTION": "Sorterer innkommende supporthenvendelser, vurderer prioritet, skriver utkast til svar og hjelper med å rute saker til riktig team."
       },
       {
-        "NAME": "Anmeldelser og omdømme",
-        "DESCRIPTION": "Analyserer kundeanmeldelser, identifiserer sentiment, utkaster svar i din tone og flagger saker som trenger oppmerksomhet."
+        "NAME": "Review & Reputation",
+        "DESCRIPTION": "Analyserer kundeanmeldelser, vurderer stemningen, skriver utkast til svar i din tone og flagger saker som trenger oppmerksomhet."
       },
       {
         "NAME": "WhatsApp Concierge",
         "BADGE": "Kun demo",
-        "DESCRIPTION": "Svarer på kundespørsmål og fanger opp leads direkte i WhatsApp -- samtalen kundene dine allerede har åpen."
+        "DESCRIPTION": "Svarer på kundespørsmål og fanger opp leads direkte i WhatsApp — samtalen kundene dine allerede har åpen."
       }
     ]
   },

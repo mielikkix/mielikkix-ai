@@ -69,13 +69,13 @@
         "Lead capture",
         "Advanced analytics",
         "Unlimited products",
-        "Unlimited conversation history",
+        "Up to 12 months of conversation history",
         "Email + WhatsApp notifications (coming soon)",
         "Instagram integration (coming soon)",
         "Up to 10 languages",
         "Multi-currency",
         "Custom branding",
-        "API access (+€12/mo add-on)",
+        "API access (+$12/mo add-on)",
         "Priority support"
       ]
     },
@@ -94,7 +94,7 @@
         "Lead capture",
         "Advanced analytics",
         "Unlimited products",
-        "Unlimited conversation history",
+        "Up to 12 months of conversation history",
         "Email + WhatsApp notifications (coming soon)",
         "Instagram integration (coming soon)",
         "Up to 10 languages",
@@ -110,7 +110,7 @@
     "ITEMS": [
       {
         "Q": "What happens if I go over my monthly conversation limit?",
-        "A": "Your widget keeps working — nothing shuts off mid-month. Extra conversations on paid plans bill at €1.20 per additional 100 conversations. The Free plan is the only one that pauses at its cap, since it's meant as a taste of the product."
+        "A": "New conversations pause until your limit resets at the start of next month. Conversations already in progress are never cut off. Need more? Upgrade at any time and the higher limit applies straight away."
       },
       {
         "Q": "Can I pay yearly?",
@@ -122,7 +122,7 @@
       },
       {
         "Q": "Is the Free plan really free forever?",
-        "A": "Yes. It's intentionally limited (1 website, 50 conversations/mo) so you can fully try the product, not a time-boxed trial."
+        "A": "Yes. It's a permanent plan, not a time-limited trial. It's deliberately limited (1 website, 50 conversations/mo), so you can try the product properly before you decide."
       }
     ]
   },

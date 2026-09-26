@@ -1,12 +1,12 @@
 {
   "SEO": {
     "TITLE": "Mielikkix Chat Widget-funksjoner",
-    "DESCRIPTION": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og vokse bedriften din."
+    "DESCRIPTION": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og få bedriften din til å vokse."
   },
   "PAGE_HERO": {
     "LINE1": "Kraftige Mielikkix Chat Widget-funksjoner for",
     "LINE2": "moderne bedrifter",
-    "SUBHEADING": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og vokse bedriften din.",
+    "SUBHEADING": "Alt Mielikkix Chat Widget gjør for å automatisere kundeservice, fange opp leads og få bedriften din til å vokse.",
     "DEFINITION": "Mielikkix Chat Widget er en AI-chatbot for nettsiden din, trent på dine egne FAQ-er, dokumenter og produktkatalog, som svarer kunder og fanger opp leads døgnet rundt.",
     "EXTRA_INTRO": "Enten du driver en butikk, klinikk, restaurant, kurssenter, eiendomsmegling eller servicebedrift, hjelper Mielikkix deg med å engasjere besøkende døgnet rundt og gjøre dem til kunder."
   },
@@ -38,7 +38,7 @@
       "STATS": [
         {
           "VALUE": "<2s",
-          "LABEL": "Gj.snittlig responstid"
+          "LABEL": "Gjennomsnittlig svartid"
         },
         {
           "VALUE": "24/7",
@@ -46,10 +46,10 @@
         },
         {
           "VALUE": "0",
-          "LABEL": "Uteblitte henvendelser"
+          "LABEL": "Tapte henvendelser"
         }
       ],
-      "CALLOUT": "Svaret til høyre genereres i sanntid av Mielikkixs AI, basert på denne bedriftens reelle FAQ-er og katalog — ikke en scriptet demo.",
+      "CALLOUT": "Svaret til høyre genereres i sanntid av Mielikkix' AI, basert på denne bedriftens reelle FAQ-er og katalog — ikke en forhåndsskrevet demo.",
       "VIDEO_ALT": "Live demo av Mielikkix AI-chattevindu som svarer på et kundespørsmål"
     },
     "KNOWLEDGE_BASE": {
@@ -148,7 +148,7 @@
       "DESCRIPTION": "Snakk kundens språk og lever lokaltilpassede opplevelser med AI.",
       "ITEMS": [
         {
-          "TEXT": "10 språk, oppdaget automatisk fra den besøkendes nettleser",
+          "TEXT": "10 språk, gjenkjent automatisk fra hver besøkendes melding",
           "AVAILABLE": true
         },
         {
@@ -156,7 +156,7 @@
           "AVAILABLE": true
         },
         {
-          "TEXT": "Kontaktskjemaet og alle tekster i chat-vinduet er også oversatt",
+          "TEXT": "Tekster i chat-vinduet og kontaktskjemaet på norsk og engelsk, med flere språk på vei",
           "AVAILABLE": true
         }
       ]
@@ -165,7 +165,7 @@
       "TITLE": "Klar for flere valutaer",
       "DESCRIPTION": "Perfekt for bedrifter som betjener kunder over hele verden.",
       "ITEMS": [
-        "Indiske rupi",
+        "Indiske rupier",
         "Amerikanske dollar",
         "Euro",
         "Norske kroner"
@@ -228,7 +228,7 @@
           "AVAILABLE": false
         }
       ],
-      "RATING_VALUE": "4.9",
+      "RATING_VALUE": "4,9",
       "RATING_MAX": "/5",
       "REVIEWS_LABEL": "120+ Google-anmeldelser"
     },
@@ -236,10 +236,10 @@
       "TITLE": "Sikkerhet i toppklasse",
       "DESCRIPTION": "Bygget med sikkerhet fra dag én, ikke lagt til i etterkant.",
       "BULLETS": [
-        "Flerleiearkitektur",
+        "Flerleietakerarkitektur",
         "Sikker dataisolasjon",
         "Shadow DOM-widget",
-        "Rate limiting",
+        "Begrensning av forespørsler",
         "Sikker URL-import",
         "SSL-kryptering"
       ],
@@ -248,11 +248,11 @@
     },
     "EASY_INSTALLATION": {
       "TITLE": "Enkel installasjon",
-      "DESCRIPTION": "Lanser AI-assistenten din på under 2 minutter. Bare kopier og lim inn én linje på nettsiden din. Ingen plugins, ingen koding, ingen komplisert oppsett.",
+      "DESCRIPTION": "Lanser AI-assistenten din på under 2 minutter. Bare kopier og lim inn én linje på nettsiden din. Ingen plugins, ingen koding og ikke noe komplisert oppsett.",
       "BULLETS": [
         "Ingen plugins",
         "Ingen koding",
-        "Ingen komplisert oppsett"
+        "Ikke noe komplisert oppsett"
       ]
     }
   },

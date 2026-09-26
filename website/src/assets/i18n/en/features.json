@@ -156,7 +156,7 @@
           "AVAILABLE": true
         },
         {
-          "TEXT": "Lead form and every widget label are translated too",
+          "TEXT": "Widget labels and lead form in English and Norwegian, with more languages coming",
           "AVAILABLE": true
         }
       ]
@@ -173,7 +173,7 @@
     },
     "WIDGET_CUSTOMIZATION": {
       "TITLE": "Widget Customization",
-      "DESCRIPTION": "Match your chatbot with your brand, down to the last detail.",
+      "DESCRIPTION": "Match your chatbot to your brand, down to the last detail.",
       "ITEMS": [
         {
           "TEXT": "Brand color",

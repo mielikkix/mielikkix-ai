@@ -1,19 +1,19 @@
 {
   "SEO": {
     "TITLE": "AI Agent Pricing",
-    "DESCRIPTION": "Real pricing for Mielikkix's AI agents, starting with SEO Audit & Optimize -- a technical and on-page SEO audit with a prioritized action plan. Free to start, with a monthly Professional tier."
+    "DESCRIPTION": "Real pricing for Mielikkix's AI agents, starting with SEO Audit & Optimize — a technical and on-page SEO audit with a prioritized action plan. Free to start, with a monthly Professional tier."
   },
   "PAGE_HERO": {
     "LINE1": "AI agents,",
     "LINE2": "priced simply",
-    "SUBHEADING": "A real crawl of your website, turned into a prioritized action plan -- start free, or go Professional with a monthly subscription."
+    "SUBHEADING": "A real crawl of your website, turned into a prioritized action plan — start free, or go Professional with a monthly subscription."
   },
   "MOST_POPULAR_BADGE": "⭐ Most Popular",
   "FREE_LABEL": "Free",
   "DISPLAY_NOTE": "Prices are displayed in your selected currency and converted from USD using current exchange rates.",
   "SEO_AUDIT": {
     "HEADING": "SEO Audit & Optimize",
-    "SUBHEADING": "A real crawl of your website -- robots.txt, sitemap, canonical URLs, titles, meta descriptions, headings, thin and duplicate content, and image alt text -- turned into a prioritized, plain-language action plan with an AI-written summary. Free to start; Professional adds a growing roadmap of deeper crawler capabilities.",
+    "SUBHEADING": "A real crawl of your website — robots.txt, sitemap, canonical URLs, titles, meta descriptions, headings, thin and duplicate content, and image alt text — turned into a prioritized, plain-language action plan with an AI-written summary. Free to start; Professional adds a growing roadmap of deeper crawler capabilities.",
     "TIERS": [
       {
         "NAME": "SEO Audit & Optimize — Free",
@@ -56,7 +56,7 @@
   },
   "ONGOING": {
     "HEADING": "Want us to keep optimizing every month?",
-    "SUBHEADING": "Ongoing SEO -- we monitor new audit results on your website and keep acting on what the agent finds.",
+    "SUBHEADING": "Ongoing SEO — we monitor new audit results on your website and keep acting on what the agent finds.",
     "PRICE_NOTE": "From",
     "PRICE_USD": 838,
     "PERIOD": "/mo, scoped to your site",
@@ -64,7 +64,7 @@
   },
   "OTHER_AGENTS": {
     "HEADING": "More AI agents",
-    "SUBHEADING": "Voice Receptionist, Booking Assistant, Support Triage, and Review & Reputation -- custom pricing based on your business.",
+    "SUBHEADING": "Voice Receptionist, Booking Assistant, Support Triage, and Review & Reputation — custom pricing based on your business.",
     "ITEMS": ["Voice Receptionist", "Booking Assistant", "Support Triage", "Review & Reputation"],
     "CTA": "Get in touch"
   },
@@ -73,7 +73,7 @@
     "ITEMS": [
       {
         "Q": "What's the difference between Free and Professional?",
-        "A": "SEO Audit & Optimize — Free already includes a full crawl (up to 500 pages), technical and on-page findings, a prioritized action plan, an AI-written summary, keyword ideas, audit history, and a PDF report -- everything we've built so far. Professional adds a longer roadmap of deeper crawler capabilities (scheduling, JavaScript rendering, Google Analytics/Search Console integrations, and more) as we build them -- see the Professional card for the full list."
+        "A": "SEO Audit & Optimize — Free already includes a full crawl (up to 500 pages), technical and on-page findings, a prioritized action plan, an AI-written summary, keyword ideas, audit history, and a PDF report — everything we've built so far. Professional adds a longer roadmap of deeper crawler capabilities (scheduling, JavaScript rendering, Google Analytics/Search Console integrations, and more) as we build them — see the Professional card for the full list."
       },
       {
         "Q": "Can I re-run the audit later?",
@@ -81,11 +81,11 @@
       },
       {
         "Q": "Does the agent fix the issues for me?",
-        "A": "It gives you a prioritized, plain-language action plan -- what to fix first, why it matters, and how hard each fix is. Nothing is ever published to your site without your review and approval."
+        "A": "It gives you a prioritized, plain-language action plan — what to fix first, why it matters, and how hard each fix is. Nothing is ever published to your site without your review and approval."
       },
       {
         "Q": "What if I have more than one website?",
-        "A": "Free or Professional, each tier covers one website. For multiple sites -- or if you'd rather we handle it ongoing -- get in touch and we'll scope it."
+        "A": "Free or Professional, each tier covers one website. For multiple sites — or if you'd rather we handle it ongoing — get in touch and we'll scope it."
       },
       {
         "Q": "How long does an audit take to run?",

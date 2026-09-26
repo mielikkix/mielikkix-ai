@@ -1,7 +1,7 @@
 {
   "SEO": {
     "TITLE": "AI Agents for Your Business",
-    "DESCRIPTION": "Mielikkix Chat Widget, Voice Receptionist, Booking Assistant, and SEO Audit & Optimize -- ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
+    "DESCRIPTION": "Mielikkix Chat Widget, Voice Receptionist, Booking Assistant, and SEO Audit & Optimize — ready-to-use AI solutions from Mielikkix. Plus custom AI agent development for whatever your business needs to automate."
   },
   "HERO": {
     "LINE1": "AI Agents Built",
@@ -35,7 +35,7 @@
       },
       {
         "NAME": "SEO Audit & Optimize",
-        "DESCRIPTION": "A real crawl of your website, turned into a prioritized, plain-language action plan -- technical SEO, on-page issues, and an AI-written summary of what to fix first.",
+        "DESCRIPTION": "A real crawl of your website, turned into a prioritized, plain-language action plan — technical SEO, on-page issues, and an AI-written summary of what to fix first.",
         "STATUS": "New",
         "CTA": "See Pricing"
       }
@@ -58,7 +58,7 @@
       {
         "NAME": "WhatsApp Concierge",
         "BADGE": "Demo Only",
-        "DESCRIPTION": "Answers customer questions and captures leads right inside WhatsApp -- the conversation your customers already have open."
+        "DESCRIPTION": "Answers customer questions and captures leads right inside WhatsApp — the conversation your customers already have open."
       }
     ]
   },

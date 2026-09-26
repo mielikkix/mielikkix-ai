@@ -21,6 +21,7 @@ from .seo_website import SeoWebsite
 from .seo_audit import SeoAudit, SeoCrawledPage, SeoFinding, SeoKeywordOpportunity, SeoPerformanceMeasurement
 from .seo_google_connection import SeoGoogleConnection
 from .article import Article
+from .consent_record import ConsentRecord
 
 __all__ = [
     "Business", "BusinessSettings", "BusinessWebsite", "User", "FAQ",
@@ -31,5 +32,5 @@ __all__ = [
     "SeoDraft", "Review", "ReviewConnection", "MailchimpConnection",
     "Campaign", "BusinessAgentAccess",
     "SeoWebsite", "SeoAudit", "SeoCrawledPage", "SeoFinding", "SeoKeywordOpportunity",
-    "SeoPerformanceMeasurement", "SeoGoogleConnection", "Article",
+    "SeoPerformanceMeasurement", "SeoGoogleConnection", "Article", "ConsentRecord",
 ]

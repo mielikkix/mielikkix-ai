@@ -27,6 +27,10 @@ interface RegisterData {
   full_name: string
   email: string
   password: string
+  country: string
+  terms_accepted: boolean
+  age_confirmed: boolean
+  marketing_opt_in: boolean
 }
 
 // The session lives in an httpOnly cookie set by the backend (not

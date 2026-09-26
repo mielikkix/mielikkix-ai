@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react'
-
-// The marketing site (website/) is a separate Astro app/deployment; astro.config.mjs
-// there defines the same production domain. Update both together if it changes.
-const MARKETING_URL = 'https://mielikkix.ai'
+import { LEGAL_URLS, MARKETING_URL } from '../../shared/legal'
 
 const navLinks = [
   { href: `${MARKETING_URL}/features`, label: 'Features' },
   { href: `${MARKETING_URL}/pricing`, label: 'Pricing' },
+]
+
+// Shown on every auth page (Login, Register, password reset) -- GDPR Phase 2.
+const legalLinks = [
+  { href: LEGAL_URLS.privacy, label: 'Privacy' },
+  { href: LEGAL_URLS.terms, label: 'Terms' },
+  { href: LEGAL_URLS.cookies, label: 'Cookies' },
 ]
 
 export function AuthLayout({
@@ -46,9 +50,12 @@ export function AuthLayout({
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 px-6 py-6 text-sm text-slate-400 sm:flex-row sm:justify-between">
           <span>&copy; {year} Mielikkix</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
             <a href={MARKETING_URL} className="hover:text-brand-600">Home</a>
             {navLinks.map((link) => (
+              <a key={link.href} href={link.href} className="hover:text-brand-600">{link.label}</a>
+            ))}
+            {legalLinks.map((link) => (
               <a key={link.href} href={link.href} className="hover:text-brand-600">{link.label}</a>
             ))}
           </div>

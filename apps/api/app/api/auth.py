@@ -14,7 +14,7 @@ from ..schemas.auth import (
     MessageResponse,
     UserOut,
 )
-from ..services import auth_service
+from ..services import auth_service, consent_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -44,7 +44,8 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 @router.post("/register", response_model=UserOut)
 @limiter.limit("10/hour")
 def register(request: Request, req: RegisterRequest, response: Response, db: Session = Depends(get_db)):
-    user, token = auth_service.register(db, req)
+    ip = request.client.host if request.client else None
+    user, token = auth_service.register(db, req, ip_hash=consent_service.hash_ip(ip))
     _set_auth_cookie(response, token)
     return _user_out(user)
 

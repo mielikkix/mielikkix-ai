@@ -15,6 +15,9 @@ class User(Base):
     hashed_password = Column(Text, nullable=False)
     full_name = Column(Text, nullable=False)
     role = Column(Text, default="owner")
+    # ISO 3166-1 alpha-2 (core/countries.py). Nullable: accounts created
+    # before the Register form asked for it have none.
+    country = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

@@ -128,3 +128,39 @@ async def notify_new_booking(contact_email: str, booking: Booking) -> None:
     """
     for recipient in [e.strip() for e in contact_email.split(",") if e.strip()]:
         await provider.send_email(to=recipient, subject=subject, html=html)
+
+
+async def send_marketing_email(db, user, subject: str, html: str) -> bool:
+    """The ONLY way to send Mielikkix's own non-transactional email (product
+    updates, tips, newsletters) to an account holder -- GDPR Phase 3. Checks
+    the user's current marketing consent first and silently skips if there
+    is none (returns False), and always adds a working one-click unsubscribe
+    link plus RFC 8058 List-Unsubscribe headers. Transactional emails
+    (password reset, lead/booking/escalation notifications) don't go through
+    here and don't need consent.
+
+    Not to be confused with the Email Marketing agent (api/campaigns.py),
+    which sends a CUSTOMER's campaigns to the customer's own audience via
+    the customer's own Mailchimp account."""
+    # Imported here: consent_service imports settings/models, and keeping
+    # the top of this module free of DB-layer imports matches the rest of it.
+    from ..services import consent_service
+
+    if not consent_service.has_marketing_consent(db, user.id):
+        return False
+
+    token = consent_service.make_unsubscribe_token(user.id)
+    unsubscribe_url = f"{settings.api_public_base_url}/api/consent/unsubscribe?token={token}"
+    html = f"""{html}
+        <hr>
+        <p style="font-size:12px;color:#666">
+          You're getting this because you opted in to product updates from Mielikkix.
+          <a href="{unsubscribe_url}">Unsubscribe</a> with one click, any time.
+        </p>
+    """
+    headers = {
+        "List-Unsubscribe": f"<{unsubscribe_url}>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
+    await get_notification_provider().send_email(to=user.email, subject=subject, html=html, headers=headers)
+    return True

@@ -1,5 +1,10 @@
+# Required on every registration since GDPR Phase 3 (see tests/test_consent.py
+# for what happens without them).
+CONSENT_FIELDS = {"country": "NO", "terms_accepted": True, "age_confirmed": True}
+
+
 def test_register_and_login(client):
-    resp = client.post("/api/auth/register", json={
+    resp = client.post("/api/auth/register", json={**CONSENT_FIELDS,
         "business_name": "Test Shop",
         "business_slug": "test-shop",
         "industry": "retail",
@@ -20,14 +25,14 @@ def test_register_and_login(client):
 
 
 def test_duplicate_email(client):
-    client.post("/api/auth/register", json={
+    client.post("/api/auth/register", json={**CONSENT_FIELDS,
         "business_name": "Shop B",
         "business_slug": "shop-b",
         "full_name": "Owner B",
         "email": "dup@test.com",
         "password": "password123",
     })
-    resp = client.post("/api/auth/register", json={
+    resp = client.post("/api/auth/register", json={**CONSENT_FIELDS,
         "business_name": "Shop C",
         "business_slug": "shop-c",
         "full_name": "Owner C",
@@ -38,14 +43,14 @@ def test_duplicate_email(client):
 
 
 def test_duplicate_slug(client):
-    client.post("/api/auth/register", json={
+    client.post("/api/auth/register", json={**CONSENT_FIELDS,
         "business_name": "Shop D",
         "business_slug": "shop-d",
         "full_name": "Owner D",
         "email": "d1@test.com",
         "password": "password123",
     })
-    resp = client.post("/api/auth/register", json={
+    resp = client.post("/api/auth/register", json={**CONSENT_FIELDS,
         "business_name": "Shop D Copycat",
         "business_slug": "shop-d",
         "full_name": "Owner D2",

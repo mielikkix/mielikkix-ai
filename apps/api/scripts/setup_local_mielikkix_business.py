@@ -104,6 +104,9 @@ def main():
                 "full_name": "Local Dev Admin",
                 "email": email,
                 "password": "local-dev-password-123",
+                "country": "NO",
+                "terms_accepted": True,
+                "age_confirmed": True,
             },
         )
         resp.raise_for_status()

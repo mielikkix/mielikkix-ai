@@ -14,7 +14,11 @@ export const COMPANY = {
   privacyEmail: "post@mielikkix.no",
 } as const;
 
-/** Version string + "last updated" date per document. Bump the version when the text changes materially. */
+/**
+ * Version string + "last updated" date per document. Bump the version when the text changes materially.
+ * terms/dpa versions are also recorded on every sign-up (consent_records) -- keep them identical to
+ * TERMS_VERSION / DPA_VERSION in apps/api/app/core/legal.py.
+ */
 export const LEGAL_DOCS = {
   privacy: { version: "privacy-2026-09-25", updated: "2026-09-25" },
   terms: { version: "terms-2026-09-25", updated: "2026-09-25" },

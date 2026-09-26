@@ -10,6 +10,7 @@ from ..models.password_reset_token import PasswordResetToken
 from ..models.user import User
 from ..schemas.auth import RegisterRequest, LoginRequest
 from ..core.security import hash_password, verify_password, create_access_token
+from . import consent_service
 
 RESET_TOKEN_TTL = timedelta(hours=1)
 
@@ -18,7 +19,7 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def register(db: Session, req: RegisterRequest) -> tuple[User, str]:
+def register(db: Session, req: RegisterRequest, ip_hash: Optional[str] = None) -> tuple[User, str]:
     if db.query(User).filter(User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -45,8 +46,13 @@ def register(db: Session, req: RegisterRequest) -> tuple[User, str]:
         hashed_password=hash_password(req.password),
         full_name=req.full_name,
         role="owner",
+        country=req.country,
     )
     db.add(user)
+    db.flush()
+    # Same transaction as the user row: an account can never exist without
+    # the record of what its owner agreed to (GDPR art. 7(1)).
+    consent_service.record_registration_consents(db, user.id, req.marketing_opt_in, ip_hash)
     db.commit()
     db.refresh(user)
 

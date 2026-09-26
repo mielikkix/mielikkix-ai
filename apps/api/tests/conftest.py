@@ -95,6 +95,10 @@ def signup(client):
             "full_name": "Test Owner",
             "email": f"owner{n}@example.com",
             "password": "supersecret123",
+            # GDPR Phase 3 required fields (tests/test_consent.py covers them).
+            "country": "NO",
+            "terms_accepted": True,
+            "age_confirmed": True,
         }
         payload.update(overrides)
         resp = client.post("/api/auth/register", json=payload)

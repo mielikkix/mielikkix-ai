@@ -25,7 +25,6 @@ route or parameter anywhere that lets a caller (even an authenticated
 platform admin) submit an arbitrary command or path.
 """
 import os
-import stat
 import subprocess
 from dataclasses import dataclass
 

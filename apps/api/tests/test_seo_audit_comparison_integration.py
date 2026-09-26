@@ -4,7 +4,6 @@ covered by test_seo_audit_comparison_service.py; this file covers
 entitlement, 404s, and cross-business isolation.
 """
 from app.models.seo_audit import SeoFinding
-from app.models.seo_website import SeoWebsite
 
 
 def _entitle(business, grant_agent):

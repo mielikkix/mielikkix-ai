@@ -7,7 +7,7 @@ price or cap means editing this file only.
 
 `None` on a limit means "unlimited".
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 

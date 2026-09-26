@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.models.seo_audit import SeoAudit, SeoCrawledPage, SeoFinding
-from app.models.seo_draft import SeoDraft
 from app.models.seo_website import SeoWebsite
 from app.services import seo_service
 from mielikkix_agent_core import LLMResult

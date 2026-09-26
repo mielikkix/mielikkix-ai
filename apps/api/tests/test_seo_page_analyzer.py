@@ -7,7 +7,7 @@ fabricated findings" rule).
 import httpx
 import pytest
 
-from app.services import seo_page_analyzer, web_crawl
+from app.services import seo_page_analyzer
 
 
 def _mock_fetch(monkeypatch, html: str, status: int = 200, headers: dict | None = None, chain=None):

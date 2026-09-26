@@ -6,7 +6,6 @@ see test_web_crawl.py for their own tests).
 
 Network calls are always mocked -- no real HTTP requests happen in this suite.
 """
-import httpx
 import pytest
 
 from app.models.document import Document

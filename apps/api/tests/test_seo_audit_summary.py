@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.models.seo_audit import SeoAudit, SeoFinding
+from app.models.seo_audit import SeoFinding
 from app.models.seo_website import SeoWebsite
 from app.services import seo_audit_service, seo_page_analyzer, web_crawl
 

@@ -22,7 +22,6 @@ VOICE_AGENT_BUSINESS_ID once this finishes.
 """
 import argparse
 import sys
-import time
 import uuid
 from pathlib import Path
 

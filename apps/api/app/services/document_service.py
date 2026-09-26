@@ -10,25 +10,10 @@ from ..core.config import settings
 from ..core.database import SessionLocal
 from ..rag.embeddings import embed_texts
 from . import plan_service, web_crawl
-# The SSRF guard, robots/sitemap parsing, and page-discovery crawler used to
-# be defined here; extracted to web_crawl.py in Stage 2 of apps/agents/
-# seo-audit/CLAUDE.md so the SEO Audit & Optimization agent's own
-# crawler reuses this exact hardened fetch path instead of a second
-# implementation. Re-exported under their old names so every existing call
-# site and test in this module keeps working unchanged.
-from .web_crawl import (
-    assert_public_url as _assert_public_url,
-    discover_website_pages,
-    discover_sitemap_urls as _discover_sitemap_urls,
-    discover_by_crawling as _discover_by_crawling,
-    fetch_sitemap_xml as _fetch_sitemap_xml,
-    get_robot_parser as _get_robot_parser,
-    looks_like_page as _looks_like_page,
-    site_root as _site_root,
-    CRAWL_USER_AGENT,
-    MAX_CRAWL_PAGES,
-    MAX_FETCH_BYTES as MAX_URL_FETCH_BYTES,
-)
+# The SSRF guard, robots/sitemap parsing, and page-discovery crawler live in
+# web_crawl.py (shared with the SEO Audit agent's crawler, see apps/agents/
+# seo-audit/CLAUDE.md Stage 2), so both use the same hardened fetch path.
+from .web_crawl import MAX_FETCH_BYTES as MAX_URL_FETCH_BYTES
 
 
 ALLOWED_TYPES = {"pdf", "docx", "txt", "csv", "xlsx", "url"}

@@ -6,13 +6,12 @@ so a plan change in app/core/plans.py takes effect everywhere at once.
 """
 from dataclasses import asdict
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..core.plans import PLANS, Plan, get_plan, NOT_YET_IMPLEMENTED_FEATURES
+from ..core.plans import PLANS, get_plan, NOT_YET_IMPLEMENTED_FEATURES
 from ..models.business import Business
 from ..models.document import Document
 from ..models.product import Product

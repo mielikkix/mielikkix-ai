@@ -4,10 +4,8 @@ client is always mocked here -- no test makes a real Groq call."""
 import json
 from unittest.mock import AsyncMock
 
-import pytest
 
 from app.models.product import Product
-from app.models.seo_draft import SeoDraft
 from app.services import seo_service
 from mielikkix_agent_core import LLMResult
 

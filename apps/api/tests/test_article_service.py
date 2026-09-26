@@ -36,7 +36,7 @@ def test_sanitize_content_strips_event_handler_attributes():
 
 def test_sanitize_content_preserves_div_section_and_class_attribute():
     """Added 2026-09-20 for the "Chatbot for Small Businesses" migration
-    (see scripts/migrate_chatbot_article.py) -- that article's real HTML
+    (a one-off script, since removed) -- that article's real HTML
     wraps every section in a styled <div>/<section>, which the sanitizer's
     original allowlist (before this migration) would have silently
     stripped, along with every Tailwind `class` attribute."""

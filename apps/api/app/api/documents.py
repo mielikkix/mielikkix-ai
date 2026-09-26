@@ -7,7 +7,8 @@ from ..models.user import User
 from ..models.business import Business
 from ..models.document import Document
 from ..schemas.document import DocumentOut, DocumentFromUrlRequest, WebsiteCrawlRequest, WebsiteCrawlOut
-from ..services.document_service import ingest_document, ingest_url, discover_website_pages, crawl_and_ingest_website
+from ..services.document_service import ingest_document, ingest_url, crawl_and_ingest_website
+from ..services.web_crawl import discover_website_pages
 from ..services import plan_service
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])

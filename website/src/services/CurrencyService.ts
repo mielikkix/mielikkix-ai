@@ -3,7 +3,7 @@
 // selected-currency persistence, and formatting. UI (CurrencySwitcher, Price) never talks to
 // the network or localStorage directly — it goes through currencyStore.ts, which calls here.
 
-import { BASE_CURRENCY, DEFAULT_CURRENCY, RATE_CACHE_TTL_MS, STORAGE_KEYS, SUPPORTED_CURRENCIES, type CurrencyCode } from "../config/currency";
+import { BASE_CURRENCY, RATE_CACHE_TTL_MS, STORAGE_KEYS, type CurrencyCode } from "../config/currency";
 import { formatCurrency as formatCurrencyValue } from "../utils/currencyFormatter";
 
 export interface ExchangeRateProvider {
@@ -111,25 +111,7 @@ export function formatCurrency(amount: number, currency: CurrencyCode): string {
   return formatCurrencyValue(amount, currency);
 }
 
-function isSupportedCurrency(value: string | null): value is CurrencyCode {
-  return !!value && SUPPORTED_CURRENCIES.some((c) => c.code === value);
-}
-
-let currentCurrency: CurrencyCode | null = null;
-
-export function getCurrentCurrency(): CurrencyCode {
-  if (currentCurrency !== null) return currentCurrency;
-  if (typeof localStorage === "undefined") {
-    currentCurrency = DEFAULT_CURRENCY;
-  } else {
-    const stored = localStorage.getItem(STORAGE_KEYS.CURRENCY);
-    currentCurrency = isSupportedCurrency(stored) ? stored : DEFAULT_CURRENCY;
-  }
-  return currentCurrency;
-}
-
 export function setCurrency(currency: CurrencyCode): void {
-  currentCurrency = currency;
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEYS.CURRENCY, currency);

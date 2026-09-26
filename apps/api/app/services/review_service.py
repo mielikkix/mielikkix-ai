@@ -922,7 +922,6 @@ async def handle_chat_message(db: Session, business_id: str, message: str) -> st
         text = _extract_quoted_or_trailing_text(message, 0)
         if not text:
             return "Sure -- paste the review you'd like a response drafted for."
-        business = db.query(Business).filter(Business.id == business_id).first()
         review = create_manual_review(db, business_id, text, platform="chat")
         await analyze_review(db, business_id, str(review.id))
         review = await generate_response(db, business_id, str(review.id))

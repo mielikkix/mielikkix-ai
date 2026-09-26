@@ -39,5 +39,3 @@ export const STORAGE_KEYS = {
   CURRENCY: "mielikkix_currency",
   RATE_CACHE: "mielikkix_exchange_rate",
 } as const;
-
-export const CURRENCY_CHANGE_EVENT = "mielikkix:currencychange";

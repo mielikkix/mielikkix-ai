@@ -14,7 +14,6 @@ googleapiclient's default httplib2 transport) for the same reason
 google_calendar_client.py already does -- see that module's own docstring
 on the confirmed-live httplib2/IPv6 issue on this dev machine.
 """
-import requests
 from google.auth import exceptions as google_auth_exceptions
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials

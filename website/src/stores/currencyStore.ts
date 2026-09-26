@@ -26,10 +26,6 @@ type Subscriber = (state: CurrencyState) => void;
 let state: CurrencyState = { currency: BASE_CURRENCY, rates: {} };
 const subscribers = new Set<Subscriber>();
 
-export function getState(): CurrencyState {
-  return state;
-}
-
 /** Subscribes to state changes; immediately invoked once with the current state. Returns an unsubscribe function. */
 export function subscribe(fn: Subscriber): () => void {
   subscribers.add(fn);

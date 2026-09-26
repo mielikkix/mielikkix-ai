@@ -127,9 +127,10 @@ export function DashboardPage() {
           <p className="font-medium text-slate-700">Privacy notes for your website</p>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             <li>
-              The widget sets no cookies. Once a visitor opens the chat, it stores one session ID
-              (<code className="bg-white px-1 rounded">mielikkix_session</code>) in sessionStorage, which is cleared when
-              the tab closes. List it in your cookie and privacy notices.
+              The widget sets no cookies. Once a visitor opens the chat, it stores a session ID
+              (<code className="bg-white px-1 rounded">mielikkix_session</code>) and the conversation so far
+              (<code className="bg-white px-1 rounded">mielikkix_chat_history</code>, so it follows them from page to
+              page) in sessionStorage, which is cleared when the tab closes. List them in your cookie and privacy notices.
             </li>
             <li>Visitors are told they're chatting with an AI assistant, with a link to your privacy policy.</li>
             <li>

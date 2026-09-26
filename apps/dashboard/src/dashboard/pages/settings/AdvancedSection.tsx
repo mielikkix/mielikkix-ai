@@ -35,8 +35,8 @@ export function AdvancedSection({ form, set, advancedMut }: Props) {
           />
           <p className="-mt-2 text-sm text-slate-500">
             Linked from the chat widget's "you're chatting with an AI assistant" notice. Mention the widget in your
-            privacy and cookie notices: it stores a session ID in the visitor's browser (sessionStorage) only once they
-            open the chat.
+            privacy and cookie notices: once a visitor opens the chat it stores a session ID and the conversation so far in
+            their browser (sessionStorage), cleared when they close the tab.
           </p>
           <label className="flex items-start gap-3">
             <input

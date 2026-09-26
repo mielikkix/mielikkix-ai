@@ -26,6 +26,31 @@ interface Props {
 
 const genSession = () => `sess_${Math.random().toString(36).slice(2, 10)}`
 const SESSION_KEY = 'mielikkix_session'
+// The visible conversation, so it follows the visitor from page to page (and
+// survives closing/reopening the panel) until the tab closes -- same lifetime
+// as SESSION_KEY. Tied to the business ID so another tenant's widget on the
+// same site never shows it.
+const HISTORY_KEY = 'mielikkix_chat_history'
+const MAX_STORED_MESSAGES = 50
+
+interface StoredHistory {
+  businessId: string
+  lang: string
+  messages: Message[]
+}
+
+function loadHistory(businessId: string): StoredHistory | null {
+  try {
+    const data = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || 'null')
+    if (data?.businessId !== businessId || !Array.isArray(data.messages)) return null
+    const messages = data.messages.filter(
+      (m: Message) => (m?.sender === 'visitor' || m?.sender === 'ai') && typeof m.content === 'string',
+    )
+    return { businessId, lang: typeof data.lang === 'string' ? data.lang : '', messages }
+  } catch {
+    return null
+  }
+}
 export const MIELIKKIX_PRIVACY_URL = 'https://mielikkix.ai/privacy'
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 
@@ -37,13 +62,17 @@ export function ChatWindow({
   initialLang,
   privacyPolicyUrl,
 }: Props) {
-  const [lang, setLang] = useState(initialLang ?? 'en')
+  const [stored] = useState(() => loadHistory(businessId))
+  const [lang, setLang] = useState(stored?.lang || initialLang || 'en')
   const strings = widgetStrings(lang)
   const sessionId = useRef(sessionStorage.getItem(SESSION_KEY) || (() => {
     const s = genSession(); sessionStorage.setItem(SESSION_KEY, s); return s
   })())
 
-  const [messages, setMessages] = useState<Message[]>([{ sender: 'ai', content: welcomeMessage }])
+  const [messages, setMessages] = useState<Message[]>([
+    { sender: 'ai', content: welcomeMessage },
+    ...(stored?.messages ?? []),
+  ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
@@ -56,6 +85,17 @@ export function ChatWindow({
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  // Everything after the welcome message (which always comes fresh from settings).
+  useEffect(() => {
+    if (messages.length < 2) return
+    try {
+      const history: StoredHistory = { businessId, lang, messages: messages.slice(1).slice(-MAX_STORED_MESSAGES) }
+      sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history))
+    } catch {
+      // Storage full or blocked: the chat still works, it just won't carry over.
+    }
+  }, [messages, lang, businessId])
 
   const send = async () => {
     const msg = input.trim()

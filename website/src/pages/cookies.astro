@@ -90,9 +90,10 @@ const t = {
     <section>
       <h2>For businesses embedding the Mielikkix widget</h2>
       <p>
-        The widget writes <code>mielikkix_session</code> (sessionStorage) only once a visitor opens the chat. It's
-        strictly necessary to hold the conversation together and is cleared when the tab closes. Please list it in your
-        own cookie and privacy notices.
+        The widget writes <code>mielikkix_session</code> (sessionStorage) only once a visitor opens the chat,
+        <code>mielikkix_chat_history</code> once they send a message, and <code>mielikkix_chat_consent</code> if you ask visitors to
+        agree before chatting. They're strictly necessary to hold the conversation together across pages and are cleared
+        when the tab closes. Please list them in your own cookie and privacy notices.
       </p>
     </section>
   </Fragment>
@@ -161,9 +162,10 @@ const t = {
     <section>
       <h2>For bedrifter som bruker Mielikkix-widgeten</h2>
       <p>
-        Widgeten skriver <code>mielikkix_session</code> (sessionStorage) først når en besøkende åpner chatten. Den er
-        strengt nødvendig for å holde samtalen samlet og slettes når fanen lukkes. Ta den med i deres egne erklæringer om
-        informasjonskapsler og personvern.
+        Widgeten skriver <code>mielikkix_session</code> (sessionStorage) først når en besøkende åpner chatten,
+        <code>mielikkix_chat_history</code> når de sender en melding, og <code>mielikkix_chat_consent</code> hvis dere ber besøkende
+        godta før de chatter. De er strengt nødvendige for å holde samtalen samlet på tvers av sider og slettes når fanen
+        lukkes. Ta dem med i deres egne erklæringer om informasjonskapsler og personvern.
       </p>
     </section>
   </Fragment>

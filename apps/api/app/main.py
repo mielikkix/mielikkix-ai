@@ -12,7 +12,7 @@ from .core.config import settings
 from .core.cors import PublicRouteCORSMiddleware
 from .core.database import Base, engine
 from .core.limiter import limiter
-from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, admin_articles, public_articles, agents_voice, agents_booking, agents_support, agents_seo, agents_seo_audit, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, google_oauth, campaigns, consent
+from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, admin_articles, public_articles, agents_voice, agents_booking, agents_support, agents_seo, agents_seo_audit, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, google_oauth, campaigns, consent, account
 
 # Without this, every module's logger.info() call (e.g. agents_voice.py's
 # own tool-call tracing) is silently dropped -- Python's root logger
@@ -59,6 +59,29 @@ async def _run_due_seo_audits_tick() -> None:
         db.close()
 
 
+async def _nightly_privacy_purge() -> None:
+    """GDPR Phase 4, nightly: hard-deletes accounts past their deletion grace
+    period (then emails the former owners), and erases minimised consent
+    records past their retention (account_service.purge_due). Same "own
+    session, never let a failure kill the job" shape as the SEO tick above."""
+    from .core.database import SessionLocal
+    from .notifications import notify_account_deleted
+    from .services import account_service
+
+    db = SessionLocal()
+    try:
+        for business_name, emails in account_service.purge_due(db):
+            for email in emails:
+                try:
+                    await notify_account_deleted(email, business_name)
+                except Exception:
+                    logging.getLogger(__name__).exception("Account-deleted email failed")
+    except Exception:
+        logging.getLogger(__name__).exception("Nightly privacy purge failed")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Loading sentence-transformers can take a long time on a cold process
@@ -83,6 +106,15 @@ async def lifespan(app: FastAPI):
         # than CHECK_INTERVAL_MINUTES (a slow audit) just resumes at the
         # next interval instead of running two audits of the same website
         # concurrently.
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
+        _nightly_privacy_purge,
+        "cron",
+        hour=3,
+        minute=15,
+        id="nightly_privacy_purge",
         max_instances=1,
         coalesce=True,
     )
@@ -139,6 +171,7 @@ app.include_router(mailchimp_oauth.router)
 app.include_router(google_oauth.router)
 app.include_router(campaigns.router)
 app.include_router(consent.router)
+app.include_router(account.router)
 
 os.makedirs(settings.upload_dir, exist_ok=True)
 

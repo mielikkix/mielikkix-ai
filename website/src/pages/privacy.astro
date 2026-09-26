@@ -213,7 +213,8 @@ const email = COMPANY.privacyEmail;
     <section>
       <h2>8. How long we keep data</h2>
       <ul>
-        <li><strong>Account data:</strong> while your account is active; deleted within <Fact value="{{VERIFY: 30}}" /> days after you close it, except what we must keep by law.</li>
+        <li><strong>Account data:</strong> while your account is active. When you delete your account, everything is permanently deleted after a 30-day grace period (during which you can cancel), except what we must keep by law.</li>
+        <li><strong>Records of your agreements and consent choices</strong> (what you accepted and when, including marketing choices and withdrawals): kept in minimised form for 3 years after account deletion to demonstrate compliance and defend legal claims. Only a keyed hash of your email is kept with them, never your name, business or IP address. They are then deleted.</li>
         <li><strong>Accounting records:</strong> 5 years after the end of the financial year (Norwegian Bookkeeping Act).</li>
         <li>
           <strong>Conversation history and leads (processed for customers):</strong> kept while the business's account is
@@ -260,8 +261,8 @@ const email = COMPANY.privacyEmail;
       </ul>
       <p>
         Email <a href={`mailto:${email}`}>{email}</a> to use any of these rights. We answer within one month, and may ask
-        you to verify your identity first. Account holders can currently close their account by emailing us; self-service
-        export and deletion in the dashboard are coming.
+        you to verify your identity first. Account holders can also download their data, change their email preferences
+        and delete their account themselves, under Chatbot Settings → Privacy &amp; data in the dashboard.
       </p>
       <p>
         You can complain to the Norwegian Data Protection Authority,
@@ -475,7 +476,8 @@ const email = COMPANY.privacyEmail;
     <section>
       <h2>8. Hvor lenge vi lagrer opplysninger</h2>
       <ul>
-        <li><strong>Kontoopplysninger:</strong> så lenge kontoen er aktiv; slettes innen <Fact value="{{VERIFY: 30}}" /> dager etter at du avslutter den, unntatt det loven krever at vi beholder.</li>
+        <li><strong>Kontoopplysninger:</strong> så lenge kontoen er aktiv. Når du sletter kontoen, slettes alt permanent etter en angrefrist på 30 dager (der du kan avbryte), unntatt det loven krever at vi beholder.</li>
+        <li><strong>Oversikt over avtaler og samtykker</strong> (hva du godtok og når, inkludert valg om markedsføring og tilbaketrekninger): lagres i minimert form i 3 år etter at kontoen er slettet, for å dokumentere at regelverket er fulgt og for å kunne forsvare rettskrav. Bare en nøkkelbasert hash av e-postadressen din lagres sammen med dem, aldri navn, bedrift eller IP-adresse. Deretter slettes de.</li>
         <li><strong>Regnskapsmateriale:</strong> 5 år etter regnskapsårets slutt (bokføringsloven).</li>
         <li>
           <strong>Samtalehistorikk og leads (behandlet for kunder):</strong> lagres mens bedriftens konto er aktiv, eller
@@ -523,8 +525,8 @@ const email = COMPANY.privacyEmail;
       </ul>
       <p>
         Send e-post til <a href={`mailto:${email}`}>{email}</a> for å bruke rettighetene dine. Vi svarer innen én måned, og
-        kan be deg bekrefte identiteten din først. Kontoinnehavere kan i dag avslutte kontoen ved å sende oss e-post;
-        selvbetjent eksport og sletting i dashbordet kommer.
+        kan be deg bekrefte identiteten din først. Kontoinnehavere kan også laste ned dataene sine, endre
+        e-postinnstillinger og slette kontoen selv under Chatbot Settings → Privacy &amp; data i dashbordet.
       </p>
       <p>
         Du kan klage til <a href="https://www.datatilsynet.no" target="_blank" rel="noopener noreferrer">Datatilsynet</a>.

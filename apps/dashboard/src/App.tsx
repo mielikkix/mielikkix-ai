@@ -27,6 +27,7 @@ import { AdminTicketsPage } from './dashboard/pages/admin/AdminTicketsPage'
 import { AdminArticlesPage } from './dashboard/pages/admin/AdminArticlesPage'
 import { AdminArticleFormPage } from './dashboard/pages/admin/AdminArticleFormPage'
 import { useAuthStore } from './shared/store/authStore'
+import { AccountNotices } from './dashboard/components/AccountNotices'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -54,6 +55,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             whatever was visible on screen at print time. print:overflow-visible
             here (and on the two wrapping divs above) removes that clipping only
             for print output; on-screen scrolling behavior is unchanged. */}
+        <AccountNotices />
         <main className="flex-1 overflow-y-auto p-4 md:p-8 print:overflow-visible print:p-0">{children}</main>
       </div>
     </div>

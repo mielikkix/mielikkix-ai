@@ -1,7 +1,8 @@
-import { MessageCircle, Palette, Globe, CalendarCheck, Sliders, type LucideIcon } from 'lucide-react'
+import { MessageCircle, Palette, Globe, CalendarCheck, Sliders, ShieldCheck, type LucideIcon } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useEffect, useRef } from 'react'
 
-export type SettingsTab = 'personality' | 'appearance' | 'languages' | 'booking' | 'advanced'
+export type SettingsTab = 'personality' | 'appearance' | 'languages' | 'booking' | 'advanced' | 'privacy'
 
 // Frequency order: roughly most-frequently-tuned to least. Icon/label
 // styling deliberately mirrors Sidebar.tsx's own NavLink (rounded-xl px-3
@@ -15,6 +16,7 @@ const SECTIONS: { key: SettingsTab; label: string; icon: LucideIcon }[] = [
   { key: 'languages', label: 'Languages', icon: Globe },
   { key: 'booking', label: 'Booking', icon: CalendarCheck },
   { key: 'advanced', label: 'Advanced', icon: Sliders },
+  { key: 'privacy', label: 'Privacy & data', icon: ShieldCheck },
 ]
 
 export function isSettingsTab(value: string | null): value is SettingsTab {
@@ -27,8 +29,34 @@ interface Props {
 }
 
 export function SettingsNav({ active, onChange }: Props) {
+  // On narrow screens the tabs scroll horizontally; keep the active one
+  // visible (e.g. arriving at ?tab=privacy from the deletion banner).
+  const navRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const reveal = () => {
+      const nav = navRef.current
+      const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+      if (!nav || !tab) return
+      const navBox = nav.getBoundingClientRect()
+      const tabBox = tab.getBoundingClientRect()
+      if (tabBox.right > navBox.right) nav.scrollLeft += tabBox.right - navBox.right
+      else if (tabBox.left < navBox.left) nav.scrollLeft -= navBox.left - tabBox.left
+    }
+    reveal()
+    // Tab widths settle after first paint (web font, icons), so reveal again
+    // whenever the nav or the active tab changes size.
+    const nav = navRef.current
+    const tab = nav?.querySelector('[aria-current="page"]')
+    if (!nav || !tab || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(reveal)
+    observer.observe(nav)
+    observer.observe(tab)
+    return () => observer.disconnect()
+  }, [active])
+
   return (
     <nav
+      ref={navRef}
       className="flex gap-2 overflow-x-auto pb-1 md:w-56 md:flex-shrink-0 md:flex-col md:gap-1 md:overflow-visible md:pb-0"
       aria-label="Settings sections"
     >

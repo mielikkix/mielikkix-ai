@@ -19,9 +19,11 @@ from ..services import auth_service, consent_service
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-def _user_out(user: User) -> UserOut:
+def _user_out(user: User, db: Session) -> UserOut:
     out = UserOut.model_validate(user)
     out.is_platform_admin = is_platform_admin(user)
+    out.pending_acceptance = consent_service.pending_documents(db, user.id)
+    out.deletion_scheduled_for = user.business.deletion_scheduled_for
     return out
 
 
@@ -47,7 +49,7 @@ def register(request: Request, req: RegisterRequest, response: Response, db: Ses
     ip = request.client.host if request.client else None
     user, token = auth_service.register(db, req, ip_hash=consent_service.hash_ip(ip))
     _set_auth_cookie(response, token)
-    return _user_out(user)
+    return _user_out(user, db)
 
 
 @router.post("/login", response_model=UserOut)
@@ -55,12 +57,12 @@ def register(request: Request, req: RegisterRequest, response: Response, db: Ses
 def login(request: Request, req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user, token = auth_service.login(db, req)
     _set_auth_cookie(response, token)
-    return _user_out(user)
+    return _user_out(user, db)
 
 
 @router.get("/me", response_model=UserOut)
-def me(current_user: User = Depends(get_current_user)):
-    return _user_out(current_user)
+def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _user_out(current_user, db)
 
 
 @router.post("/logout", response_model=MessageResponse)

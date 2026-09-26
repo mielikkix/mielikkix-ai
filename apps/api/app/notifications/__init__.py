@@ -164,3 +164,38 @@ async def send_marketing_email(db, user, subject: str, html: str) -> bool:
     }
     await get_notification_provider().send_email(to=user.email, subject=subject, html=html, headers=headers)
     return True
+
+
+# GDPR Phase 4: account deletion emails (transactional -- no consent needed).
+def _deletion_date(when: datetime) -> str:
+    return f"{when.strftime('%B')} {when.day}, {when.year}"
+
+
+async def notify_account_deletion_scheduled(to_email: str, full_name: str, business_name: str, scheduled_for: datetime) -> None:
+    html = f"""
+        <p>Hi {_esc(full_name)},</p>
+        <p>We've received your request to delete the Mielikkix account for <strong>{_esc(business_name)}</strong>.</p>
+        <p>The account and all its data will be permanently deleted on <strong>{_deletion_date(scheduled_for)}</strong>.
+        Until then you can still sign in and cancel under Chatbot Settings &rarr; Privacy &amp; data.</p>
+        <p>If you didn't ask for this, sign in and cancel the deletion straight away, then change your password.</p>
+    """
+    await get_notification_provider().send_email(to=to_email, subject="Your Mielikkix account is scheduled for deletion", html=html)
+
+
+async def notify_account_deletion_cancelled(to_email: str, full_name: str, business_name: str) -> None:
+    html = f"""
+        <p>Hi {_esc(full_name)},</p>
+        <p>The deletion of the Mielikkix account for <strong>{_esc(business_name)}</strong> has been cancelled. Nothing was deleted.</p>
+    """
+    await get_notification_provider().send_email(to=to_email, subject="Account deletion cancelled", html=html)
+
+
+async def notify_account_deleted(to_email: str, business_name: str) -> None:
+    html = f"""
+        <p>Hello,</p>
+        <p>The Mielikkix account for <strong>{_esc(business_name)}</strong> and its data have now been permanently deleted.</p>
+        <p>We keep only a minimised record of the agreements and consent choices made on the account (no name, business
+        or IP address) for 3 years, to demonstrate compliance, and then delete that too. See our
+        <a href="https://mielikkix.ai/privacy">Privacy Policy</a>.</p>
+    """
+    await get_notification_provider().send_email(to=to_email, subject="Your Mielikkix account has been deleted", html=html)

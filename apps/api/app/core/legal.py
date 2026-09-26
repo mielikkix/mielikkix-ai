@@ -20,3 +20,12 @@ SOURCE_REGISTER = "register"
 SOURCE_SETTINGS = "settings"
 SOURCE_UNSUBSCRIBE = "unsubscribe"
 SOURCE_REACCEPT = "reaccept"
+
+# GDPR Phase 4: account deletion.
+# Days between "Delete my account" and the hard delete, during which the
+# owner can still log in and cancel.
+DELETION_GRACE_DAYS = 30
+# How long pseudonymised consent records outlive a deleted account, so we can
+# still demonstrate consent if a complaint arrives later (GDPR art. 7(1)).
+# Decided 2026-09-26: keep 3 years, linked only to a keyed hash of the email.
+CONSENT_RETENTION_AFTER_DELETION_DAYS = 3 * 365

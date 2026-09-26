@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, field_validator
 from ..core.countries import COUNTRY_CODES
@@ -81,6 +83,11 @@ class UserOut(BaseModel):
     role: str
     business_id: UUID
     is_platform_admin: bool = False
+    # GDPR Phase 4: documents whose current version still needs accepting
+    # (drives the dashboard's blocking re-acceptance modal), and whether the
+    # account is scheduled for deletion (drives the cancel banner).
+    pending_acceptance: list[str] = []
+    deletion_scheduled_for: Optional[datetime] = None
 
     class Config:
         from_attributes = True

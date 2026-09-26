@@ -6,7 +6,7 @@ current state.
 import hashlib
 import hmac
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from jose import JWTError, jwt
@@ -17,8 +17,10 @@ from ..core.legal import (
     CONSENT_AGE,
     CONSENT_DPA,
     CONSENT_MARKETING,
+    CONSENT_RETENTION_AFTER_DELETION_DAYS,
     CONSENT_TERMS,
     DPA_VERSION,
+    SOURCE_REACCEPT,
     SOURCE_REGISTER,
     TERMS_VERSION,
 )
@@ -108,3 +110,84 @@ def read_unsubscribe_token(token: str) -> Optional[uuid.UUID]:
         return uuid.UUID(payload["uid"])
     except (JWTError, KeyError, ValueError, TypeError):
         return None
+
+
+def current_versions() -> dict[str, str]:
+    """Documents a user must have accepted, at their current versions. A
+    function (not a constant) so tests can bump a version via monkeypatch."""
+    return {CONSENT_TERMS: TERMS_VERSION, CONSENT_DPA: DPA_VERSION}
+
+
+def pending_documents(db: Session, user_id: uuid.UUID) -> list[str]:
+    """Documents whose CURRENT version this user hasn't accepted -- after a
+    version bump, or for accounts created before sign-up consent existed.
+    Non-empty means the dashboard shows the re-acceptance modal and
+    get_current_user blocks everything except the allow-listed routes."""
+    pending = []
+    for type_, version in current_versions().items():
+        record = latest(db, user_id, type_)
+        if not (record and record.granted and record.document_version == version):
+            pending.append(type_)
+    return pending
+
+
+def accept_documents(db: Session, user_id: uuid.UUID, documents: list[str], ip_hash: Optional[str]) -> None:
+    versions = current_versions()
+    now = datetime.now(timezone.utc)
+    for type_ in documents:
+        db.add(
+            ConsentRecord(
+                user_id=user_id,
+                type=type_,
+                document_version=versions[type_],
+                granted=True,
+                granted_at=now,
+                source=SOURCE_REACCEPT,
+                ip_hash=ip_hash,
+            )
+        )
+    db.commit()
+
+
+def history(db: Session, user_id: uuid.UUID) -> list[ConsentRecord]:
+    return (
+        db.query(ConsentRecord)
+        .filter(ConsentRecord.user_id == user_id)
+        .order_by(ConsentRecord.granted_at.desc(), ConsentRecord.type)
+        .all()
+    )
+
+
+def subject_hash(email: str) -> str:
+    """HMAC-SHA256 of the lowercased email with a key derived from the server
+    secret -- a plain SHA-256 of an email is reversible by hashing lists of
+    known addresses; this is only reproducible by us, when matching a dispute."""
+    key = hmac.new(settings.secret_key.encode(), b"consent-subject", hashlib.sha256).digest()
+    return hmac.new(key, email.strip().lower().encode(), hashlib.sha256).hexdigest()
+
+
+def minimise_for_deleted_user(db: Session, user_id: uuid.UUID, email: str, now: datetime) -> None:
+    """Called (in the purge transaction) before a user is deleted: keeps each
+    consent row as proof of what was agreed, stripped to subject_hash + type,
+    version, granted/withdrawn timestamps and source, for
+    CONSENT_RETENTION_AFTER_DELETION_DAYS. Covers every type, withdrawals included."""
+    db.query(ConsentRecord).filter(ConsentRecord.user_id == user_id).update(
+        {
+            ConsentRecord.user_id: None,
+            ConsentRecord.ip_hash: None,
+            ConsentRecord.subject_hash: subject_hash(email),
+            ConsentRecord.retain_until: now + timedelta(days=CONSENT_RETENTION_AFTER_DELETION_DAYS),
+        },
+        synchronize_session=False,
+    )
+
+
+def purge_expired_minimised_records(db: Session, now: datetime) -> int:
+    """Nightly: hard-deletes minimised records whose retention has ended."""
+    count = (
+        db.query(ConsentRecord)
+        .filter(ConsentRecord.user_id.is_(None), ConsentRecord.retain_until <= now)
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return count

@@ -10,6 +10,14 @@ from ..models.business import Business
 
 AUTH_COOKIE_NAME = "access_token"
 
+# GDPR Phase 4 re-acceptance gate: while a user hasn't accepted the CURRENT
+# Terms/DPA versions, every authenticated route answers 403 except these --
+# /me (so the dashboard learns it must show the re-acceptance modal),
+# logout, and the account routes (accept, export, delete, marketing), which
+# must never be conditional on agreeing to new terms.
+REACCEPTANCE_EXEMPT_PREFIXES = ("/api/auth/", "/api/account/")
+REACCEPTANCE_REQUIRED_DETAIL = "Please review and accept the updated Terms of Service to continue."
+
 
 def get_current_user(
     request: Request,
@@ -42,6 +50,11 @@ def get_current_user(
     user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if not request.url.path.startswith(REACCEPTANCE_EXEMPT_PREFIXES):
+        from ..services.consent_service import pending_documents
+
+        if pending_documents(db, user.id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=REACCEPTANCE_REQUIRED_DETAIL)
     return user
 
 

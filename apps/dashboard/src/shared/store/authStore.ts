@@ -9,6 +9,9 @@ interface User {
   role: string
   business_id: string
   is_platform_admin: boolean
+  // GDPR Phase 4 (see dashboard/components/AccountNotices.tsx)
+  pending_acceptance: string[]
+  deletion_scheduled_for: string | null
 }
 
 interface AuthState {

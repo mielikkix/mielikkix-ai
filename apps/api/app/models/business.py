@@ -29,6 +29,11 @@ class Business(Base):
     # rare agency-style account that legitimately needs more websites than
     # the default allows.
     seo_website_limit_override = Column(Integer, nullable=True)
+    # GDPR Phase 4 self-service deletion: set when the owner asks to delete
+    # the account; the purge job hard-deletes once deletion_scheduled_for
+    # passes. Both null = not scheduled (cancelling clears them).
+    deletion_requested_at = Column(DateTime(timezone=True), nullable=True)
+    deletion_scheduled_for = Column(DateTime(timezone=True), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),

@@ -9,6 +9,7 @@ import { AppearanceSection } from './settings/AppearanceSection'
 import { LanguagesSection } from './settings/LanguagesSection'
 import { BookingSection } from './settings/BookingSection'
 import { AdvancedSection } from './settings/AdvancedSection'
+import { PrivacySection } from './settings/PrivacySection'
 import {
   AVAILABLE_LANGUAGES,
   Business,
@@ -216,6 +217,7 @@ export function SettingsPage() {
             />
           )}
           {tab === 'advanced' && <AdvancedSection form={form} set={set} advancedMut={advancedMut} />}
+          {tab === 'privacy' && <PrivacySection />}
         </div>
       </div>
     </div>

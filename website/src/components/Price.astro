@@ -1,0 +1,18 @@
+---
+// Usage: <Price nok={490} lang="en" /> wherever a NOK amount is shown. Server-renders the
+// real NOK price (crawlable, correct with JS off); currencyStore.ts finds this node via
+// [data-price-nok] and rewrites it when the visitor picks EUR/USD, and restores this text
+// when they switch back to NOK.
+import { formatNok, type Lang } from "../data/pricing";
+
+interface Props {
+  /** The price in NOK, as authored in src/data/pricing.ts. */
+  nok: number;
+  lang: Lang;
+  /** Server-rendered NOK text when it differs from formatNok (e.g. "4,00 kr"). */
+  label?: string;
+}
+const { nok, lang, label } = Astro.props;
+---
+
+<span data-price-nok={nok} data-lang={lang}>{label ?? formatNok(nok, lang)}</span>

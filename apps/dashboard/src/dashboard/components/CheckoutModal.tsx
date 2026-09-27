@@ -5,10 +5,12 @@ import { api } from '../../shared/api/client'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { PlanCatalogEntry } from '../../shared/hooks/usePlan'
+import { formatNok } from '../../shared/price'
 
 interface Props {
   plan: PlanCatalogEntry
-  format: (usd: number) => string
+  /** Display formatter from useCurrency (may be EUR/USD); the charge itself is always NOK. */
+  format: (nok: number) => string
   onClose: () => void
 }
 
@@ -117,7 +119,12 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
         <div className="space-y-4 px-6 py-5">
           <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
             <span className="text-base text-slate-600">{plan.name} plan</span>
-            <span className="text-lg font-bold text-slate-900">{format(plan.price_nok)}/mo excl. VAT</span>
+            <span className="text-right">
+              <span className="block text-lg font-bold text-slate-900">{formatNok(plan.price_nok)}/mo excl. VAT</span>
+              {format(plan.price_nok) !== formatNok(plan.price_nok) && (
+                <span className="block text-xs text-slate-500">≈ {format(plan.price_nok)}/mo</span>
+              )}
+            </span>
           </div>
 
           <Input
@@ -172,7 +179,7 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
 
           <Button className="w-full justify-center" loading={payMutation.isPending} onClick={handleSubmit}>
             <CreditCard size={16} className="mr-2" />
-            Pay {format(plan.price_nok)}/mo and upgrade
+            Pay {formatNok(plan.price_nok)}/mo and upgrade
           </Button>
         </div>
       </div>

@@ -8,7 +8,8 @@ import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { AgentGate } from '../../shared/components/AgentGate'
 import { useAgentAccess, useAgentCatalog, AgentTier } from '../../shared/hooks/usePlan'
-import { formatNok } from '../../shared/price'
+import { useCurrency } from '../../shared/hooks/useCurrency'
+import { CurrencySwitcher } from '../components/CurrencySwitcher'
 
 interface SeoWebsite {
   id: string
@@ -1298,10 +1299,10 @@ function ContentTab() {
 // Two-tier pricing card, same visual language as PlanPage.tsx's chat-widget
 // plan cards (brand-gradient "Most Popular" card for the paid tier) so the
 // two pricing surfaces in this app don't look like two different products.
-function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: boolean; format: (usdAmount: number) => string }) {
+function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: boolean; format: (nokAmount: number) => string }) {
   const navigate = useNavigate()
   const isFree = tier.key === 'free'
-  // Fixed NOK/month excl. MVA (agent_catalog.py's price_nok).
+  // NOK/month excl. MVA (agent_catalog.py's price_nok), shown in the chosen currency (useCurrency).
   const priceLabel = isFree ? 'Free' : format(tier.price_nok)
 
   return (
@@ -1357,7 +1358,7 @@ function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: 
 function PlansTab() {
   const { data: catalog } = useAgentCatalog()
   const { data: access } = useAgentAccess()
-  const format = formatNok
+  const { currency, setCurrency, format, converted } = useCurrency()
   const seo = catalog?.find((a) => a.key === 'seo_audit_optimization')
 
   if (!seo?.tiers) return null
@@ -1370,8 +1371,10 @@ function PlansTab() {
           Google Analytics, Search Console and scheduled audits. Prices exclude VAT. Items marked
           "(coming soon)" are priced in but not built yet. Want us to do the fixes for you? Ask about
           the Managed Business and Growth plans.
+          {converted && ' EUR/USD prices are approximate; you are invoiced in NOK.'}
         </p>
         <div className="flex items-center gap-2">
+          <CurrencySwitcher currency={currency} onChange={setCurrency} />
           <Button size="sm" variant="secondary" onClick={() => window.print()}>
             Print / Save as PDF
           </Button>

@@ -2,8 +2,8 @@
 import Layout from "../layouts/Layout.astro";
 import { customAgentDevelopmentNode } from "../lib/offeringSchema";
 import PageHero from "../components/PageHero.astro";
-import Bi from "../components/pricing/Bi.astro";
-import { formatNok, getProduct, lowestPaidTier, type ProductId, type Text } from "../data/pricing";
+import Price from "../components/Price.astro";
+import { getProduct, lowestPaidTier, type ProductId } from "../data/pricing";
 import en from "../assets/i18n/en/agents.json";
 
 // Business direction (2026-08-30, updated 2026-09-19): Mielikkix is not
@@ -86,10 +86,9 @@ const additionalAgentsMeta = [
   },
 ];
 
-// "From 490 kr/mnd" badge text, read from the single price list (lowest paid tier).
-function fromPrice(id: ProductId): Text {
-  const price = lowestPaidTier(getProduct(id)).priceNokMonthly as number;
-  return { en: `From ${formatNok(price, "en")}/month`, no: `Fra ${formatNok(price, "no")}/mnd` };
+// "From 490 kr/mnd" badge price, read from the single price list (lowest paid tier).
+function fromPrice(id: ProductId): number {
+  return lowestPaidTier(getProduct(id)).priceNokMonthly as number;
 }
 function pricingHref(id: ProductId): string {
   return id === "chat-widget" ? "/pricing#chat-widget" : `/agent-pricing#${id}`;
@@ -190,7 +189,7 @@ const customAgentExamplesMeta = [
                   href={pricingHref(meta.productId)}
                   class:list={["relative z-10 rounded-full px-3 py-1 text-xs font-semibold hover:underline", meta.statusClass]}
                 >
-                  <Bi text={fromPrice(meta.productId)} />
+                  <span class="i18n-en">From <Price nok={fromPrice(meta.productId)} lang="en" />/month</span><span class="i18n-no" lang="nb">Fra <Price nok={fromPrice(meta.productId)} lang="no" />/mnd</span>
                 </a>
               </div>
               <h3 class="font-display mt-6 text-2xl font-bold text-slate-900">
@@ -242,7 +241,7 @@ const customAgentExamplesMeta = [
                     href={pricingHref(meta.productId)}
                     class="relative z-10 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:underline"
                   >
-                    <Bi text={fromPrice(meta.productId)} />
+                    <span class="i18n-en">From <Price nok={fromPrice(meta.productId)} lang="en" />/month</span><span class="i18n-no" lang="nb">Fra <Price nok={fromPrice(meta.productId)} lang="no" />/mnd</span>
                   </a>
                 ) : (
                   <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500" data-i18n={`ADDITIONAL_AGENTS.ITEMS.${i}.BADGE`}>

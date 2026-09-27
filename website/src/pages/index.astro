@@ -3,7 +3,8 @@ import Layout from "../layouts/Layout.astro";
 import BentoCard from "../components/BentoCard.astro";
 import CTASection from "../components/CTASection.astro";
 import Bi from "../components/pricing/Bi.astro";
-import { TIER_NAMES, formatMonthly, formatNumber, getProduct } from "../data/pricing";
+import Price from "../components/Price.astro";
+import { TIER_NAMES, formatNumber, getProduct, priceParts } from "../data/pricing";
 import BlogPostCard from "../components/BlogPostCard.astro";
 import { fetchPublishedArticles } from "../lib/articles";
 import dashboardVideo from "../assets/mielikkix-dashboard-analysis.mp4";
@@ -424,8 +425,16 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
             <p
               class:list={["font-display mt-2 text-2xl font-bold", plan.recommended ? "text-white" : "text-slate-900"]}
             >
-              <span class="i18n-en">{formatMonthly(plan, "en")}</span>
-              <span class="i18n-no" lang="nb">{formatMonthly(plan, "no")}</span>
+              {(["en", "no"] as const).map((lang) => {
+                const p = priceParts(plan, lang, "month");
+                return (
+                  <span class={lang === "no" ? "i18n-no" : "i18n-en"} lang={lang === "no" ? "nb" : undefined}>
+                    {p.prefix}
+                    {p.nok === null ? p.amount : <Price nok={p.nok} lang={lang} />}
+                    {p.suffix}
+                  </span>
+                );
+              })}
             </p>
             <p
               class:list={[

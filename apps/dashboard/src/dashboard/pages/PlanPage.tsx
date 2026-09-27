@@ -11,7 +11,8 @@ import { PlanGate } from '../../shared/components/PlanGate'
 import { CheckoutModal } from '../components/CheckoutModal'
 import { PaymentComingSoonModal } from '../components/PaymentComingSoonModal'
 import { usePlan, usePlanCatalog, PlanCatalogEntry } from '../../shared/hooks/usePlan'
-import { formatNok } from '../../shared/price'
+import { CurrencySwitcher } from '../components/CurrencySwitcher'
+import { useCurrency } from '../../shared/hooks/useCurrency'
 
 // The API access add-on price isn't part of the plan catalog response (it's a flat backend
 // constant, see app/api/businesses.py's set_api_access_addon docstring) -- kept in sync here.
@@ -243,7 +244,7 @@ export function PlanPage() {
   const { data: catalog } = usePlanCatalog()
   const [checkoutPlan, setCheckoutPlan] = useState<PlanCatalogEntry | null>(null)
   const [comingSoonPlan, setComingSoonPlan] = useState<PlanCatalogEntry | null>(null)
-  const format = formatNok
+  const { currency, setCurrency, format, converted } = useCurrency()
 
   // Free needs no payment step; paid plans go through checkout first.
   const chooseMutation = useMutation({
@@ -269,6 +270,10 @@ export function PlanPage() {
           <p className="text-base text-slate-500 mt-1">
             You're currently on the <span className="font-semibold text-slate-700">{status?.plan_name ?? '—'}</span> plan.
           </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <CurrencySwitcher currency={currency} onChange={setCurrency} />
+          {converted && <p className="text-xs text-slate-500">Approximate. You're invoiced in NOK.</p>}
         </div>
       </div>
 

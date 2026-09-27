@@ -6,6 +6,7 @@
 // To add a new language: add a folder under src/assets/i18n/<code>/ with the same five
 // JSON files as src/assets/i18n/en/, then add one entry to SUPPORTED_LANGUAGES below.
 
+import type { CurrencyCode } from "../../config/currency";
 
 export type LanguageCode = "en" | "no";
 
@@ -17,11 +18,13 @@ export interface LanguageDefinition {
   name: string;
   /** Path to the flag image shown in the dropdown (see public/flags/README.md — not an emoji, Windows won't render flag emoji as pictures). */
   flag: string;
+  /** Default currency while this language is active — CurrencySwitcher can override it. */
+  currency: CurrencyCode;
 }
 
 export const SUPPORTED_LANGUAGES: LanguageDefinition[] = [
-  { code: "en", label: "EN", name: "English", flag: "/flags/gb.svg" },
-  { code: "no", label: "NOR", name: "Norsk", flag: "/flags/no.svg" },
+  { code: "en", label: "EN", name: "English", flag: "/flags/gb.svg", currency: "EUR" },
+  { code: "no", label: "NOR", name: "Norsk", flag: "/flags/no.svg", currency: "NOK" },
 ];
 
 export const DEFAULT_LANGUAGE: LanguageCode = "en";

@@ -1,7 +1,8 @@
 ---
-// Price-rule footer for every pricing page: VAT statement plus the legal links.
+// Price-rule footer for every pricing page: VAT statement, the EUR/USD conversion note
+// (shown by currencyStore.ts only while a converted currency is displayed) and the legal links.
 import Bi from "./Bi.astro";
-import { PRICING_META } from "../../data/pricing";
+import { CUSTOM_AGENT_MIN_TERM_MONTHS, PRICING_META } from "../../data/pricing";
 
 const vat = PRICING_META.vatRate * 100;
 const links = [
@@ -16,8 +17,16 @@ const links = [
   <p>
     <Bi
       text={{
-        en: `All prices are fixed NOK amounts for businesses and exclude ${vat}% MVA. Monthly plans can be cancelled at any time. Paying yearly costs 10 months' price for 12 months.`,
-        no: `Alle priser er faste beløp i NOK for bedrifter, eks. ${vat} % mva. Månedlige planer kan sies opp når som helst. Ved årlig betaling betaler du for 10 måneder og får 12.`,
+        en: `All prices are fixed NOK amounts for businesses and exclude ${vat}% MVA. Monthly plans can be cancelled at any time, except Custom AI Agents, which have a ${CUSTOM_AGENT_MIN_TERM_MONTHS}-month minimum term and then run month to month. Paying yearly costs 10 months' price for 12 months.`,
+        no: `Alle priser er faste beløp i NOK for bedrifter, eks. ${vat} % mva. Månedlige planer kan sies opp når som helst, unntatt skreddersydde AI-agenter, som har ${CUSTOM_AGENT_MIN_TERM_MONTHS} måneders bindingstid og deretter løper månedlig. Ved årlig betaling betaler du for 10 måneder og får 12.`,
+      }}
+    />
+  </p>
+  <p class="mt-2" data-currency-note hidden>
+    <Bi
+      text={{
+        en: "EUR and USD prices are approximate, converted from NOK at today's exchange rate. You are invoiced in NOK.",
+        no: "Priser i EUR og USD er omtrentlige, regnet om fra NOK etter dagens valutakurs. Du faktureres i NOK.",
       }}
     />
   </p>

@@ -9,13 +9,13 @@ import Bi from "../components/pricing/Bi.astro";
 import BillingToggle from "../components/pricing/BillingToggle.astro";
 import ProductPricing from "../components/pricing/ProductPricing.astro";
 import PricingLegalNote from "../components/pricing/PricingLegalNote.astro";
+import Price from "../components/Price.astro";
 import {
   TIER_NAMES,
   addons,
   bundleListPrice,
   bundleSaving,
   bundles,
-  formatNok,
   getProduct,
   products,
   yearlyPrice,
@@ -115,18 +115,26 @@ const langs: Lang[] = ["en", "no"];
                   <div class={lang === "no" ? "i18n-no" : "i18n-en"}>
                     <p class="mt-5 font-display text-2xl font-extrabold text-slate-900">
                       <span class="billing-monthly">
-                        {formatNok(bundle.priceNokMonthly, lang)}
+                        <Price nok={bundle.priceNokMonthly} lang={lang} />
                         {lang === "no" ? "/mnd eks. mva." : "/month excl. VAT"}
                       </span>
                       <span class="billing-yearly">
-                        {formatNok(yearlyPrice(bundle.priceNokMonthly), lang)}
+                        <Price nok={yearlyPrice(bundle.priceNokMonthly)} lang={lang} />
                         {lang === "no" ? "/år eks. mva." : "/year excl. VAT"}
                       </span>
                     </p>
                     <p class="mt-1 text-sm font-semibold text-emerald-600">
-                      {lang === "no"
-                        ? `Du sparer ${formatNok(bundleSaving(bundle), lang)}/mnd sammenlignet med å kjøpe dem hver for seg (${formatNok(bundleListPrice(bundle), lang)}/mnd).`
-                        : `You save ${formatNok(bundleSaving(bundle), lang)}/month compared with buying them separately (${formatNok(bundleListPrice(bundle), lang)}/month).`}
+                      {lang === "no" ? (
+                        <>
+                          Du sparer <Price nok={bundleSaving(bundle)} lang={lang} />/mnd sammenlignet med å kjøpe dem hver for seg
+                          (<Price nok={bundleListPrice(bundle)} lang={lang} />/mnd).
+                        </>
+                      ) : (
+                        <>
+                          You save <Price nok={bundleSaving(bundle)} lang={lang} />/month compared with buying them separately
+                          (<Price nok={bundleListPrice(bundle)} lang={lang} />/month).
+                        </>
+                      )}
                     </p>
                   </div>
                 ))}
@@ -158,7 +166,7 @@ const langs: Lang[] = ["en", "no"];
               ) : (
                 langs.map((lang) => (
                   <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
-                    {formatNok(addon.priceNokMonthly, lang)}
+                    <Price nok={addon.priceNokMonthly} lang={lang} />
                     {lang === "no" ? "/mnd eks. mva." : "/month excl. VAT"}
                   </span>
                 ))

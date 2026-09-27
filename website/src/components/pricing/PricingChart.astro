@@ -11,6 +11,7 @@ import {
   type Lang,
   type Product,
 } from "../../data/pricing";
+import Price from "../Price.astro";
 
 interface Props {
   product: Product;
@@ -48,13 +49,9 @@ function summary(lang: Lang): string {
     : `${product.name.en}, monthly price and included usage per plan. ${bars}.`;
 }
 
-function perUnitCaption(lang: Lang): string {
-  if (perUnit.length === 0) return "";
-  const unit = product.usageUnitOne[lang];
-  const values = perUnit.map((x) => formatNumber(Math.round(x.value * 100) / 100, lang)).join(" / ");
-  return lang === "no"
-    ? `Effektiv pris per ${unit}: ${values} kr (${perUnit.map((x) => TIER_NAMES[x.tier.id].no).join(" / ")}).`
-    : `Effective price per ${unit}: ${values} kr (${perUnit.map((x) => TIER_NAMES[x.tier.id].en).join(" / ")}).`;
+/** "0.99 kr" -- NOK label of a per-unit price, rounded to øre. */
+function perUnitLabel(value: number, lang: Lang): string {
+  return `${formatNumber(Math.round(value * 100) / 100, lang)} kr`;
 }
 
 const langs: Lang[] = ["en", "no"];
@@ -87,7 +84,11 @@ const langs: Lang[] = ["en", "no"];
                   class={tier.recommended ? "fill-violet-600" : "fill-violet-200"}
                 />
                 <text x={x + barW / 2} y={y - 10} text-anchor="middle" class="fill-slate-700 text-[12px] font-semibold">
-                  {priceLabel(tier.priceNokMonthly, lang)}
+                  {tier.priceNokMonthly === null ? (
+                    priceLabel(null, lang)
+                  ) : (
+                    <tspan data-price-nok={tier.priceNokMonthly} data-lang={lang}>{priceLabel(tier.priceNokMonthly, lang)}</tspan>
+                  )}
                 </text>
                 <text x={x + barW / 2} y={H - PAD_BOTTOM + 18} text-anchor="middle" class="fill-slate-900 text-[12px] font-semibold">
                   {TIER_NAMES[tier.id][lang]}
@@ -104,7 +105,18 @@ const langs: Lang[] = ["en", "no"];
         {lang === "no"
           ? "Søylene viser månedspris eks. mva.; etiketten under viser hva som er inkludert."
           : "Bars show the monthly price excl. VAT; the label below shows what's included."}{" "}
-        {perUnitCaption(lang)}
+        {perUnit.length > 0 && (
+          <>
+            {lang === "no" ? `Effektiv pris per ${product.usageUnitOne.no}: ` : `Effective price per ${product.usageUnitOne.en}: `}
+            {perUnit.map((x, i) => (
+              <>
+                {i > 0 && " / "}
+                <Price nok={x.value} lang={lang} label={perUnitLabel(x.value, lang)} />
+              </>
+            ))}
+            {` (${perUnit.map((x) => TIER_NAMES[x.tier.id][lang]).join(" / ")}).`}
+          </>
+        )}
       </figcaption>
     </figure>
   ))

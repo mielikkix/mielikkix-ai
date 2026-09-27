@@ -4,17 +4,16 @@
 // Monthly/yearly display is switched by BillingToggle.astro (global.css hides one).
 import Bi from "./Bi.astro";
 import PricingChart from "./PricingChart.astro";
+import Price from "../Price.astro";
 import {
   TIER_NAMES,
   PRICING_META,
-  formatMonthly,
-  formatYearly,
-  formatNok,
   priceParts,
   formatNumber,
   formatValue,
   getProduct,
   withVat,
+  effectiveFeatures,
   type Lang,
   type ProductId,
   type Tier,
@@ -38,6 +37,8 @@ const L = {
   recommended: T("⭐ Recommended", "⭐ Anbefalt"),
   managed: T("Managed", "Managed"),
   soon: T("Coming soon", "Kommer snart"),
+  atLimit: T("When you reach your limit:", "Når du når grensen:"),
+  soonHeading: T("Coming soon, not available yet", "Kommer snart, ikke tilgjengelig ennå"),
   monthsFree: T("2 months free", "2 måneder gratis"),
   overage: T("Overage", "Tillegg ved overforbruk"),
   term: T("Minimum term", "Bindingstid"),
@@ -58,10 +59,11 @@ function ctaText(tier: Tier): Text {
   return T("Book a demo", "Book en demo");
 }
 
-function overageText(tier: Tier, lang: Lang): string {
-  if (!tier.overage) return lang === "no" ? "Ingen tilleggskostnader" : "No overage charges";
-  const price = formatNumber(tier.overage.priceNok, lang).replace(/^(\d+)$/, lang === "no" ? "$1,00" : "$1.00");
-  return lang === "no" ? `${price} kr/${tier.overage.unit.no}` : `${price} kr/${tier.overage.unit.en}`;
+const NO_OVERAGE = T("No overage charges", "Ingen tilleggskostnader");
+
+/** "4,00 kr" -- the NOK label of an overage price (always two decimals). */
+function overageLabel(priceNok: number, lang: Lang): string {
+  return `${formatNumber(priceNok, lang).replace(/^(\d+)$/, lang === "no" ? "$1,00" : "$1.00")} kr`;
 }
 
 // Comparison rows: every limit (by English label), then every feature, in first-seen order.
@@ -69,9 +71,12 @@ const limitLabels: Text[] = [];
 for (const tier of tiers)
   for (const inc of tier.included)
     if (!limitLabels.some((l) => l.en === inc.label.en)) limitLabels.push(inc.label);
+// Features are compared after expanding "Everything in <tier>" lines (effectiveFeatures), so a
+// Start tier that has everything in Free shows Free's features as included too.
+const tierFeatures = new Map(tiers.map((tier) => [tier.id, effectiveFeatures(product, tier)]));
 const featureRows: Text[] = [];
 for (const tier of tiers)
-  for (const f of tier.features)
+  for (const f of tierFeatures.get(tier.id) ?? [])
     if (!featureRows.some((r) => r.en === f.en)) featureRows.push({ en: f.en, no: f.no });
 const hasOverage = tiers.some((t) => t.overage);
 const hasTerm = tiers.some((t) => t.minTermMonths);
@@ -128,7 +133,9 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
                   return (
                     <span class:list={[lang === "no" ? "i18n-no" : "i18n-en", period === "year" ? "billing-yearly" : "billing-monthly"]}>
                       {p.prefix && <span class:list={["text-sm font-medium", muted]}>{p.prefix}</span>}
-                      <span class="font-display text-3xl font-extrabold">{p.amount}</span>
+                      <span class="font-display text-3xl font-extrabold">
+                        {p.nok === null ? p.amount : <Price nok={p.nok} lang={lang} />}
+                      </span>
                       {p.suffix && <span class:list={["ml-1 text-sm", muted]}>{p.suffix}</span>}
                     </span>
                   );
@@ -148,21 +155,20 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
             )}
 
             <ul class:list={["mt-5 space-y-1.5 text-sm", featured ? "text-white" : "text-slate-700"]}>
-              {tier.included.map((inc) => (
+              {tier.included.filter((inc) => !inc.soon).map((inc) => (
                 <li>
                   {langs.map((lang) => (
                     <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
                       {inc.label[lang]}: <strong>{formatValue(inc.value, lang)}</strong>
                     </span>
                   ))}
-                  {inc.soon && <span class:list={["ml-1 text-xs", muted]}>(<Bi text={L.soon} />)</span>}
                 </li>
               ))}
               {tier.overage && (
                 <li>
                   {langs.map((lang) => (
                     <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
-                      {L.overage[lang]}: <strong>{overageText(tier, lang)}</strong>
+                      {L.overage[lang]}: <strong><Price nok={tier.overage!.priceNok} lang={lang} label={overageLabel(tier.overage!.priceNok, lang)} />/{tier.overage!.unit[lang]}</strong>
                     </span>
                   ))}
                 </li>
@@ -180,21 +186,54 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
             </a>
 
             <ul class="mt-6 space-y-2.5 text-sm">
-              {tier.features.slice(0, 6).map((f) => (
+              {tier.features.filter((f) => !f.soon).slice(0, 6).map((f) => (
                 <li class:list={["flex gap-2", featured ? "text-indigo-50" : "text-slate-600"]}>
                   <span aria-hidden="true" class:list={featured ? "text-blue-200" : "text-violet-500"}>✓</span>
-                  <span>
-                    <Bi text={f} />
-                    {f.soon && <span class:list={["ml-1 text-xs", muted]}>(<Bi text={L.soon} />)</span>}
-                  </span>
+                  <span><Bi text={f} /></span>
                 </li>
               ))}
             </ul>
+
+            {/* Sold on this tier but not built yet: listed apart, without a check mark, so they
+                never read as available today. */}
+            {(tier.included.some((inc) => inc.soon) || tier.features.some((f) => f.soon)) && (
+              <div class:list={["mt-5 border-t pt-4 text-sm", featured ? "border-white/20" : "border-slate-100"]}>
+                <p class:list={["text-xs font-semibold uppercase tracking-wide", muted]}><Bi text={L.soonHeading} /></p>
+                <ul class:list={["mt-2 space-y-2", featured ? "text-indigo-50" : "text-slate-500"]}>
+                  {tier.included.filter((inc) => inc.soon).map((inc) => (
+                    <li class="flex gap-2">
+                      <span aria-hidden="true">○</span>
+                      <span>
+                        {langs.map((lang) => (
+                          <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
+                            {inc.label[lang]}: {formatValue(inc.value, lang)}
+                          </span>
+                        ))}
+                      </span>
+                    </li>
+                  ))}
+                  {tier.features.filter((f) => f.soon).map((f) => (
+                    <li class="flex gap-2">
+                      <span aria-hidden="true">○</span>
+                      <span><Bi text={f} /></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         );
       })
     }
   </div>
+
+  {
+    product.limitRule && (
+      <p class="mx-auto mt-6 max-w-3xl rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm text-slate-600">
+        <strong class="text-slate-800"><Bi text={L.atLimit} /></strong> <Bi text={product.limitRule} />
+      </p>
+    )
+  }
 
   <!-- Comparison table -->
   <div class="mx-auto mt-12 max-w-5xl">
@@ -219,8 +258,16 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
               <td class="px-4 py-3 font-semibold text-slate-900">
                 {langs.map((lang) => (
                   <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
-                    <span class="billing-monthly">{formatMonthly(tier, lang)}</span>
-                    <span class="billing-yearly">{formatYearly(tier, lang)}</span>
+                    {(["month", "year"] as const).map((period) => {
+                      const p = priceParts(tier, lang, period);
+                      return (
+                        <span class={period === "year" ? "billing-yearly" : "billing-monthly"}>
+                          {p.prefix}
+                          {p.nok === null ? p.amount : <Price nok={p.nok} lang={lang} />}
+                          {p.suffix}
+                        </span>
+                      );
+                    })}
                   </span>
                 ))}
               </td>
@@ -235,10 +282,16 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
                   <td class="px-4 py-3">
                     {inc ? (
                       <>
+                        {inc.soon && (
+                          <span class="mr-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                            <Bi text={L.soon} />
+                          </span>
+                        )}
                         {langs.map((lang) => (
-                          <span class={lang === "no" ? "i18n-no" : "i18n-en"}>{formatValue(inc.value, lang)}</span>
+                          <span class:list={[lang === "no" ? "i18n-no" : "i18n-en", inc.soon && "text-slate-400"]}>
+                            {formatValue(inc.value, lang)}
+                          </span>
                         ))}
-                        {inc.soon && <span class="ml-1 text-xs text-slate-400">(<Bi text={L.soon} />)</span>}
                       </>
                     ) : (
                       <>
@@ -257,7 +310,15 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
               {tiers.map((tier) => (
                 <td class="px-4 py-3">
                   {langs.map((lang) => (
-                    <span class={lang === "no" ? "i18n-no" : "i18n-en"}>{overageText(tier, lang)}</span>
+                    <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
+                      {tier.overage ? (
+                        <>
+                          <Price nok={tier.overage.priceNok} lang={lang} label={overageLabel(tier.overage.priceNok, lang)} />/{tier.overage.unit[lang]}
+                        </>
+                      ) : (
+                        NO_OVERAGE[lang]
+                      )}
+                    </span>
                   ))}
                 </td>
               ))}
@@ -283,14 +344,17 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
             <tr>
               <th scope="row" class="px-4 py-3 font-medium"><Bi text={row} /></th>
               {tiers.map((tier) => {
-                const f = tier.features.find((x) => x.en === row.en);
+                const f = tierFeatures.get(tier.id)?.find((x) => x.en === row.en);
                 return (
                   <td class="px-4 py-3">
-                    {f ? (
+                    {f?.soon ? (
+                      <span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                        <Bi text={L.soon} />
+                      </span>
+                    ) : f ? (
                       <>
                         <span class="text-violet-600" aria-hidden="true">✓</span>
                         <span class="sr-only"><Bi text={L.included} /></span>
-                        {f.soon && <span class="ml-1 text-xs text-slate-400">(<Bi text={L.soon} />)</span>}
                       </>
                     ) : (
                       <>
@@ -314,7 +378,7 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
                   : langs.map((lang) => (
                       <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
                         {tier.priceFrom ? (lang === "no" ? "fra " : "from ") : ""}
-                        {formatNok(withVat(tier.priceNokMonthly as number), lang)}
+                        <Price nok={withVat(tier.priceNokMonthly as number)} lang={lang} />
                         {lang === "no" ? "/mnd" : "/month"}
                       </span>
                     ))}

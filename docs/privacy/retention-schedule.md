@@ -44,7 +44,7 @@ This is covered by `tests/test_account.py::test_purge_deletes_all_tenant_data_an
 | `mx_consent` cookie (cookie choice) | 12 months, then the visitor is asked again | Browser (expiry) |
 | Google Analytics cookies `_ga`, `_ga_<ID>` (only after the visitor opts in) | 2 years, or until consent is withdrawn (then deleted by `src/lib/consent.ts`) | Browser / consent withdrawal |
 | Google Analytics data in GA4 | 2 months (GA4 data retention setting, confirmed 2026-09-26) | Google |
-| `localStorage` language preference | Until cleared | Browser |
+| `localStorage` language/currency preferences and exchange-rate cache | Until cleared (rate cache refreshes after 24 h) | Browser |
 
 ## Customers' end users (Mielikkix is processor)
 

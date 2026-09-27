@@ -3,9 +3,12 @@
  * bundle saving, yearly price and JSON-LD Offer on the site is computed from
  * this file -- change a number here and nothing else needs editing.
  *
- * All prices are fixed NOK per month, excluding 25% MVA (sold to businesses).
- * No live currency conversion. `soon: true` marks a feature or limit that is
- * sold on the tier but not built yet: it renders with a "Coming soon" label.
+ * All prices are fixed NOK per month, excluding 25% MVA (sold to businesses),
+ * and invoiced in NOK. Visitors can view them in EUR/USD (CurrencySwitcher):
+ * that's a display-only conversion at today's rate, done in the browser on
+ * every <Price> node -- the HTML and JSON-LD always carry the NOK price.
+ * `soon: true` marks a feature or limit that is sold on the tier but not
+ * built yet: it's listed separately under "Coming soon", never with a check.
  * The app's own copy of the Chat Widget and SEO prices lives in
  * apps/api/app/core/plans.py and agent_catalog.py -- keep them in step.
  * Limit/overage rules are documented for the app in docs/pricing-rules.md.
@@ -36,6 +39,8 @@ export interface Included {
 
 export interface Feature extends Text {
   soon?: boolean;
+  /** "Everything in <tier>": this tier also has every feature of that tier (see everythingIn). */
+  inherits?: TierId;
 }
 
 export interface Tier {
@@ -67,6 +72,8 @@ export interface Product {
   usageUnitOne: Text; // singular, for "price per ..."
   tiers: Tier[];
   faq: Faq[];
+  /** What happens at the included usage limit, shown under the plan cards (same text as that FAQ answer). */
+  limitRule?: Text;
   /** Page with the live demo or product details. */
   detailHref: string;
 }
@@ -92,6 +99,12 @@ export const TIER_NAMES: Record<TierId, Text> = {
 };
 
 const t = (en: string, no: string): Text => ({ en, no });
+/** Feature line "Everything in Free" etc.; the comparison table expands it into that tier's features. */
+const everythingIn = (tier: TierId): Feature => ({
+  en: `Everything in ${TIER_NAMES[tier].en}`,
+  no: `Alt i ${TIER_NAMES[tier].no}`,
+  inherits: tier,
+});
 const soon = (en: string, no: string): Feature => ({ en, no, soon: true });
 const UNLIMITED = t("Unlimited", "Ubegrenset");
 
@@ -114,6 +127,24 @@ const FAQ_CHANGE_PLAN: Faq = {
     "Ja. Oppgraderinger gjelder med én gang, og mellomlegget beregnes forholdsmessig. Nedgraderinger gjelder fra neste faktureringsperiode. Månedlige planer kan sies opp når som helst, og du beholder tilgangen ut perioden du har betalt for.",
   ),
 };
+
+const FAQ_VOICE_MINUTES: Faq = {
+  q: t("What happens if I use more minutes than included?", "Hva skjer hvis jeg bruker flere minutter enn inkludert?"),
+  a: t(
+    "Calls are always answered. Extra minutes are billed monthly at the overage rate shown on your plan (4.00, 3.50 or 3.00 kr per minute excl. VAT), and you'll see them itemised on your invoice.",
+    "Anrop blir alltid besvart. Ekstra minutter faktureres månedlig til tilleggsprisen på planen din (4,00, 3,50 eller 3,00 kr per minutt eks. mva.), og de spesifiseres på fakturaen.",
+  ),
+};
+
+const FAQ_TRIAGE_TICKETS: Faq = {
+  q: t("What happens if I get more tickets than included?", "Hva skjer hvis jeg får flere saker enn inkludert?"),
+  a: t(
+    "Every ticket is still handled and there are no surprise overage charges. If you regularly go over your plan, we'll get in touch to suggest the right one.",
+    "Alle saker blir fortsatt behandlet, og det kommer ingen overraskende tilleggskostnader. Går du jevnlig over planen din, tar vi kontakt og foreslår riktig plan.",
+  ),
+};
+
+const CHAT_CONVERSATIONS = t("conversations", "samtaler");
 
 const FAQ_VAT: Faq = {
   q: t("Do the prices include VAT?", "Er MVA inkludert i prisene?"),
@@ -139,6 +170,7 @@ export const products: Product[] = [
     usageUnit: t("conversations", "samtaler"),
     usageUnitOne: t("conversation", "samtale"),
     detailHref: "/features",
+    limitRule: FAQ_SOFT_LIMIT(CHAT_CONVERSATIONS).a,
     tiers: [
       {
         id: "free",
@@ -225,7 +257,7 @@ export const products: Product[] = [
       },
     ],
     faq: [
-      FAQ_SOFT_LIMIT(t("conversations", "samtaler")),
+      FAQ_SOFT_LIMIT(CHAT_CONVERSATIONS),
       {
         q: t("Is the Free plan really free?", "Er gratisplanen virkelig gratis?"),
         a: t(
@@ -248,6 +280,7 @@ export const products: Product[] = [
     usageUnit: t("minutes", "minutter"),
     usageUnitOne: t("minute", "minutt"),
     detailHref: "/demo/voice-receptionist",
+    limitRule: FAQ_VOICE_MINUTES.a,
     tiers: [
       {
         id: "start",
@@ -304,13 +337,7 @@ export const products: Product[] = [
       },
     ],
     faq: [
-      {
-        q: t("What happens if I use more minutes than included?", "Hva skjer hvis jeg bruker flere minutter enn inkludert?"),
-        a: t(
-          "Calls are always answered. Extra minutes are billed monthly at the overage rate shown on your plan (4.00, 3.50 or 3.00 kr per minute excl. VAT), and you'll see them itemised on your invoice.",
-          "Anrop blir alltid besvart. Ekstra minutter faktureres månedlig til tilleggsprisen på planen din (4,00, 3,50 eller 3,00 kr per minutt eks. mva.), og de spesifiseres på fakturaen.",
-        ),
-      },
+      FAQ_VOICE_MINUTES,
       {
         q: t("Does the caller know it's an AI?", "Vet innringeren at det er en AI?"),
         a: t(
@@ -410,6 +437,7 @@ export const products: Product[] = [
     usageUnit: t("tickets", "saker"),
     usageUnitOne: t("ticket", "sak"),
     detailHref: "/demo/support-triage",
+    limitRule: FAQ_TRIAGE_TICKETS.a,
     tiers: [
       {
         id: "start",
@@ -459,13 +487,7 @@ export const products: Product[] = [
       },
     ],
     faq: [
-      {
-        q: t("What happens if I get more tickets than included?", "Hva skjer hvis jeg får flere saker enn inkludert?"),
-        a: t(
-          "Every ticket is still handled and there are no surprise overage charges. If you regularly go over your plan, we'll get in touch to suggest the right one.",
-          "Alle saker blir fortsatt behandlet, og det kommer ingen overraskende tilleggskostnader. Går du jevnlig over planen din, tar vi kontakt og foreslår riktig plan.",
-        ),
-      },
+      FAQ_TRIAGE_TICKETS,
       FAQ_CHANGE_PLAN,
       FAQ_VAT,
     ],
@@ -578,7 +600,7 @@ export const products: Product[] = [
           { label: t("Pages crawled", "Sider gjennomgått"), value: t("Up to 500", "Opptil 500") },
         ],
         features: [
-          t("Everything in Free", "Alt i Gratis"),
+          everythingIn("free"),
           t("Google Analytics integration", "Integrasjon med Google Analytics"),
           t("Search Console integration", "Integrasjon med Search Console"),
           t("Scheduled audits", "Planlagte revisjoner"),
@@ -595,7 +617,7 @@ export const products: Product[] = [
           { label: t("Pages crawled", "Sider gjennomgått"), value: t("Up to 500", "Opptil 500") },
         ],
         features: [
-          t("Everything in Start", "Alt i Start"),
+          everythingIn("start"),
           t("Monthly done-for-you fixes", "Månedlige forbedringer utført for deg"),
           t("Local business SEO", "Lokal SEO for bedriften"),
         ],
@@ -610,7 +632,7 @@ export const products: Product[] = [
           { label: t("Pages crawled", "Sider gjennomgått"), value: t("Larger sites, scoped with you", "Større nettsider, avtales med deg") },
         ],
         features: [
-          t("Everything in Business", "Alt i Business"),
+          everythingIn("business"),
           t("Content plan", "Innholdsplan"),
           t("Monthly report", "Månedlig rapport"),
         ],
@@ -801,6 +823,20 @@ export function getTier(productId: ProductId, tierId: TierId): Tier {
   return tier;
 }
 
+/**
+ * A tier's features with every "Everything in <tier>" line expanded into that tier's own
+ * features (recursively), so "Everything in Free" counts as having each Free feature.
+ * The inherits marker lines themselves are left out.
+ */
+export function effectiveFeatures(product: Product, tier: Tier): Feature[] {
+  const out: Feature[] = [];
+  for (const f of tier.features) {
+    const inherited = f.inherits ? effectiveFeatures(product, product.tiers.find((x) => x.id === f.inherits) as Tier) : [f];
+    for (const g of inherited) if (!out.some((x) => x.en === g.en)) out.push(g);
+  }
+  return out;
+}
+
 export function bundleListPrice(bundle: Bundle): number {
   return bundle.parts.reduce((sum, part) => sum + (getTier(part.productId, part.tierId).priceNokMonthly ?? 0), 0);
 }
@@ -859,12 +895,12 @@ export function priceParts(
   tier: Pick<Tier, "priceNokMonthly" | "priceFrom">,
   lang: Lang,
   period: "month" | "year",
-): { prefix: string; amount: string; suffix: string } {
-  if (tier.priceNokMonthly === null) return { prefix: "", amount: lang === "no" ? "Gratis" : "Free", suffix: "" };
+): { prefix: string; amount: string; nok: number | null; suffix: string } {
+  if (tier.priceNokMonthly === null) return { prefix: "", amount: lang === "no" ? "Gratis" : "Free", nok: null, suffix: "" };
   const value = period === "year" ? yearlyPrice(tier.priceNokMonthly) : tier.priceNokMonthly;
   const prefix = tier.priceFrom ? (lang === "no" ? "fra " : "from ") : "";
   const unit = lang === "no" ? (period === "year" ? "/år" : "/mnd") : period === "year" ? "/year" : "/month";
-  return { prefix, amount: formatNok(value, lang), suffix: `${unit} ${lang === "no" ? "eks. mva." : "excl. VAT"}` };
+  return { prefix, amount: formatNok(value, lang), nok: value, suffix: `${unit} ${lang === "no" ? "eks. mva." : "excl. VAT"}` };
 }
 
 export function formatYearly(tier: Pick<Tier, "priceNokMonthly" | "priceFrom">, lang: Lang): string {

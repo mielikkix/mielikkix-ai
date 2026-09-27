@@ -1,0 +1,33 @@
+---
+// Price-rule footer for every pricing page: VAT statement plus the legal links.
+import Bi from "./Bi.astro";
+import { PRICING_META } from "../../data/pricing";
+
+const vat = PRICING_META.vatRate * 100;
+const links = [
+  { href: "/terms", text: { en: "Terms", no: "Vilkår" } },
+  { href: "/dpa", text: { en: "Data Processing Agreement", no: "Databehandleravtale" } },
+  { href: "/privacy", text: { en: "Privacy", no: "Personvern" } },
+  { href: "/subprocessors", text: { en: "Subprocessors", no: "Underleverandører" } },
+];
+---
+
+<div class="mx-auto max-w-3xl px-6 pb-12 text-center text-sm text-slate-500">
+  <p>
+    <Bi
+      text={{
+        en: `All prices are fixed NOK amounts for businesses and exclude ${vat}% MVA. Monthly plans can be cancelled at any time. Paying yearly costs 10 months' price for 12 months.`,
+        no: `Alle priser er faste beløp i NOK for bedrifter, eks. ${vat} % mva. Månedlige planer kan sies opp når som helst. Ved årlig betaling betaler du for 10 måneder og får 12.`,
+      }}
+    />
+  </p>
+  <p class="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
+    {
+      links.map((link) => (
+        <a href={link.href} class="underline decoration-slate-300 underline-offset-2 hover:text-violet-600">
+          <Bi text={link.text} />
+        </a>
+      ))
+    }
+  </p>
+</div>

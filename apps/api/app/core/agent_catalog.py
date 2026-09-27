@@ -29,11 +29,8 @@ class AgentTier:
     key: str
     name: str
     tagline: str
-    price_usd: int  # 0 for the free tier
-    # Set only for a tier priced in NOK instead of USD (see the "kr" price on
-    # the Professional tier below) -- None means "use price_usd" like every
-    # other placeholder price in this file.
-    price_nok: int | None
+    # NOK per month, excl. 25% MVA (website/src/data/pricing.ts is the source of truth).
+    price_nok: int  # 0 for the free tier
     # Marketing copy for the pricing card. An entry ending in "(coming soon)"
     # is NOT implemented yet -- same convention PlanPage.tsx already uses for
     # chat-widget PlanFeatures that are sold but not wired up (WhatsApp
@@ -47,7 +44,9 @@ class AgentTier:
 class AgentProduct:
     key: str
     name: str
-    price_usd: int  # placeholder -- no payment processor wired up yet
+    # Lowest paid tier's NOK/month price excl. MVA, as shown on /agent-pricing.
+    # Placeholder until a payment processor is wired up.
+    price_nok: int
     # Whether this agent's own routes actually check business_id today.
     # False means the agent (Voice Receptionist, Support Triage) is still
     # hardcoded to one business via settings.*_agent_business_id -- it has
@@ -55,15 +54,15 @@ class AgentProduct:
     # is bookkeeping only until that agent becomes multi-tenant.
     multi_tenant: bool
     # Set only for an agent sold as free-vs-paid tiers instead of one flat
-    # price (see AgentTier above). None for every other agent -- price_usd
+    # price (see AgentTier above). None for every other agent -- price_nok
     # above is still what's shown for those.
     tiers: tuple[AgentTier, ...] | None = None
 
 
 AGENTS: dict[str, AgentProduct] = {
-    "voice_receptionist": AgentProduct("voice_receptionist", "Voice Receptionist", 79, multi_tenant=False),
-    "booking_assistant": AgentProduct("booking_assistant", "Booking Assistant", 49, multi_tenant=True),
-    "support_triage": AgentProduct("support_triage", "Support Triage", 49, multi_tenant=False),
+    "voice_receptionist": AgentProduct("voice_receptionist", "Voice Receptionist", 590, multi_tenant=False),
+    "booking_assistant": AgentProduct("booking_assistant", "Booking Assistant", 390, multi_tenant=True),
+    "support_triage": AgentProduct("support_triage", "Support Triage", 990, multi_tenant=False),
     "seo_audit_optimization": AgentProduct(
         "seo_audit_optimization",
         "SEO Audit & Optimization",
@@ -74,7 +73,6 @@ AGENTS: dict[str, AgentProduct] = {
                 key="free",
                 name="SEO Audit & Optimize",
                 tagline="Everything you need to start improving your site's SEO.",
-                price_usd=0,
                 price_nok=0,
                 features=(
                     "Website crawl (starter/standard/advanced -- up to 500 pages)",
@@ -99,20 +97,11 @@ AGENTS: dict[str, AgentProduct] = {
             ),
             AgentTier(
                 key="professional",
-                name="Professional SEO Audit & Optimization",
+                name="SEO Audit & Optimize Start",
                 tagline="For larger, more complex websites that need deeper crawls and integrations.",
-                # Authored in USD like every other price in this catalog --
-                # NOT a fixed price_nok anymore (that bypassed the currency
-                # switcher entirely, which was fine for a one-time
-                # Norway-specific fee but broke conversion once this became
-                # a normal recurring price -- confirmed live: switching to
-                # EUR/USD on the pricing page did nothing). 53 USD/month is
-                # the live-rate equivalent of the target 499 kr/month at the
-                # time this was set (2026-09-21); it'll drift a little with
-                # the exchange rate day to day, same as every other price
-                # on this site already does -- that's expected, not a bug.
-                price_usd=53,
-                price_nok=None,  # per month (resolved 2026-09-21 -- was 29,901 kr one-time)
+                # "Start" in the unified Free/Start/Business/Growth naming (was
+                # "Professional"); the key stays "professional" so nothing stored changes.
+                price_nok=490,
                 # Trimmed 2026-09-20 (see apps/agents/seo-audit/CLAUDE.md's
                 # "Professional tier roadmap" section) from an initial list
                 # modeled 1:1 on Screaming Frog's feature table. Everything
@@ -153,8 +142,8 @@ AGENTS: dict[str, AgentProduct] = {
             ),
         ),
     ),
-    "review_reputation": AgentProduct("review_reputation", "Review & Reputation", 49, multi_tenant=True),
-    "email_marketing": AgentProduct("email_marketing", "Email Marketing", 39, multi_tenant=True),
+    "review_reputation": AgentProduct("review_reputation", "Review & Reputation", 390, multi_tenant=True),
+    "email_marketing": AgentProduct("email_marketing", "Email Marketing", 390, multi_tenant=True),
 }
 
 # Bundle pricing -- also placeholders. "Three pack"/"Full Crew" aren't

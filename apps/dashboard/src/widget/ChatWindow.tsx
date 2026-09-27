@@ -127,6 +127,13 @@ export function ChatWindow({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ business_id: businessId, session_id: sessionId.current, message: msg }),
       })
+      // Business is over its monthly conversation limit (incl. the 10% grace):
+      // no AI reply, but the visitor can still leave their details.
+      if (res.status === 402) {
+        setMessages((m) => [...m, { sender: 'ai', content: strings.limitReached }])
+        setShowLeadForm(true)
+        return
+      }
       if (res.status === 429) {
         setMessages((m) => [...m, { sender: 'ai', content: strings.rateLimited }])
         return

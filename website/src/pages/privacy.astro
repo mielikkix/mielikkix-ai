@@ -1,6 +1,5 @@
 ---
 import LegalLayout from "../components/LegalLayout.astro";
-import Fact from "../components/Fact.astro";
 import { COMPANY } from "../config/legal";
 
 // Also the privacy policy Google's OAuth app verification reviews: the
@@ -11,6 +10,10 @@ import { COMPANY } from "../config/legal";
 // what the dashboard SHOWS -- nothing deletes old conversations yet (GDPR
 // Phase 5), so this page must not promise automatic deletion.
 const email = COMPANY.privacyEmail;
+// Until Brønnøysund registration completes, orgNumber/address in config/legal.ts are still
+// VERIFY markers: show a plain "registration in progress" sentence instead. Filling them in
+// there switches this section back to the full controller details automatically.
+const registered = !COMPANY.orgNumber.includes("{{VERIFY") && !COMPANY.address.includes("{{VERIFY");
 ---
 
 <LegalLayout
@@ -29,11 +32,20 @@ const email = COMPANY.privacyEmail;
 
     <section>
       <h2>1. Who we are</h2>
-      <p>
-        The data controller is <strong>{COMPANY.legalName}</strong>, org. no. <Fact value={COMPANY.orgNumber} />,
-        {" "}<Fact value={COMPANY.address} />, {COMPANY.country}. Contact for all privacy questions:
-        {" "}<a href={`mailto:${email}`}>{email}</a>.
-      </p>
+      {registered ? (
+        <p>
+          The data controller is <strong>{COMPANY.legalName}</strong>, org. no. {COMPANY.orgNumber},
+          {" "}{COMPANY.address}, {COMPANY.country}. Contact for all privacy questions:
+          {" "}<a href={`mailto:${email}`}>{email}</a>.
+        </p>
+      ) : (
+        <p>
+          The data controller is <strong>{COMPANY.legalName}</strong>, {COMPANY.country}. {COMPANY.legalName} is currently
+          being registered in the Norwegian Register of Business Enterprises (Brønnøysundregistrene); our organisation
+          number and registered address will be added here as soon as registration is complete. Contact for all privacy
+          questions: <a href={`mailto:${email}`}>{email}</a>.
+        </p>
+      )}
     </section>
 
     <section>
@@ -123,8 +135,7 @@ const email = COMPANY.privacyEmail;
         Our products use large language models from external providers (see <a href="/subprocessors">Subprocessors</a>)
         to generate replies, classify support messages, draft review responses and analyse websites. The chatbot and
         voice assistant are AI systems, not people. They do not make decisions with legal or similarly significant
-        effects about you (GDPR art. 22). We do not use customer or end-user data to train AI models, and our
-        providers' API terms do not allow them to either <Fact value="{{VERIFY: confirm each provider's API data-use terms}}" />.
+        effects about you (GDPR art. 22). We do not use customer or end-user data to train AI models.
       </p>
     </section>
 
@@ -212,8 +223,8 @@ const email = COMPANY.privacyEmail;
       <p>
         Several providers (for example Groq, OpenAI, Anthropic, Google, Twilio and Resend) are based in the USA. When
         personal data is transferred there, we rely on the EU-US Data Privacy Framework where the provider is
-        certified, or on the EU Standard Contractual Clauses <Fact value="{{VERIFY: mechanism per vendor}}" />. You can ask
-        us for a copy of the relevant safeguards.
+        certified, or on the EU Standard Contractual Clauses. Each provider's location is listed on our
+        {" "}<a href="/subprocessors">Subprocessors</a> page. You can ask us for a copy of the relevant safeguards.
       </p>
     </section>
 
@@ -231,9 +242,9 @@ const email = COMPANY.privacyEmail;
           until the business deletes them. Everything is deleted with the business's account.
         </li>
         <li><strong>Voice calls:</strong> transcripts are only held in memory during the call and are not stored.</li>
-        <li><strong>Demo requests:</strong> <Fact value="{{VERIFY: 12 months}}" /> after our last contact, unless you become a customer.</li>
-        <li><strong>Server logs:</strong> <Fact value="{{VERIFY: log retention}}" />.</li>
-        <li><strong>Google Analytics data:</strong> <Fact value="{{VERIFY: GA4 data retention setting, 2 or 14 months}}" />.</li>
+        <li><strong>Demo requests:</strong> 12 months after our last contact, unless you become a customer.</li>
+        <li><strong>Server logs:</strong> 30 days, then deleted automatically.</li>
+        <li><strong>Google Analytics data:</strong> 2 months (the Google Analytics retention setting).</li>
       </ul>
     </section>
 
@@ -304,11 +315,19 @@ const email = COMPANY.privacyEmail;
 
     <section>
       <h2>1. Hvem vi er</h2>
-      <p>
-        Behandlingsansvarlig er <strong>{COMPANY.legalName}</strong>, org.nr. <Fact value={COMPANY.orgNumber} />,
-        {" "}<Fact value={COMPANY.address} />, Norge. Kontakt for alle personvernspørsmål:
-        {" "}<a href={`mailto:${email}`}>{email}</a>.
-      </p>
+      {registered ? (
+        <p>
+          Behandlingsansvarlig er <strong>{COMPANY.legalName}</strong>, org.nr. {COMPANY.orgNumber},
+          {" "}{COMPANY.address}, Norge. Kontakt for alle personvernspørsmål:
+          {" "}<a href={`mailto:${email}`}>{email}</a>.
+        </p>
+      ) : (
+        <p>
+          Behandlingsansvarlig er <strong>{COMPANY.legalName}</strong>, Norge. {COMPANY.legalName} er under registrering i
+          Enhetsregisteret (Brønnøysundregistrene); organisasjonsnummer og forretningsadresse legges til her så snart
+          registreringen er fullført. Kontakt for alle personvernspørsmål: <a href={`mailto:${email}`}>{email}</a>.
+        </p>
+      )}
     </section>
 
     <section>
@@ -400,7 +419,7 @@ const email = COMPANY.privacyEmail;
         for å lage svar, klassifisere supporthenvendelser, lage utkast til svar på anmeldelser og analysere nettsteder.
         Chatboten og taleassistenten er AI-systemer, ikke mennesker. De tar ikke avgjørelser som har rettsvirkning eller
         tilsvarende betydelig virkning for deg (GDPR art. 22). Vi bruker ikke kunde- eller sluttbrukerdata til å trene
-        AI-modeller, og leverandørenes API-vilkår tillater heller ikke dem å gjøre det <Fact value="{{VERIFY: bekreft hver leverandørs API-vilkår for databruk}}" />.
+        AI-modeller.
       </p>
     </section>
 
@@ -483,8 +502,8 @@ const email = COMPANY.privacyEmail;
       <p>
         Flere leverandører (for eksempel Groq, OpenAI, Anthropic, Google, Twilio og Resend) holder til i USA. Ved
         overføring dit bygger vi på EU–US Data Privacy Framework der leverandøren er sertifisert, ellers på EUs
-        standardkontraktsbestemmelser <Fact value="{{VERIFY: overføringsgrunnlag per leverandør}}" />. Du kan be oss om en
-        kopi av garantiene.
+        standardkontraktsbestemmelser. Hvor hver leverandør holder til, står på siden
+        {" "}<a href="/subprocessors">Underleverandører</a>. Du kan be oss om en kopi av garantiene.
       </p>
     </section>
 
@@ -502,9 +521,9 @@ const email = COMPANY.privacyEmail;
           bedriftens konto.
         </li>
         <li><strong>Telefonsamtaler:</strong> transkripsjoner holdes kun i minnet under samtalen og lagres ikke.</li>
-        <li><strong>Demoforespørsler:</strong> <Fact value="{{VERIFY: 12 måneder}}" /> etter siste kontakt, med mindre du blir kunde.</li>
-        <li><strong>Serverlogger:</strong> <Fact value="{{VERIFY: lagringstid for logger}}" />.</li>
-        <li><strong>Google Analytics-data:</strong> <Fact value="{{VERIFY: GA4-lagringsinnstilling, 2 eller 14 måneder}}" />.</li>
+        <li><strong>Demoforespørsler:</strong> 12 måneder etter siste kontakt, med mindre du blir kunde.</li>
+        <li><strong>Serverlogger:</strong> 30 dager, deretter slettes de automatisk.</li>
+        <li><strong>Google Analytics-data:</strong> 2 måneder (lagringsinnstillingen i Google Analytics).</li>
       </ul>
     </section>
 

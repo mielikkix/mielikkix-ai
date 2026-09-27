@@ -118,40 +118,6 @@
     "HEADING": "Simple, honest pricing",
     "SUBHEADING": "Start free. Upgrade only when you're getting real value.",
     "SAVINGS_BADGE": "2 months free, billed yearly",
-    "PLANS": [
-      {
-        "NAME": "Free",
-        "STAT": "50 conversations/mo",
-        "PRICE_USD": 0,
-        "PERIOD": "",
-        "CTA": "Start Free",
-        "FEATURED": false
-      },
-      {
-        "NAME": "Basic",
-        "STAT": "1,000 conversations/mo",
-        "PRICE_USD": 24,
-        "PERIOD": "/mo",
-        "CTA": "Choose Basic",
-        "FEATURED": false
-      },
-      {
-        "NAME": "Business",
-        "STAT": "5,000 conversations/mo",
-        "PRICE_USD": 48,
-        "PERIOD": "/mo",
-        "CTA": "Choose Business",
-        "FEATURED": true
-      },
-      {
-        "NAME": "Growth",
-        "STAT": "20,000 conversations/mo",
-        "PRICE_USD": 96,
-        "PERIOD": "/mo",
-        "CTA": "Choose Growth",
-        "FEATURED": false
-      }
-    ],
     "FOOTER_TEXT_BEFORE_LINK": "Full plan comparison and billing details on the",
     "FOOTER_TEXT_LINK": "pricing page",
     "FOOTER_TEXT_AFTER_LINK": "."

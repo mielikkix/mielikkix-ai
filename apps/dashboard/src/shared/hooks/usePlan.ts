@@ -38,7 +38,7 @@ export interface PlanFeatures {
 export interface PlanStatus {
   plan: string
   plan_name: string
-  price_usd: number
+  price_nok: number
   limits: PlanLimits
   usage: PlanUsage
   features: PlanFeatures
@@ -63,7 +63,7 @@ export function usePlan() {
 export interface PlanCatalogEntry {
   key: string
   name: string
-  price_usd: number
+  price_nok: number
   tagline: string
   limits: PlanLimits
   features: PlanFeatures
@@ -88,15 +88,14 @@ export interface AgentTier {
   key: string
   name: string
   tagline: string
-  price_usd: number
-  price_nok: number | null
+  price_nok: number
   features: string[]
 }
 
 export interface AgentProduct {
   key: string
   name: string
-  price_usd: number
+  price_nok: number
   multi_tenant: boolean
   tiers: AgentTier[] | null
 }

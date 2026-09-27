@@ -2,6 +2,10 @@
 import Layout from "../../layouts/Layout.astro";
 import { bookingAssistantNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import ProductPricing from "../../components/pricing/ProductPricing.astro";
+import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
+
+const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-assistant")).priceNokMonthly as number, "en")}/month excl. VAT.`;
 
 // Not linked from the header nav (see Header.astro), same as
 // /demo/voice-receptionist -- reachable only via direct link for now.
@@ -24,7 +28,7 @@ import PageHero from "../../components/PageHero.astro";
 
 <Layout
   title="Try Our Booking Assistant"
-  description="Try a live demo of Mielikkix's AI Booking Assistant — describe what you want to book, right in a chat, and get a real calendar invite. Custom pricing."
+  description={`Try a live demo of Mielikkix's AI Booking Assistant — describe what you want to book, right in a chat, and get a real calendar invite. ${fromPrice}`}
   path="/demo/booking-assistant"
   structuredDataNodes={[bookingAssistantNode]}
 >
@@ -36,7 +40,7 @@ import PageHero from "../../components/PageHero.astro";
   <PageHero
     line1="Meet Mielikkix's"
     line2="Booking Assistant"
-    subheading="A live demo — tell it what you'd like to book, right in the chat. Custom pricing based on your business."
+    subheading={`A live demo — tell it what you'd like to book, right in the chat. ${fromPrice}`}
   />
 
   <section class="mx-auto max-w-lg px-6 py-16">
@@ -80,4 +84,5 @@ import PageHero from "../../components/PageHero.astro";
   </section>
 
   <script src="/booking-assistant.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+  <ProductPricing productId="booking-assistant" />
 </Layout>

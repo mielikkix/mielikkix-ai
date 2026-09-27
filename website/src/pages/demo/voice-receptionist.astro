@@ -2,6 +2,10 @@
 import Layout from "../../layouts/Layout.astro";
 import { voiceReceptionistNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import ProductPricing from "../../components/pricing/ProductPricing.astro";
+import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
+
+const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("voice-receptionist")).priceNokMonthly as number, "en")}/month excl. VAT.`;
 
 // Not linked from the header nav (see Header.astro) -- reachable only via
 // direct link for now. Real voice in (your mic, via the browser's own
@@ -14,7 +18,7 @@ import PageHero from "../../components/PageHero.astro";
 
 <Layout
   title="Talk to Our Voice Receptionist"
-  description="Try a live demo of Mielikkix's AI Voice Receptionist — talk to it right in your browser. Custom pricing based on your business."
+  description={`Try a live demo of Mielikkix's AI Voice Receptionist — talk to it right in your browser. ${fromPrice}`}
   path="/demo/voice-receptionist"
   structuredDataNodes={[voiceReceptionistNode]}
 >
@@ -26,7 +30,7 @@ import PageHero from "../../components/PageHero.astro";
   <PageHero
     line1="Meet Mielikkix's"
     line2="Voice Receptionist"
-    subheading="A live demo — talk to it right now, using your own microphone. Custom pricing based on your business."
+    subheading={`A live demo — talk to it right now, using your own microphone. ${fromPrice}`}
   />
 
   <section class="mx-auto max-w-lg px-6 py-16">
@@ -110,4 +114,5 @@ import PageHero from "../../components/PageHero.astro";
       50% { height: 22px; }
     }
   </style>
+  <ProductPricing productId="voice-receptionist" />
 </Layout>

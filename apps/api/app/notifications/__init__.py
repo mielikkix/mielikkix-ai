@@ -67,6 +67,34 @@ async def notify_new_lead(business_name: str, contact_email: str, lead: Lead) ->
         await provider.send_email(to=recipient, subject=subject, html=html)
 
 
+async def notify_quota_warning(
+    to_emails: list[str], business_name: str, plan_name: str, level: int, used: int, limit: int
+) -> None:
+    """80% / 100% monthly conversation quota warning (see plan_service's soft limit)."""
+    provider = get_notification_provider()
+    grace_cap = limit + int(limit * 0.10)
+    if level >= 100:
+        subject = f"{business_name} has used its {limit:,} AI conversations this month"
+        body = (
+            f"<p>Your chat widget on <strong>{_esc(business_name)}</strong> has now had {used:,} AI conversations "
+            f"this month, the full {limit:,} included in your {_esc(plan_name)} plan.</p>"
+            f"<p>There's no extra charge. The widget keeps answering up to {grace_cap:,} conversations, "
+            f"then shows visitors your contact form instead until the limit resets on the 1st.</p>"
+        )
+    else:
+        subject = f"{business_name} has used {level}% of its AI conversations this month"
+        body = (
+            f"<p>Your chat widget on <strong>{_esc(business_name)}</strong> has had {used:,} of the {limit:,} "
+            f"AI conversations included in your {_esc(plan_name)} plan this month.</p>"
+        )
+    html = body + (
+        f'<p>Need more? <a href="{settings.frontend_url}/dashboard/plan">Upgrade your plan</a> any time. '
+        "The higher limit applies straight away and the price difference is prorated.</p>"
+    )
+    for recipient in to_emails:
+        await provider.send_email(to=recipient, subject=subject, html=html)
+
+
 async def notify_support_escalation(ticket: Ticket) -> None:
     """Tells Mielikkix's own team a Support Triage ticket needs a human --
     low-confidence classification, high/urgent priority, a classification

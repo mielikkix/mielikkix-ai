@@ -37,13 +37,12 @@ def test_seo_agent_catalog_entry_has_free_and_professional_tiers(client):
     assert [t["key"] for t in seo["tiers"]] == ["free", "professional"]
     free, pro = seo["tiers"]
     assert free["name"] == "SEO Audit & Optimize"
-    assert free["price_usd"] == 0 and free["price_nok"] == 0
-    assert pro["name"] == "Professional SEO Audit & Optimization"
-    # Resolved 2026-09-21: authored in USD like every other price in this
-    # catalog (was a fixed price_nok=29901 one-time fee) so it converts
-    # through the normal currency switcher instead of being frozen in kr.
-    assert pro["price_usd"] > 0
-    assert pro["price_nok"] is None
+    assert free["price_nok"] == 0
+    # Unified Free/Start/Business/Growth naming; fixed NOK price excl. MVA
+    # (website/src/data/pricing.ts). The key stays "professional".
+    assert pro["name"] == "SEO Audit & Optimize Start"
+    assert pro["price_nok"] == 490
+    assert "price_usd" not in pro
 
     for key, item in by_key.items():
         if key != "seo_audit_optimization":

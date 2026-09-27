@@ -1,100 +1,18 @@
 {
   "SEO": {
     "TITLE": "Priser for AI-agenter",
-    "DESCRIPTION": "Reelle priser for Mielikkix' AI-agenter, med SEO Audit & Optimize som den første — en teknisk og innholdsmessig SEO-revisjon med en prioritert handlingsplan. Gratis å starte med, og med et månedlig Professional-nivå."
+    "DESCRIPTION": "Faste priser i NOK for alle AI-agentene fra Mielikkix: Voice Receptionist, Booking Assistant, Support Triage, Review & Reputation, SEO Audit & Optimize og skreddersydde AI-agenter. Planene Gratis, Start, Business og Growth, eks. mva."
   },
   "PAGE_HERO": {
     "LINE1": "AI-agenter,",
     "LINE2": "enkelt priset",
-    "SUBHEADING": "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan — start gratis, eller velg Professional som månedlig abonnement."
+    "SUBHEADING": "Én prisliste for alle agentene: de samme planene Start, Business og Growth, faste priser i NOK, eks. mva. Sammenlign planene, se hva som er inkludert, og få 2 måneder gratis ved årlig betaling."
   },
-  "MOST_POPULAR_BADGE": "⭐ Mest populær",
-  "FREE_LABEL": "Gratis",
-  "DISPLAY_NOTE": "Prisene vises i valgt valuta og er omregnet fra USD etter gjeldende valutakurser.",
-  "SEO_AUDIT": {
-    "HEADING": "SEO Audit & Optimize",
-    "SUBHEADING": "En reell gjennomgang av nettsiden din — robots.txt, sitemap, kanoniske URL-er, titler, metabeskrivelser, overskrifter, tynt og duplisert innhold, og alt-tekst på bilder — omgjort til en prioritert handlingsplan i et klart og enkelt språk, med et AI-skrevet sammendrag. Gratis å komme i gang med; Professional legger til en voksende liste med dypere revisjonsfunksjoner.",
-    "TIERS": [
-      {
-        "NAME": "SEO Audit & Optimize — Gratis",
-        "PRICE_USD": 0,
-        "PRICE_NOTE": "",
-        "PERIOD": "",
-        "TAGLINE": "Alt du trenger for å begynne å forbedre SEO-en på nettsiden din.",
-        "CTA": "Kom i gang",
-        "FEATURED": false,
-        "FEATURES": [
-          "Opptil 500 sider gjennomgått",
-          "Funn innen teknisk SEO, innhold og intern lenking",
-          "Validering av strukturerte data",
-          "Tilgjengelighetssjekk",
-          "Prioritert handlingsplan",
-          "AI-skrevet sammendrag",
-          "Forslag til nøkkelord",
-          "Revisjonshistorikk og sammenligning",
-          "Kundeklar rapport med PDF-eksport",
-          "Ubegrensede nye revisjoner på denne nettsiden"
-        ]
-      },
-      {
-        "NAME": "SEO Audit & Optimize — Professional",
-        "PRICE_USD": 53,
-        "PRICE_NOTE": "",
-        "PERIOD": "/mnd",
-        "TAGLINE": "For større, mer komplekse nettsider som trenger dypere gjennomganger og integrasjoner.",
-        "CTA": "Kom i gang",
-        "FEATURED": true,
-        "FEATURES": [
-          "Alt i SEO Audit & Optimize — Gratis, i tillegg til:",
-          "Google Analytics-integrasjon",
-          "Search Console-integrasjon",
-          "Planlagte, tilbakevendende revisjoner",
-          "Prioritert teknisk support"
-        ]
-      }
-    ]
-  },
-  "ONGOING": {
-    "HEADING": "Vil du at vi fortsetter å optimalisere hver måned?",
-    "SUBHEADING": "Løpende SEO — vi følger opp nye revisjonsresultater på nettsiden din og handler fortløpende på det agenten finner.",
-    "PRICE_NOTE": "Fra",
-    "PRICE_USD": 838,
-    "PERIOD": "/mnd, tilpasset nettsiden din",
-    "CTA": "Ta kontakt"
-  },
-  "OTHER_AGENTS": {
-    "HEADING": "Flere AI-agenter",
-    "SUBHEADING": "Voice Receptionist, Booking Assistant, Support Triage og Review & Reputation — pris tilpasset bedriften din.",
-    "ITEMS": ["Voice Receptionist", "Booking Assistant", "Support Triage", "Review & Reputation"],
-    "CTA": "Ta kontakt"
-  },
-  "FAQ": {
-    "HEADING": "Vanlige spørsmål om agentpriser",
-    "ITEMS": [
-      {
-        "Q": "Hva er forskjellen mellom Gratis og Professional?",
-        "A": "SEO Audit & Optimize — Gratis inkluderer allerede en full gjennomgang (opptil 500 sider), tekniske og innholdsmessige funn, en prioritert handlingsplan, et AI-skrevet sammendrag, forslag til nøkkelord, revisjonshistorikk og en PDF-rapport — alt vi har bygget så langt. Professional legger til en lengre liste med dypere revisjonsfunksjoner (planlegging, JavaScript-rendering, Google Analytics/Search Console-integrasjoner og mer) etter hvert som vi bygger dem — se Professional-kortet for hele listen."
-      },
-      {
-        "Q": "Kan jeg kjøre revisjonen på nytt senere?",
-        "A": "Ja. Begge nivåene inkluderer ubegrensede nye revisjoner på den nettsiden, slik at du kan kjøre en ny etter at du har gjort endringer og se poengsummen din forbedres. Professional er et månedlig abonnement."
-      },
-      {
-        "Q": "Fikser agenten problemene for meg?",
-        "A": "Den gir deg en prioritert handlingsplan i et klart og enkelt språk — hva du bør fikse først, hvorfor det er viktig, og hvor krevende hver fiks er. Ingenting publiseres noensinne på nettsiden din uten at du har sett gjennom og godkjent det."
-      },
-      {
-        "Q": "Hva om jeg har mer enn én nettside?",
-        "A": "Enten du velger Gratis eller Professional, dekker hvert nivå én nettside. Har du flere nettsider — eller ønsker du at vi tar oss av det løpende — ta kontakt, så avtaler vi omfanget."
-      },
-      {
-        "Q": "Hvor lang tid tar det å kjøre en revisjon?",
-        "A": "Noen få minutter for de fleste nettsider, avhengig av hvor mange sider som gjennomgås. Du ser status på revisjonen oppdateres fortløpende etter at den starter."
-      }
-    ]
-  },
+  "NAV_LABEL": "Gå til",
+  "CHAT_NOTE": "Ser du etter AI Chat Widget?",
+  "CHAT_LINK": "Se priser for Chat Widget →",
   "CTA": {
-    "HEADING": "Usikker på hvilket nivå som passer?",
-    "SUBHEADING": "Book en gratis demo, så hjelper vi deg å velge riktig revisjon for nettsiden din."
+    "HEADING": "Usikker på hvilken plan som passer?",
+    "SUBHEADING": "Book en gratis demo, så hjelper vi deg å velge riktige agenter og planer for bedriften din."
   }
 }

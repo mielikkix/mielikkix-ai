@@ -10,12 +10,13 @@ import { UsageMeter } from '../../shared/components/UsageMeter'
 import { PlanGate } from '../../shared/components/PlanGate'
 import { CheckoutModal } from '../components/CheckoutModal'
 import { PaymentComingSoonModal } from '../components/PaymentComingSoonModal'
-import { CurrencySwitcher } from '../components/CurrencySwitcher'
 import { usePlan, usePlanCatalog, PlanCatalogEntry } from '../../shared/hooks/usePlan'
-import { useCurrency } from '../../shared/hooks/useCurrency'
+import { formatNok } from '../../shared/price'
 
 // The API access add-on price isn't part of the plan catalog response (it's a flat backend
 // constant, see app/api/businesses.py's set_api_access_addon docstring) -- kept in sync here.
+// The Business-plan API add-on is still priced in USD in the backend (open
+// pricing question -- not on the website's NOK price list yet).
 const API_ADDON_USD = 12
 
 // max_languages: null means no numeric cap, but the widget only ever offers the curated
@@ -41,9 +42,9 @@ const FEATURE_LABELS: Record<string, (f: PlanCatalogEntry['features']) => string
   priority_support: (f) => (f.priority_support ? 'Priority support' : null),
 }
 
-function apiAccessLabel(features: PlanCatalogEntry['features'], format: (usd: number) => string): string | null {
+function apiAccessLabel(features: PlanCatalogEntry['features']): string | null {
   if (features.api_access) return 'API access included'
-  if (features.api_access_addon_available) return `API access (+${format(API_ADDON_USD)}/mo add-on)`
+  if (features.api_access_addon_available) return `API access (+$${API_ADDON_USD}/mo add-on)`
   return null
 }
 
@@ -133,7 +134,7 @@ function WebsitesCard() {
   )
 }
 
-function ApiAccessCard({ format }: { format: (usd: number) => string }) {
+function ApiAccessCard() {
   const qc = useQueryClient()
   const { data: plan } = usePlan()
   const { data: keyInfo } = useQuery<{ api_key: string | null }>({
@@ -165,7 +166,7 @@ function ApiAccessCard({ format }: { format: (usd: number) => string }) {
 
       {isBusinessPlan && !plan.api_access_addon && (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-base text-slate-600">Add API access to your Business plan for +{format(API_ADDON_USD)}/mo.</p>
+          <p className="text-base text-slate-600">Add API access to your Business plan for +${API_ADDON_USD}/mo.</p>
           <Button size="sm" loading={addonMut.isPending} onClick={() => addonMut.mutate(true)}>
             Enable add-on
           </Button>
@@ -176,7 +177,7 @@ function ApiAccessCard({ format }: { format: (usd: number) => string }) {
         <div className="space-y-3">
           {isBusinessPlan && plan.api_access_addon && (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-medium text-emerald-600">API access add-on active (+{format(API_ADDON_USD)}/mo)</p>
+              <p className="text-sm font-medium text-emerald-600">API access add-on active (+${API_ADDON_USD}/mo)</p>
               <Button size="sm" variant="secondary" loading={addonMut.isPending} onClick={() => addonMut.mutate(false)}>
                 Cancel add-on
               </Button>
@@ -203,7 +204,7 @@ function ApiAccessCard({ format }: { format: (usd: number) => string }) {
   )
 }
 
-function planFeatureLines(entry: PlanCatalogEntry, format: (usd: number) => string): string[] {
+function planFeatureLines(entry: PlanCatalogEntry): string[] {
   const { limits, features } = entry
   const lines: string[] = [
     `${limits.max_websites ?? 'Unlimited'} website${limits.max_websites === 1 ? '' : 's'}`,
@@ -223,7 +224,7 @@ function planFeatureLines(entry: PlanCatalogEntry, format: (usd: number) => stri
   else if (limits.max_languages > 1) lines.push(`${limits.max_languages} languages`)
   if (features.multi_currency) lines.push('Multi-currency')
   if (features.custom_branding) lines.push('Custom branding')
-  const apiLine = apiAccessLabel(features, format)
+  const apiLine = apiAccessLabel(features)
   if (apiLine) lines.push(apiLine)
   if (features.priority_support) lines.push('Priority support')
   return lines
@@ -242,7 +243,7 @@ export function PlanPage() {
   const { data: catalog } = usePlanCatalog()
   const [checkoutPlan, setCheckoutPlan] = useState<PlanCatalogEntry | null>(null)
   const [comingSoonPlan, setComingSoonPlan] = useState<PlanCatalogEntry | null>(null)
-  const { currency, setCurrency, format } = useCurrency()
+  const format = formatNok
 
   // Free needs no payment step; paid plans go through checkout first.
   const chooseMutation = useMutation({
@@ -251,7 +252,7 @@ export function PlanPage() {
   })
 
   const handleChoosePlan = (entry: PlanCatalogEntry) => {
-    if (entry.price_usd === 0) {
+    if (entry.price_nok === 0) {
       chooseMutation.mutate(entry.key)
     } else if (PAYMENT_COMING_SOON) {
       setComingSoonPlan(entry)
@@ -269,7 +270,6 @@ export function PlanPage() {
             You're currently on the <span className="font-semibold text-slate-700">{status?.plan_name ?? '—'}</span> plan.
           </p>
         </div>
-        <CurrencySwitcher currency={currency} onChange={setCurrency} />
       </div>
 
       {status && (
@@ -288,7 +288,7 @@ export function PlanPage() {
       )}
 
       <WebsitesCard />
-      <ApiAccessCard format={format} />
+      <ApiAccessCard />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {catalog?.map((entry) => {
@@ -311,10 +311,10 @@ export function PlanPage() {
               <p className={clsx('text-sm mt-1', isPopular ? 'text-brand-50' : 'text-slate-500')}>{entry.tagline}</p>
               <p className="mt-4">
                 <span className={clsx('text-3xl font-bold', isPopular ? 'text-white' : 'text-slate-900')}>
-                  {format(entry.price_usd)}
+                  {format(entry.price_nok)}
                 </span>
                 <span className={clsx('text-sm', isPopular ? 'text-brand-50' : 'text-slate-500')}>
-                  {entry.price_usd === 0 ? ' forever' : '/mo'}
+                  {entry.price_nok === 0 ? ' forever' : '/mo excl. VAT'}
                 </span>
               </p>
 
@@ -329,7 +329,7 @@ export function PlanPage() {
               </Button>
 
               <ul className="mt-5 space-y-2 flex-1">
-                {planFeatureLines(entry, format).map((line) => (
+                {planFeatureLines(entry).map((line) => (
                   <li
                     key={line}
                     className={clsx('flex items-start gap-2 text-sm', isPopular ? 'text-white' : 'text-slate-600')}

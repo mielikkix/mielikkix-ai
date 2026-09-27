@@ -7,13 +7,13 @@
  * item NAME rather than array index, so the markup can't drift from (or silently
  * point at the wrong card in) the visible text.
  *
- * Deliberately NOT here yet: Offer/price data (Chat Widget and SEO prices are
- * live-converted and the billing currency isn't finalized), Product, ratings or
- * reviews. Not modeled as entities at all: Email Marketing and the other
- * custom-workflow examples, WhatsApp Concierge (demo only).
+ * Prices: pricingProductNode() builds a Product with one Offer per tier straight
+ * from src/data/pricing.ts (fixed NOK, excl. VAT), so the markup always matches the
+ * visible price cards. Not modeled: ratings or reviews, Email Marketing and the other
+ * custom-workflow examples, WhatsApp Concierge (not live yet).
  */
 import agents from "../assets/i18n/en/agents.json";
-import agentPricing from "../assets/i18n/en/agent-pricing.json";
+import { TIER_NAMES, getProduct, type ProductId } from "../data/pricing";
 
 const SITE = "https://mielikkix.ai/";
 const provider = { "@id": `${SITE}#organization` };
@@ -46,17 +46,6 @@ export const seoAuditNode = {
   url: `${SITE}agent-pricing/`,
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  provider,
-};
-
-export const ongoingSeoNode = {
-  "@type": "Service",
-  "@id": `${SITE}#ongoing-seo`,
-  name: "Ongoing SEO",
-  // Visible copy: "Ongoing SEO -- we monitor new audit results on your website and keep acting on what the agent finds."
-  description: agentPricing.ONGOING.SUBHEADING,
-  url: `${SITE}agent-pricing/`,
-  serviceType: "Search engine optimization",
   provider,
 };
 
@@ -111,3 +100,34 @@ export const customAgentDevelopmentNode = {
   serviceType: "Custom AI agent development",
   provider,
 };
+
+/** schema.org Product + one Offer per tier, from the single price list. */
+export function pricingProductNode(productId: ProductId, url: string) {
+  const product = getProduct(productId);
+  return {
+    "@type": "Product",
+    "@id": `${SITE}#pricing-${product.id}`,
+    name: `Mielikkix ${product.name.en}`,
+    description: product.tagline.en,
+    brand: provider,
+    url: `${SITE}${url.replace(/^\//, "")}`,
+    offers: product.tiers.map((tier) => {
+      const price = tier.priceNokMonthly ?? 0;
+      return {
+        "@type": "Offer",
+        name: `${product.name.en} ${TIER_NAMES[tier.id].en}`,
+        price,
+        priceCurrency: "NOK",
+        availability: "https://schema.org/InStock",
+        priceSpecification: {
+          "@type": "UnitPriceSpecification",
+          price,
+          priceCurrency: "NOK",
+          unitCode: "MON",
+          valueAddedTaxIncluded: false,
+          ...(tier.priceFrom ? { minPrice: price } : {}),
+        },
+      };
+    }),
+  };
+}

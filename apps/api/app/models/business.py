@@ -29,6 +29,11 @@ class Business(Base):
     # rare agency-style account that legitimately needs more websites than
     # the default allows.
     seo_website_limit_override = Column(Integer, nullable=True)
+    # Soft-limit warning bookkeeping (plan_service.claim_quota_warning): the
+    # highest quota warning (80 or 100 %) already emailed in quota_warning_month
+    # ("YYYY-MM"), so each level is sent at most once a month.
+    quota_warning_month = Column(Text, nullable=True)
+    quota_warning_level = Column(Integer, nullable=False, default=0, server_default="0")
     # GDPR Phase 4 self-service deletion: set when the owner asks to delete
     # the account; the purge job hard-deletes once deletion_scheduled_for
     # passes. Both null = not scheduled (cancelling clears them).

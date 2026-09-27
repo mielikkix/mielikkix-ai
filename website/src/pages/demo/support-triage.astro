@@ -2,6 +2,10 @@
 import Layout from "../../layouts/Layout.astro";
 import { supportTriageNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import ProductPricing from "../../components/pricing/ProductPricing.astro";
+import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
+
+const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-triage")).priceNokMonthly as number, "en")}/month excl. VAT.`;
 
 // Not linked from the header nav (see Header.astro), same as
 // /demo/voice-receptionist and /demo/booking-assistant -- reachable only
@@ -27,7 +31,7 @@ import PageHero from "../../components/PageHero.astro";
 
 <Layout
   title="Try Our Support Triage"
-  description="Try a live demo of Mielikkix's AI Support Triage — see it classify a question, answer when it's confident, and hand off to a human when it's not. Custom pricing."
+  description={`Try a live demo of Mielikkix's AI Support Triage — see it classify a question, answer when it's confident, and hand off to a human when it's not. ${fromPrice}`}
   path="/demo/support-triage"
   structuredDataNodes={[supportTriageNode]}
 >
@@ -39,7 +43,7 @@ import PageHero from "../../components/PageHero.astro";
   <PageHero
     line1="Meet Mielikkix's"
     line2="Support Triage"
-    subheading="A live demo — every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing. Custom pricing based on your business."
+    subheading={`A live demo — every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing. ${fromPrice}`}
   />
 
   <section class="mx-auto max-w-lg px-6 py-16">
@@ -83,4 +87,5 @@ import PageHero from "../../components/PageHero.astro";
   </section>
 
   <script src="/support-triage.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+  <ProductPricing productId="support-triage" />
 </Layout>

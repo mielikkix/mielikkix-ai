@@ -117,7 +117,7 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
         <div className="space-y-4 px-6 py-5">
           <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
             <span className="text-base text-slate-600">{plan.name} plan</span>
-            <span className="text-lg font-bold text-slate-900">{format(plan.price_usd)}/mo</span>
+            <span className="text-lg font-bold text-slate-900">{format(plan.price_nok)}/mo excl. VAT</span>
           </div>
 
           <Input
@@ -172,7 +172,7 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
 
           <Button className="w-full justify-center" loading={payMutation.isPending} onClick={handleSubmit}>
             <CreditCard size={16} className="mr-2" />
-            Pay {format(plan.price_usd)}/mo and upgrade
+            Pay {format(plan.price_nok)}/mo and upgrade
           </Button>
         </div>
       </div>

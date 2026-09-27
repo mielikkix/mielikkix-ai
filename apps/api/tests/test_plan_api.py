@@ -10,8 +10,10 @@ def test_plan_catalog_is_public_and_has_four_plans(client):
 
 def test_plan_catalog_prices_match_pricing_page(client):
     resp = client.get("/api/businesses/plans")
-    prices = {p["key"]: p["price_usd"] for p in resp.json()}
-    assert prices == {"free": 0, "basic": 24, "business": 48, "growth": 96}
+    # NOK/month excl. MVA -- must match website/src/data/pricing.ts.
+    plans = {p["key"]: p for p in resp.json()}
+    assert {k: p["price_nok"] for k, p in plans.items()} == {"free": 0, "basic": 490, "business": 990, "growth": 1990}
+    assert [p["name"] for p in plans.values()] == ["Free", "Start", "Business", "Growth"]
 
 
 def test_get_my_plan_requires_auth(client):

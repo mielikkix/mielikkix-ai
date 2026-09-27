@@ -52,7 +52,9 @@ class PlanFeatures:
 class Plan:
     key: str
     name: str
-    price_usd: int
+    # NOK per month, excl. 25% MVA. Keep in step with website/src/data/pricing.ts
+    # (the marketing site's single price list).
+    price_nok: int
     tagline: str
     limits: PlanLimits
     features: PlanFeatures
@@ -71,7 +73,7 @@ PLANS: dict[str, Plan] = {
     "free": Plan(
         key="free",
         name="Free",
-        price_usd=0,
+        price_nok=0,
         tagline="Try it for real, no card required.",
         limits=PlanLimits(
             max_websites=1,
@@ -97,8 +99,8 @@ PLANS: dict[str, Plan] = {
     ),
     "basic": Plan(
         key="basic",
-        name="Basic",
-        price_usd=24,
+        name="Start",
+        price_nok=490,
         tagline="For a single business finding its footing.",
         limits=PlanLimits(
             max_websites=1,
@@ -125,7 +127,7 @@ PLANS: dict[str, Plan] = {
     "business": Plan(
         key="business",
         name="Business",
-        price_usd=48,
+        price_nok=990,
         tagline="Most businesses land here.",
         limits=PlanLimits(
             max_websites=3,
@@ -152,7 +154,7 @@ PLANS: dict[str, Plan] = {
     "growth": Plan(
         key="growth",
         name="Growth",
-        price_usd=96,
+        price_nok=1990,
         tagline="For multi-location or high-traffic businesses.",
         limits=PlanLimits(
             max_websites=10,

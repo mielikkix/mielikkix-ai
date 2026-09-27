@@ -1,9 +1,5 @@
 ---
-// Currency defaults to whatever the selected language implies (see SUPPORTED_LANGUAGES in
-// translationService.ts) — EUR for English, NOK for Norwegian — but CurrencySwitcher lets a
-// visitor override that independently (e.g. view USD pricing without switching language).
 import LanguageSwitcher from "./LanguageSwitcher.astro";
-import CurrencySwitcher from "./CurrencySwitcher.astro";
 import en from "../assets/i18n/en/common.json";
 
 const navLinks = [
@@ -94,7 +90,6 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
       </div>
 
       <LanguageSwitcher />
-      <CurrencySwitcher />
       <a
         href="/demo"
         data-i18n="BUTTONS.BOOK_DEMO"
@@ -138,7 +133,6 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
     </div>
     <div class="flex flex-wrap items-center gap-2 px-3">
       <LanguageSwitcher />
-      <CurrencySwitcher />
     </div>
     <a
       href="/demo"

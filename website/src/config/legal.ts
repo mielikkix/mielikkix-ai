@@ -20,7 +20,7 @@ export const COMPANY = {
  * TERMS_VERSION / DPA_VERSION in apps/api/app/core/legal.py.
  */
 export const LEGAL_DOCS = {
-  privacy: { version: "privacy-2026-09-25", updated: "2026-09-25" },
+  privacy: { version: "privacy-2026-09-26", updated: "2026-09-26" },
   terms: { version: "terms-2026-09-25", updated: "2026-09-25" },
   dpa: { version: "dpa-2026-09-25", updated: "2026-09-25" },
   subprocessors: { version: "subprocessors-2026-09-25", updated: "2026-09-25" },
@@ -146,24 +146,6 @@ export const COOKIES: CookieEntry[] = [
     consentRequired: false,
   },
   {
-    name: "mielikkix_currency",
-    kind: "localStorage",
-    surface: "website",
-    purpose: { en: "Remembers the currency shown on pricing pages", no: "Husker valutaen som vises på prissidene" },
-    duration: { en: "Until you clear it", no: "Til du sletter den" },
-    party: "first",
-    consentRequired: false,
-  },
-  {
-    name: "mielikkix_exchange_rate_<CURRENCY>",
-    kind: "localStorage",
-    surface: "website",
-    purpose: { en: "Caches today's exchange rate so prices load quickly", no: "Mellomlagrer dagens valutakurs så prisene lastes raskt" },
-    duration: { en: "Refreshed after 24 hours", no: "Oppdateres etter 24 timer" },
-    party: "first",
-    consentRequired: false,
-  },
-  {
     name: "_ga",
     kind: "cookie",
     surface: "website",
@@ -214,15 +196,6 @@ export const COOKIES: CookieEntry[] = [
     surface: "app",
     purpose: { en: "Keeps you signed in to app.mielikkix.ai (httpOnly)", no: "Holder deg innlogget på app.mielikkix.ai (httpOnly)" },
     duration: { en: "24 hours", no: "24 timer" },
-    party: "first",
-    consentRequired: false,
-  },
-  {
-    name: "mielikkix_dashboard_currency",
-    kind: "localStorage",
-    surface: "app",
-    purpose: { en: "Remembers the currency shown in the dashboard", no: "Husker valutaen som vises i dashbordet" },
-    duration: { en: "Until you clear it", no: "Til du sletter den" },
     party: "first",
     consentRequired: false,
   },

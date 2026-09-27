@@ -118,40 +118,6 @@
     "HEADING": "Enkle, ærlige priser",
     "SUBHEADING": "Start gratis. Oppgrader først når du får reell verdi.",
     "SAVINGS_BADGE": "2 måneder gratis ved årlig fakturering",
-    "PLANS": [
-      {
-        "NAME": "Gratis",
-        "STAT": "50 samtaler/mnd",
-        "PRICE_USD": 0,
-        "PERIOD": "",
-        "CTA": "Start gratis",
-        "FEATURED": false
-      },
-      {
-        "NAME": "Basic",
-        "STAT": "1 000 samtaler/mnd",
-        "PRICE_USD": 24,
-        "PERIOD": "/mnd",
-        "CTA": "Velg Basic",
-        "FEATURED": false
-      },
-      {
-        "NAME": "Business",
-        "STAT": "5 000 samtaler/mnd",
-        "PRICE_USD": 48,
-        "PERIOD": "/mnd",
-        "CTA": "Velg Business",
-        "FEATURED": true
-      },
-      {
-        "NAME": "Growth",
-        "STAT": "20 000 samtaler/mnd",
-        "PRICE_USD": 96,
-        "PERIOD": "/mnd",
-        "CTA": "Velg Growth",
-        "FEATURED": false
-      }
-    ],
     "FOOTER_TEXT_BEFORE_LINK": "Full sammenligning av planer og faktureringsdetaljer finner du på",
     "FOOTER_TEXT_LINK": "prissiden",
     "FOOTER_TEXT_AFTER_LINK": "."

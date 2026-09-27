@@ -2,6 +2,10 @@
 import Layout from "../../layouts/Layout.astro";
 import { reviewReputationNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import ProductPricing from "../../components/pricing/ProductPricing.astro";
+import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
+
+const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-reputation")).priceNokMonthly as number, "en")}/month excl. VAT.`;
 
 // Not linked from the header nav (see Header.astro), same as the other
 // three live-preview demo pages -- reachable via agents.astro's "Talk to
@@ -30,7 +34,7 @@ import PageHero from "../../components/PageHero.astro";
 
 <Layout
   title="Try Our Review & Reputation Agent"
-  description="Try a live demo of Mielikkix's AI Review & Reputation agent — paste a review and see it analyzed, prioritized, and answered. Custom pricing."
+  description={`Try a live demo of Mielikkix's AI Review & Reputation agent — paste a review and see it analyzed, prioritized, and answered. ${fromPrice}`}
   path="/demo/review-reputation"
   structuredDataNodes={[reviewReputationNode]}
 >
@@ -42,7 +46,7 @@ import PageHero from "../../components/PageHero.astro";
   <PageHero
     line1="Meet Mielikkix's"
     line2="Review & Reputation Agent"
-    subheading="Turn customer reviews into stronger relationships and a better reputation. Custom pricing based on your business."
+    subheading={`Turn customer reviews into stronger relationships and a better reputation. ${fromPrice}`}
   />
 
   <section class="mx-auto max-w-2xl px-6 py-16">
@@ -116,4 +120,5 @@ import PageHero from "../../components/PageHero.astro";
   </section>
 
   <script src="/review-reputation.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+  <ProductPricing productId="review-reputation" />
 </Layout>

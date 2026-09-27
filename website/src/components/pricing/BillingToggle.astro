@@ -1,0 +1,41 @@
+---
+// Monthly / Yearly switch. Sets <html data-billing>; global.css shows the matching
+// .billing-monthly / .billing-yearly prices everywhere on the page at once.
+import Bi from "./Bi.astro";
+---
+
+<div class="flex items-center justify-center gap-3">
+  <div class="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold" role="group" aria-label="Billing period">
+    <button type="button" data-billing-choice="monthly" aria-pressed="true" class="billing-btn rounded-full px-4 py-1.5">
+      <Bi text={{ en: "Monthly", no: "Månedlig" }} />
+    </button>
+    <button type="button" data-billing-choice="yearly" aria-pressed="false" class="billing-btn rounded-full px-4 py-1.5">
+      <Bi text={{ en: "Yearly", no: "Årlig" }} />
+    </button>
+  </div>
+  <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+    <Bi text={{ en: "2 months free on yearly", no: "2 måneder gratis ved årlig betaling" }} />
+  </span>
+</div>
+
+<style>
+  .billing-btn[aria-pressed="true"] {
+    background: var(--color-violet-600, #7c3aed);
+    color: #fff;
+  }
+  .billing-btn[aria-pressed="false"] {
+    color: var(--color-slate-600, #475569);
+  }
+</style>
+
+<script>
+  function apply(choice: string) {
+    document.documentElement.dataset.billing = choice;
+    document.querySelectorAll<HTMLButtonElement>("[data-billing-choice]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", String(btn.dataset.billingChoice === choice));
+    });
+  }
+  document.querySelectorAll<HTMLButtonElement>("[data-billing-choice]").forEach((btn) => {
+    btn.addEventListener("click", () => apply(btn.dataset.billingChoice ?? "monthly"));
+  });
+</script>

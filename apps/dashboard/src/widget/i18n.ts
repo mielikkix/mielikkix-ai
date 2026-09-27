@@ -15,6 +15,7 @@ export interface WidgetStrings {
   leadGenericError: string
   leadThanks: string
   rateLimited: string
+  limitReached: string
   chatError: string
   inputPlaceholder: string
   openChat: string
@@ -56,6 +57,7 @@ const EN: WidgetStrings = {
   leadGenericError: "That didn't go through — please try again.",
   leadThanks: "Thanks! We'll be in touch soon.",
   rateLimited: "You're sending messages fast — give it a moment and try again.",
+  limitReached: "The assistant can't answer new questions right now. Leave your details and the team will get back to you.",
   chatError: "That didn't send — try again in a moment.",
   inputPlaceholder: 'Type a message…',
   openChat: 'Open chat',
@@ -101,6 +103,7 @@ const WIDGET_STRINGS: Record<string, WidgetStrings> = {
     leadGenericError: 'Noe gikk galt. Vennligst prøv igjen.',
     leadThanks: 'Takk! Vi tar kontakt med deg snart.',
     rateLimited: 'Du sender meldinger litt for raskt — vent et øyeblikk og prøv igjen.',
+    limitReached: 'Assistenten kan ikke svare på nye spørsmål akkurat nå. Legg igjen kontaktinformasjonen din, så tar teamet kontakt.',
     chatError: 'Beklager, noe gikk galt. Vennligst prøv igjen.',
     inputPlaceholder: 'Skriv en melding…',
     openChat: 'Åpne chat',

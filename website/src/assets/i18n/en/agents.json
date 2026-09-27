@@ -18,25 +18,21 @@
       {
         "NAME": "Mielikkix Chat Widget",
         "DESCRIPTION": "24/7 AI-powered customer conversations that answer questions, capture leads, and help customers instantly.",
-        "STATUS": "Core Solution",
         "CTA": "Explore Mielikkix Chat Widget"
       },
       {
         "NAME": "Voice Receptionist",
         "DESCRIPTION": "An AI receptionist that answers calls, handles customer questions, captures requests, and can assist with appointments.",
-        "STATUS": "Custom Pricing",
         "CTA": "Try Voice Receptionist"
       },
       {
         "NAME": "Booking Assistant",
         "DESCRIPTION": "An AI booking assistant that helps customers schedule appointments and manage booking-related conversations.",
-        "STATUS": "Custom Pricing",
         "CTA": "Try Booking Assistant"
       },
       {
         "NAME": "SEO Audit & Optimize",
         "DESCRIPTION": "A real crawl of your website, turned into a prioritized, plain-language action plan — technical SEO, on-page issues, and an AI-written summary of what to fix first.",
-        "STATUS": "New",
         "CTA": "See Pricing"
       }
     ]
@@ -44,7 +40,6 @@
   "ADDITIONAL_AGENTS": {
     "HEADING": "More AI Agents We've Built",
     "SUBHEADING": "Explore additional AI automation capabilities developed by Mielikkix.",
-    "BADGE": "Custom Pricing",
     "CTA": "View Demo",
     "ITEMS": [
       {
@@ -57,7 +52,7 @@
       },
       {
         "NAME": "WhatsApp Concierge",
-        "BADGE": "Demo Only",
+        "BADGE": "Coming soon",
         "DESCRIPTION": "Answers customer questions and captures leads right inside WhatsApp — the conversation your customers already have open."
       }
     ]

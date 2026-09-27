@@ -2,7 +2,8 @@
 import Layout from "../layouts/Layout.astro";
 import BentoCard from "../components/BentoCard.astro";
 import CTASection from "../components/CTASection.astro";
-import Price from "../components/Price.astro";
+import Bi from "../components/pricing/Bi.astro";
+import { TIER_NAMES, formatMonthly, formatNumber, getProduct } from "../data/pricing";
 import BlogPostCard from "../components/BlogPostCard.astro";
 import { fetchPublishedArticles } from "../lib/articles";
 import dashboardVideo from "../assets/mielikkix-dashboard-analysis.mp4";
@@ -10,10 +11,10 @@ import en from "../assets/i18n/en/home.json";
 import enCommon from "../assets/i18n/en/common.json";
 
 const steps = en.HOW_IT_WORKS.STEPS;
-const plans = en.PRICING_TEASER.PLANS;
+// Chat Widget tiers straight from the single price list (src/data/pricing.ts).
+const plans = getProduct("chat-widget").tiers;
 
-// One outline icon per plan tier, in the same order as PLANS (Free, Basic, Business, Growth).
-// Kept in sync with the equivalent list in pricing.astro.
+// One outline icon per plan tier, in tier order (Free, Start, Business, Growth).
 const planIconPaths = [
   "M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z M18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z",
   "m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z",
@@ -385,24 +386,24 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
           <div
             class:list={[
               "rounded-2xl border p-6 text-center",
-              plan.FEATURED
+              plan.recommended
                 ? "brand-gradient border-transparent text-white shadow-2xl shadow-violet-200 lg:-translate-y-3"
                 : "border-slate-300 bg-white",
             ]}
           >
             <div class="relative mx-auto flex h-12 w-12 items-center justify-center">
-              {!plan.FEATURED && (
+              {!plan.recommended && (
                 <span class:list={["absolute inset-0 rounded-full opacity-40 blur-lg", planAccents[i].blob]} />
               )}
               <div
                 class:list={[
                   "relative flex h-11 w-11 items-center justify-center rounded-xl",
-                  plan.FEATURED ? "bg-white/20" : planAccents[i].iconBg,
+                  plan.recommended ? "bg-white/20" : planAccents[i].iconBg,
                 ]}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class:list={["h-5 w-5", plan.FEATURED ? "text-white" : planAccents[i].iconText]}
+                  class:list={["h-5 w-5", plan.recommended ? "text-white" : planAccents[i].iconText]}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -412,52 +413,47 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
                 </svg>
               </div>
             </div>
-            {plan.FEATURED && (
+            {plan.recommended && (
               <span class="mt-3 inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-semibold" data-i18n="MESSAGES.MOST_POPULAR">
                 {enCommon.MESSAGES.MOST_POPULAR}
               </span>
             )}
-            <h3
-              class:list={["font-display mt-3 text-lg font-semibold", plan.FEATURED ? "text-white" : "text-slate-900"]}
-              data-i18n={`PRICING_TEASER.PLANS.${i}.NAME`}
-            >
-              {plan.NAME}
+            <h3 class:list={["font-display mt-3 text-lg font-semibold", plan.recommended ? "text-white" : "text-slate-900"]}>
+              <Bi text={TIER_NAMES[plan.id]} />
             </h3>
             <p
-              class:list={["font-display mt-2 text-2xl font-bold", plan.FEATURED ? "text-white" : "text-slate-900"]}
+              class:list={["font-display mt-2 text-2xl font-bold", plan.recommended ? "text-white" : "text-slate-900"]}
             >
-              <Price amount={plan.PRICE_USD} />
-              {plan.PERIOD && (
-                <span
-                  class:list={["ml-0.5 text-sm font-normal", plan.FEATURED ? "text-indigo-100" : "text-slate-400"]}
-                  data-i18n={`PRICING_TEASER.PLANS.${i}.PERIOD`}
-                >
-                  {plan.PERIOD}
-                </span>
-              )}
+              <span class="i18n-en">{formatMonthly(plan, "en")}</span>
+              <span class="i18n-no" lang="nb">{formatMonthly(plan, "no")}</span>
             </p>
             <p
               class:list={[
                 "mt-2 inline-block rounded-lg px-2.5 py-1 text-xs font-semibold",
-                plan.FEATURED ? "bg-white/10 text-white" : "bg-slate-50 text-slate-600",
+                plan.recommended ? "bg-white/10 text-white" : "bg-slate-50 text-slate-600",
               ]}
-              data-i18n={`PRICING_TEASER.PLANS.${i}.STAT`}
             >
-              {plan.STAT}
+              <span class="i18n-en">{formatNumber(plan.usage ?? 0, "en")} conversations/month</span>
+              <span class="i18n-no" lang="nb">{formatNumber(plan.usage ?? 0, "no")} samtaler/mnd</span>
             </p>
             <a
-              href="/pricing"
-              data-i18n={`PRICING_TEASER.PLANS.${i}.CTA`}
+              href="/pricing#chat-widget"
               class:list={[
                 "mt-4 inline-block w-full rounded-full px-4 py-2.5 text-sm font-semibold transition-transform hover:scale-105",
-                plan.FEATURED ? "bg-white text-violet-700" : "bg-indigo-50 text-violet-700",
+                plan.recommended ? "bg-white text-violet-700" : "bg-indigo-50 text-violet-700",
               ]}
             >
-              {plan.CTA}
+              <Bi
+                text={
+                  plan.priceNokMonthly === null
+                    ? { en: "Start free", no: "Start gratis" }
+                    : { en: `Choose ${TIER_NAMES[plan.id].en}`, no: `Velg ${TIER_NAMES[plan.id].no}` }
+                }
+              />
             </a>
-            {plan.PRICE_USD > 0 && (
+            {plan.priceNokMonthly !== null && (
               <p
-                class:list={["mt-2 text-[11px] font-medium", plan.FEATURED ? "text-indigo-100" : "text-emerald-600"]}
+                class:list={["mt-2 text-[11px] font-medium", plan.recommended ? "text-indigo-100" : "text-emerald-600"]}
                 data-i18n="PRICING_TEASER.SAVINGS_BADGE"
               >
                 {en.PRICING_TEASER.SAVINGS_BADGE}

@@ -1,141 +1,20 @@
 {
   "SEO": {
-    "TITLE": "Priser for Mielikkix Chat Widget",
-    "DESCRIPTION": "Enkle, ærlige priser for Mielikkix Chat Widget — en gratisplan som faktisk er nyttig, pluss Basic, Business og Growth for voksende bedrifter."
+    "TITLE": "Priser",
+    "DESCRIPTION": "Faste priser i NOK for AI Chat Widget fra Mielikkix og alle AI-agentene. Planene Gratis, Start, Business og Growth, eks. mva., med 2 måneder gratis ved årlig betaling."
   },
   "PAGE_HERO": {
     "LINE1": "Enkle,",
     "LINE2": "ærlige priser",
-    "SUBHEADING": "Start Mielikkix Chat Widget gratis. Betal først når den faktisk gjør nytte for seg."
+    "SUBHEADING": "Faste priser i NOK, de samme fire planene for alle produktene og ingen overraskende kostnader. Start gratis med Chat Widget, og oppgrader når du får reell verdi."
   },
-  "MOST_POPULAR_BADGE": "⭐ Mest populær",
-  "SAVINGS_BADGE": "2 måneder gratis ved årlig fakturering",
-  "GET_STARTED_NOTE": "For å komme i gang: book en demo og fortell oss hva du vil automatisere.",
-  "DISPLAY_NOTE": "Prisene vises i valgt valuta og er omregnet fra USD etter gjeldende valutakurser.",
-  "PLANS": [
-    {
-      "NAME": "Gratis",
-      "PRICE_USD": 0,
-      "PERIOD": "for alltid",
-      "TAGLINE": "Prøv den på ordentlig — uten betalingskort.",
-      "CTA": "Start gratis",
-      "FEATURED": false,
-      "FEATURES": [
-        "1 nettside",
-        "50 AI-samtaler/mnd",
-        "Kunnskapsbase",
-        "2 dokumentopplastinger",
-        "Leadfangst",
-        "Grunnleggende analyse",
-        "10 produkter i katalogen",
-        "7 dagers samtalehistorikk",
-        "E-postvarsler"
-      ]
-    },
-    {
-      "NAME": "Basic",
-      "PRICE_USD": 24,
-      "PERIOD": "/mnd",
-      "TAGLINE": "For én bedrift som er i ferd med å finne formen.",
-      "CTA": "Velg Basic",
-      "FEATURED": false,
-      "FEATURES": [
-        "1 nettside",
-        "1 000 AI-samtaler/mnd",
-        "Kunnskapsbase",
-        "20 dokumentopplastinger",
-        "Leadfangst",
-        "Standard analyse",
-        "100 produkter i katalogen",
-        "90 dagers samtalehistorikk",
-        "E-postvarsler",
-        "2 språk",
-        "Flervaluta",
-        "Tilpasset merkevare"
-      ]
-    },
-    {
-      "NAME": "Business",
-      "PRICE_USD": 48,
-      "PERIOD": "/mnd",
-      "TAGLINE": "De fleste bedrifter lander her.",
-      "CTA": "Velg Business",
-      "FEATURED": true,
-      "FEATURES": [
-        "3 nettsider",
-        "5 000 AI-samtaler/mnd",
-        "Kunnskapsbase",
-        "Ubegrensede dokumentopplastinger",
-        "Leadfangst",
-        "Avansert analyse",
-        "Ubegrenset antall produkter",
-        "Samtalehistorikk i opptil 12 måneder",
-        "E-post- og WhatsApp-varsler (kommer snart)",
-        "Instagram-integrasjon (kommer snart)",
-        "Opptil 10 språk",
-        "Flervaluta",
-        "Tilpasset merkevare",
-        "API-tilgang (tillegg på 12 USD/mnd)",
-        "Prioritert support"
-      ]
-    },
-    {
-      "NAME": "Growth",
-      "PRICE_USD": 96,
-      "PERIOD": "/mnd",
-      "TAGLINE": "For bedrifter med flere lokasjoner eller høy trafikk.",
-      "CTA": "Velg Growth",
-      "FEATURED": false,
-      "FEATURES": [
-        "10 nettsider",
-        "20 000 AI-samtaler/mnd",
-        "Kunnskapsbase",
-        "Ubegrensede dokumentopplastinger",
-        "Leadfangst",
-        "Avansert analyse",
-        "Ubegrenset antall produkter",
-        "Samtalehistorikk i opptil 12 måneder",
-        "E-post- og WhatsApp-varsler (kommer snart)",
-        "Instagram-integrasjon (kommer snart)",
-        "Opptil 10 språk",
-        "Flervaluta",
-        "Tilpasset merkevare",
-        "API-tilgang inkludert",
-        "Prioritert support"
-      ]
-    }
-  ],
-  "FAQ": {
-    "HEADING": "Vanlige spørsmål om fakturering",
-    "ITEMS": [
-      {
-        "Q": "Hva skjer hvis jeg overskrider den månedlige samtalegrensen?",
-        "A": "Nye samtaler settes på pause til grensen nullstilles ved starten av neste måned. Samtaler som allerede pågår, blir aldri avbrutt. Trenger du mer? Oppgrader når som helst, så gjelder den høyere grensen med én gang."
-      },
-      {
-        "Q": "Kan jeg betale årlig?",
-        "A": "Ja — alle betalte planer er tilgjengelige med årlig fakturering, til omtrent 2 måneder gratis (betal for 10, få 12)."
-      },
-      {
-        "Q": "Kan jeg bytte plan senere?",
-        "A": "Oppgraderinger trer i kraft umiddelbart og avregnes forholdsmessig. Nedgraderinger trer i kraft ved neste faktureringsperiode, slik at du beholder det du allerede har betalt for."
-      },
-      {
-        "Q": "Er gratisplanen virkelig gratis for alltid?",
-        "A": "Ja. Det er en permanent plan, ikke en tidsbegrenset prøveperiode. Den er bevisst begrenset (1 nettside, 50 samtaler/mnd), slik at du kan prøve produktet ordentlig før du bestemmer deg."
-      }
-    ]
+  "SWITCHER_LABEL": "Velg et produkt",
+  "BUNDLES": {
+    "HEADING": "Pakker",
+    "SUBHEADING": "Kombiner produkter og betal mindre enn om du kjøper dem hver for seg. Besparelsen er regnet ut fra listeprisene ovenfor."
   },
-  "AGENTS_SECTION": {
-    "HEADING": "Utforsk AI-agentene våre",
-    "TEXT_BEFORE": "Planene ovenfor gjelder Mielikkix Chat Widget. AI-agentene våre — som ",
-    "LINK_SEO": "SEO Audit & Optimize",
-    "TEXT_SEP_1": ", ",
-    "LINK_VOICE": "Voice Receptionist",
-    "TEXT_SEP_2": " og ",
-    "LINK_BOOKING": "Booking Assistant",
-    "TEXT_AFTER": " — er egne tilbud for spesifikke arbeidsprosesser i bedriften, med egne priser.",
-    "CTA": "Se priser for AI-agenter"
+  "ADDONS": {
+    "HEADING": "Tillegg"
   },
   "CTA": {
     "HEADING": "Fortsatt usikker?",

@@ -8,8 +8,7 @@ import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { AgentGate } from '../../shared/components/AgentGate'
 import { useAgentAccess, useAgentCatalog, AgentTier } from '../../shared/hooks/usePlan'
-import { useCurrency } from '../../shared/hooks/useCurrency'
-import { CurrencySwitcher } from '../components/CurrencySwitcher'
+import { formatNok } from '../../shared/price'
 
 interface SeoWebsite {
   id: string
@@ -1302,14 +1301,8 @@ function ContentTab() {
 function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: boolean; format: (usdAmount: number) => string }) {
   const navigate = useNavigate()
   const isFree = tier.key === 'free'
-  // Priced in USD (agent_catalog.py's price_usd) and converted through the
-  // same live-rate system every other price in this app uses (useCurrency)
-  // -- this tier used to bypass that entirely with a hardcoded fixed-NOK
-  // display (price_nok), which was correct while the price was a one-time
-  // Norway-specific fee, but broke the currency switcher once it became a
-  // normal recurring price (confirmed: switching EUR/USD did nothing).
-  // Reverted to the standard mechanism 2026-09-21.
-  const priceLabel = isFree ? 'Free' : format(tier.price_usd)
+  // Fixed NOK/month excl. MVA (agent_catalog.py's price_nok).
+  const priceLabel = isFree ? 'Free' : format(tier.price_nok)
 
   return (
     <div
@@ -1364,7 +1357,7 @@ function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: 
 function PlansTab() {
   const { data: catalog } = useAgentCatalog()
   const { data: access } = useAgentAccess()
-  const { currency, setCurrency, format } = useCurrency()
+  const format = formatNok
   const seo = catalog?.find((a) => a.key === 'seo_audit_optimization')
 
   if (!seo?.tiers) return null
@@ -1373,12 +1366,12 @@ function PlansTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 print:hidden">
         <p className="text-base text-slate-500 max-w-2xl">
-          SEO Audit &amp; Optimization is sold in two tiers. Professional adds a deeper,
-          Screaming-Frog-style crawler on top of everything in the free tier — items marked
-          "(coming soon)" are priced in but not built yet.
+          SEO Audit &amp; Optimize has two self-serve plans here: Free, and Start, which adds
+          Google Analytics, Search Console and scheduled audits. Prices exclude VAT. Items marked
+          "(coming soon)" are priced in but not built yet. Want us to do the fixes for you? Ask about
+          the Managed Business and Growth plans.
         </p>
         <div className="flex items-center gap-2">
-          <CurrencySwitcher currency={currency} onChange={setCurrency} />
           <Button size="sm" variant="secondary" onClick={() => window.print()}>
             Print / Save as PDF
           </Button>

@@ -26,7 +26,6 @@ current terms.
 | Twilio | Voice calls, speech-to-text | Phone numbers, call audio | USA | `{{VERIFY}}` | `{{VERIFY: DPF or SCCs}}` | `{{VERIFY}}` | No call recording is enabled (`agents_voice.py`) |
 | Resend | Transactional + marketing email | Email addresses, email content | USA | `{{VERIFY}}` | `{{VERIFY: DPF or SCCs}}` | n/a | |
 | Mailchimp | Email Marketing agent: the **customer's own** account | Customer audience | USA | Customer ↔ Mailchimp | Customer's responsibility | n/a | Not our subprocessor. Listed as customer-connected |
-| api.frankfurter.dev | Exchange rates on the pricing pages (called from the visitor's browser) | Visitor IP address only | `{{VERIFY}}` | n/a | n/a | n/a | No cookies. Disclosed on /cookies |
 
 ## Open actions
 - [ ] Fill in every `{{VERIFY}}` above and copy the results into `website/src/config/legal.ts`.

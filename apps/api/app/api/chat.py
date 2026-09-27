@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 from ..core.database import get_db
 from ..core.dependencies import get_current_user, get_current_business
@@ -21,8 +21,10 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 @router.post("/message", response_model=ChatMessageResponse)
 @limiter.limit("10/minute")
-async def chat_message(request: Request, req: ChatMessageRequest, db: Session = Depends(get_db)):
-    return await handle_message(db, req)
+async def chat_message(
+    request: Request, req: ChatMessageRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
+    return await handle_message(db, req, background_tasks)
 
 
 @router.get("/conversations", response_model=List[ConversationOut])

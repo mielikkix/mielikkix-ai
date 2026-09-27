@@ -235,7 +235,7 @@ def list_agent_catalog():
         AgentProductOut(
             key=a.key,
             name=a.name,
-            price_usd=a.price_usd,
+            price_nok=a.price_nok,
             multi_tenant=a.multi_tenant,
             tiers=(
                 [
@@ -243,7 +243,6 @@ def list_agent_catalog():
                         key=t.key,
                         name=t.name,
                         tagline=t.tagline,
-                        price_usd=t.price_usd,
                         price_nok=t.price_nok,
                         features=list(t.features),
                     )

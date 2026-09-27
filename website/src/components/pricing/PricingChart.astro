@@ -1,0 +1,111 @@
+---
+// Price vs included usage: one bar per tier (height = monthly price), labelled with the
+// included units, plus the effective price per unit in the caption. Plain SVG, no chart
+// library. The same numbers are in the comparison table, so the bars themselves are
+// hidden from screen readers and the figure carries a text summary instead.
+import {
+  TIER_NAMES,
+  formatNumber,
+  formatNok,
+  pricePerUnit,
+  type Lang,
+  type Product,
+} from "../../data/pricing";
+
+interface Props {
+  product: Product;
+}
+const { product } = Astro.props;
+
+const W = 520;
+const H = 240;
+const PAD_TOP = 34;
+const PAD_BOTTOM = 44;
+const plotH = H - PAD_TOP - PAD_BOTTOM;
+const maxPrice = Math.max(...product.tiers.map((t) => t.priceNokMonthly ?? 0), 1);
+const slot = W / product.tiers.length;
+const barW = Math.min(72, slot * 0.5);
+
+function usageLabel(usage: number | null, lang: Lang): string {
+  if (usage === null) return lang === "no" ? "Tilpasset" : "Custom";
+  return `${formatNumber(usage, lang)} ${product.usageUnit[lang]}`;
+}
+
+function priceLabel(price: number | null, lang: Lang): string {
+  return price === null ? (lang === "no" ? "Gratis" : "Free") : formatNok(price, lang);
+}
+
+const perUnit = product.tiers
+  .map((tier) => ({ tier, value: pricePerUnit(tier) }))
+  .filter((x): x is { tier: (typeof product.tiers)[number]; value: number } => x.value !== null);
+
+function summary(lang: Lang): string {
+  const bars = product.tiers
+    .map((t) => `${TIER_NAMES[t.id][lang]}: ${priceLabel(t.priceNokMonthly, lang)}, ${usageLabel(t.usage, lang)}`)
+    .join("; ");
+  return lang === "no"
+    ? `${product.name.no}, månedspris og inkludert bruk per plan. ${bars}.`
+    : `${product.name.en}, monthly price and included usage per plan. ${bars}.`;
+}
+
+function perUnitCaption(lang: Lang): string {
+  if (perUnit.length === 0) return "";
+  const unit = product.usageUnitOne[lang];
+  const values = perUnit.map((x) => formatNumber(Math.round(x.value * 100) / 100, lang)).join(" / ");
+  return lang === "no"
+    ? `Effektiv pris per ${unit}: ${values} kr (${perUnit.map((x) => TIER_NAMES[x.tier.id].no).join(" / ")}).`
+    : `Effective price per ${unit}: ${values} kr (${perUnit.map((x) => TIER_NAMES[x.tier.id].en).join(" / ")}).`;
+}
+
+const langs: Lang[] = ["en", "no"];
+---
+
+{
+  langs.map((lang) => (
+    <figure class:list={["mt-10", lang === "no" ? "i18n-no" : "i18n-en"]} lang={lang === "no" ? "nb" : undefined}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        class="mx-auto block h-auto w-full max-w-xl"
+        role="img"
+        aria-label={summary(lang)}
+      >
+        <g aria-hidden="true">
+          <line x1="0" x2={W} y1={H - PAD_BOTTOM} y2={H - PAD_BOTTOM} class="stroke-slate-200" stroke-width="1" />
+          {product.tiers.map((tier, i) => {
+            const price = tier.priceNokMonthly ?? 0;
+            const h = Math.max(3, (price / maxPrice) * plotH);
+            const x = slot * i + (slot - barW) / 2;
+            const y = H - PAD_BOTTOM - h;
+            return (
+              <g>
+                <rect
+                  x={x}
+                  y={y}
+                  width={barW}
+                  height={h}
+                  rx="8"
+                  class={tier.recommended ? "fill-violet-600" : "fill-violet-200"}
+                />
+                <text x={x + barW / 2} y={y - 10} text-anchor="middle" class="fill-slate-700 text-[12px] font-semibold">
+                  {priceLabel(tier.priceNokMonthly, lang)}
+                </text>
+                <text x={x + barW / 2} y={H - PAD_BOTTOM + 18} text-anchor="middle" class="fill-slate-900 text-[12px] font-semibold">
+                  {TIER_NAMES[tier.id][lang]}
+                </text>
+                <text x={x + barW / 2} y={H - PAD_BOTTOM + 34} text-anchor="middle" class="fill-slate-500 text-[11px]">
+                  {usageLabel(tier.usage, lang)}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+      <figcaption class="mt-3 text-center text-xs text-slate-500">
+        {lang === "no"
+          ? "Søylene viser månedspris eks. mva.; etiketten under viser hva som er inkludert."
+          : "Bars show the monthly price excl. VAT; the label below shows what's included."}{" "}
+        {perUnitCaption(lang)}
+      </figcaption>
+    </figure>
+  ))
+}

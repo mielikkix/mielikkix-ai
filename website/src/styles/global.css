@@ -80,3 +80,19 @@ body {
 html.i18n-loading body {
   visibility: hidden;
 }
+
+/*
+ * Bilingual markup for data that carries both languages itself (src/data/pricing.ts):
+ * both are server-rendered and the <html lang> set by translationService picks one.
+ * display:none also removes the other language from the accessibility tree.
+ */
+html:not([lang="no"]) .i18n-no,
+html[lang="no"] .i18n-en {
+  display: none !important;
+}
+
+/* Monthly / yearly billing toggle (BillingToggle.astro sets data-billing on <html>). */
+html:not([data-billing="yearly"]) .billing-yearly,
+html[data-billing="yearly"] .billing-monthly {
+  display: none !important;
+}

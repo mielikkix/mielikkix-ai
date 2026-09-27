@@ -83,7 +83,7 @@ def test_get_plan_status_shape(db_session):
     biz = make_business(db_session, plan="basic")
     status = plan_service.get_plan_status(db_session, biz)
     assert status["plan"] == "basic"
-    assert status["plan_name"] == "Basic"
+    assert status["plan_name"] == "Start"
     assert status["limits"]["max_document_uploads"] == 20
     assert status["features"]["multi_currency"] is True
     assert "usage" in status
@@ -153,13 +153,48 @@ def test_website_limit_raises_at_cap(db_session):
     assert exc.value.status_code == 402
 
 
-def test_conversation_limit_raises_at_cap(db_session):
-    biz = make_business(db_session, plan="free")  # cap = 50
-    for _ in range(50):
+def test_conversation_limit_allows_10_percent_grace_then_raises(db_session):
+    biz = make_business(db_session, plan="free")  # cap = 50, grace up to 55
+    for _ in range(54):
         add_conversation(db_session, biz.id)
+    plan_service.check_conversation_limit(db_session, biz)  # 55th conversation: still allowed
+    add_conversation(db_session, biz.id)
     with pytest.raises(HTTPException) as exc:
         plan_service.check_conversation_limit(db_session, biz)
     assert exc.value.status_code == 402
+
+
+def test_hard_cap_is_limit_plus_10_percent():
+    assert plan_service.conversation_hard_cap(50) == 55
+    assert plan_service.conversation_hard_cap(1000) == 1100
+
+
+def test_quota_warnings_fire_once_per_level_per_month(db_session):
+    biz = make_business(db_session, plan="free")  # cap = 50
+    for _ in range(39):
+        add_conversation(db_session, biz.id)
+    assert plan_service.claim_quota_warning(db_session, biz) is None  # 78%
+
+    add_conversation(db_session, biz.id)  # 40 = 80%
+    assert plan_service.claim_quota_warning(db_session, biz) == (80, 40, 50)
+    add_conversation(db_session, biz.id)
+    assert plan_service.claim_quota_warning(db_session, biz) is None  # 80% already sent
+
+    for _ in range(9):
+        add_conversation(db_session, biz.id)  # 50 = 100%
+    assert plan_service.claim_quota_warning(db_session, biz) == (100, 50, 50)
+    add_conversation(db_session, biz.id)
+    assert plan_service.claim_quota_warning(db_session, biz) is None
+
+
+def test_quota_warnings_reset_in_a_new_month(db_session):
+    biz = make_business(db_session, plan="free")
+    biz.quota_warning_month = "2000-01"
+    biz.quota_warning_level = 100
+    for _ in range(40):
+        add_conversation(db_session, biz.id)
+    assert plan_service.claim_quota_warning(db_session, biz) == (80, 40, 50)
+
 
 
 def test_conversation_limit_ignores_conversations_from_prior_months(db_session):

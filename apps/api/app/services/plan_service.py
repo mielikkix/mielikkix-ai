@@ -71,7 +71,7 @@ def get_plan_status(db: Session, business: Business) -> dict:
     return {
         "plan": plan.key,
         "plan_name": plan.name,
-        "price_usd": plan.price_usd,
+        "price_nok": plan.price_nok,
         "limits": asdict(plan.limits),
         "usage": get_usage(db, business.id),
         "features": resolve_features(business),
@@ -86,7 +86,7 @@ def get_plan_catalog() -> list[dict]:
         {
             "key": plan.key,
             "name": plan.name,
-            "price_usd": plan.price_usd,
+            "price_nok": plan.price_nok,
             "tagline": plan.tagline,
             "limits": asdict(plan.limits),
             "features": asdict(plan.features),
@@ -138,25 +138,61 @@ def check_product_limit(db: Session, business: Business) -> None:
         _raise_limit_reached(plan.limits.max_products, "products")
 
 
+# Soft limit (docs/pricing-rules.md): no surprise overage charges. The owner is
+# emailed at 80% and 100% of the monthly quota, the widget keeps answering up to
+# 10% over it, and only then are new conversations turned away (the widget shows
+# its contact form instead, so the lead isn't lost).
+CONVERSATION_GRACE_RATIO = 0.10
+QUOTA_WARNING_LEVELS = (80, 100)
+
+
+def conversation_hard_cap(limit: int) -> int:
+    """Conversations allowed per month including the 10% grace (50 -> 55)."""
+    return limit + int(limit * CONVERSATION_GRACE_RATIO)
+
+
+def _conversations_this_month(db: Session, business: Business) -> int:
+    return db.query(func.count(Conversation.id)).filter(
+        Conversation.business_id == business.id,
+        Conversation.started_at >= _current_month_start(),
+    ).scalar() or 0
+
+
 def check_conversation_limit(db: Session, business: Business) -> None:
     """Called only when a *new* conversation is about to start -- an
     in-progress conversation that started before the cap was hit is never
     interrupted mid-thread."""
     plan = get_plan(business.plan)
-    if plan.limits.max_conversations_per_month is None:
+    limit = plan.limits.max_conversations_per_month
+    if limit is None:
         return
-    count = db.query(func.count(Conversation.id)).filter(
-        Conversation.business_id == business.id,
-        Conversation.started_at >= _current_month_start(),
-    ).scalar() or 0
-    if count >= plan.limits.max_conversations_per_month:
+    if _conversations_this_month(db, business) >= conversation_hard_cap(limit):
         raise HTTPException(
             status_code=402,
             detail=(
                 "This business has reached its plan's monthly AI conversation limit. "
-                "Please try again next month, or ask the site owner to upgrade their plan."
+                "Please leave your contact details instead, or ask the site owner to upgrade their plan."
             ),
         )
+
+
+def claim_quota_warning(db: Session, business: Business) -> tuple[int, int, int] | None:
+    """After a new conversation is stored: returns (level, used, limit) when an
+    80% or 100% warning email is now due, recording it on the business so each
+    level is emailed at most once per calendar month. None when nothing is due.
+    The caller commits."""
+    limit = get_plan(business.plan).limits.max_conversations_per_month
+    if not limit:
+        return None
+    used = _conversations_this_month(db, business)
+    due = max((lvl for lvl in QUOTA_WARNING_LEVELS if used * 100 >= limit * lvl), default=0)
+    month = _current_month_start().strftime("%Y-%m")
+    already = business.quota_warning_level if business.quota_warning_month == month else 0
+    if due <= already:
+        return None
+    business.quota_warning_month = month
+    business.quota_warning_level = due
+    return due, used, limit
 
 
 def check_language_limit(business: Business, requested_languages: list) -> None:

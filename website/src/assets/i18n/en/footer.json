@@ -25,7 +25,7 @@
     "SETTINGS": "Settings",
     "SAVE": "Save choices",
     "NECESSARY_TITLE": "Necessary",
-    "NECESSARY_DESC": "Remember your language, currency and cookie choice. Always on.",
+    "NECESSARY_DESC": "Remember your language and cookie choice. Always on.",
     "ANALYTICS_TITLE": "Analytics (Google Analytics)",
     "ANALYTICS_DESC": "Statistics about how the site is used. Sets _ga cookies and sends data to Google (Google Ireland Ltd / Google LLC, USA)."
   },

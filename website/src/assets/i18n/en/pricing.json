@@ -1,141 +1,20 @@
 {
   "SEO": {
-    "TITLE": "Mielikkix Chat Widget Pricing",
-    "DESCRIPTION": "Simple, honest pricing for the Mielikkix Chat Widget — a genuinely usable free plan, plus Basic, Business, and Growth tiers for growing businesses."
+    "TITLE": "Pricing",
+    "DESCRIPTION": "Fixed NOK prices for the Mielikkix AI Chat Widget and every AI agent. Free, Start, Business and Growth plans, excl. VAT, with 2 months free on yearly billing."
   },
   "PAGE_HERO": {
     "LINE1": "Simple,",
     "LINE2": "honest pricing",
-    "SUBHEADING": "Start the Mielikkix Chat Widget free. Upgrade only when your business outgrows the free plan."
+    "SUBHEADING": "Fixed prices in NOK, the same four plans for every product, no surprise charges. Start free with the Chat Widget and upgrade when you're getting real value."
   },
-  "MOST_POPULAR_BADGE": "⭐ Most Popular",
-  "SAVINGS_BADGE": "2 months free, billed yearly",
-  "GET_STARTED_NOTE": "To get started, book a demo and tell us what you want to automate.",
-  "DISPLAY_NOTE": "Prices are displayed in your selected currency and converted from USD using current exchange rates.",
-  "PLANS": [
-    {
-      "NAME": "Free",
-      "PRICE_USD": 0,
-      "PERIOD": "forever",
-      "TAGLINE": "Try it for real, no card required.",
-      "CTA": "Start Free",
-      "FEATURED": false,
-      "FEATURES": [
-        "1 website",
-        "50 AI conversations/mo",
-        "Knowledge base",
-        "2 document uploads",
-        "Lead capture",
-        "Basic analytics",
-        "10 products in catalog",
-        "7-day conversation history",
-        "Email notifications"
-      ]
-    },
-    {
-      "NAME": "Basic",
-      "PRICE_USD": 24,
-      "PERIOD": "/mo",
-      "TAGLINE": "For a single business finding its footing.",
-      "CTA": "Choose Basic",
-      "FEATURED": false,
-      "FEATURES": [
-        "1 website",
-        "1,000 AI conversations/mo",
-        "Knowledge base",
-        "20 document uploads",
-        "Lead capture",
-        "Standard analytics",
-        "100 products in catalog",
-        "90-day conversation history",
-        "Email notifications",
-        "2 languages",
-        "Multi-currency",
-        "Custom branding"
-      ]
-    },
-    {
-      "NAME": "Business",
-      "PRICE_USD": 48,
-      "PERIOD": "/mo",
-      "TAGLINE": "Most businesses land here.",
-      "CTA": "Choose Business",
-      "FEATURED": true,
-      "FEATURES": [
-        "3 websites",
-        "5,000 AI conversations/mo",
-        "Knowledge base",
-        "Unlimited document uploads",
-        "Lead capture",
-        "Advanced analytics",
-        "Unlimited products",
-        "Up to 12 months of conversation history",
-        "Email + WhatsApp notifications (coming soon)",
-        "Instagram integration (coming soon)",
-        "Up to 10 languages",
-        "Multi-currency",
-        "Custom branding",
-        "API access (+$12/mo add-on)",
-        "Priority support"
-      ]
-    },
-    {
-      "NAME": "Growth",
-      "PRICE_USD": 96,
-      "PERIOD": "/mo",
-      "TAGLINE": "For multi-location or high-traffic businesses.",
-      "CTA": "Choose Growth",
-      "FEATURED": false,
-      "FEATURES": [
-        "10 websites",
-        "20,000 AI conversations/mo",
-        "Knowledge base",
-        "Unlimited document uploads",
-        "Lead capture",
-        "Advanced analytics",
-        "Unlimited products",
-        "Up to 12 months of conversation history",
-        "Email + WhatsApp notifications (coming soon)",
-        "Instagram integration (coming soon)",
-        "Up to 10 languages",
-        "Multi-currency",
-        "Custom branding",
-        "API access included",
-        "Priority support"
-      ]
-    }
-  ],
-  "FAQ": {
-    "HEADING": "Billing FAQ",
-    "ITEMS": [
-      {
-        "Q": "What happens if I go over my monthly conversation limit?",
-        "A": "New conversations pause until your limit resets at the start of next month. Conversations already in progress are never cut off. Need more? Upgrade at any time and the higher limit applies straight away."
-      },
-      {
-        "Q": "Can I pay yearly?",
-        "A": "Yes — every paid plan is available on an annual billing cycle at roughly 2 months free (pay for 10, get 12)."
-      },
-      {
-        "Q": "Can I change plans later?",
-        "A": "Upgrades apply immediately and are prorated. Downgrades take effect at your next billing cycle, so you keep what you already paid for."
-      },
-      {
-        "Q": "Is the Free plan really free forever?",
-        "A": "Yes. It's a permanent plan, not a time-limited trial. It's deliberately limited (1 website, 50 conversations/mo), so you can try the product properly before you decide."
-      }
-    ]
+  "SWITCHER_LABEL": "Choose a product",
+  "BUNDLES": {
+    "HEADING": "Bundles",
+    "SUBHEADING": "Combine products and pay less than buying them separately. The saving is calculated from the list prices above."
   },
-  "AGENTS_SECTION": {
-    "HEADING": "Explore our AI agents",
-    "TEXT_BEFORE": "The plans above cover the Mielikkix Chat Widget. Our AI agents — like ",
-    "LINK_SEO": "SEO Audit & Optimize",
-    "TEXT_SEP_1": ", ",
-    "LINK_VOICE": "Voice Receptionist",
-    "TEXT_SEP_2": ", and ",
-    "LINK_BOOKING": "Booking Assistant",
-    "TEXT_AFTER": " — are separate offerings for specific business workflows, with their own pricing.",
-    "CTA": "See agent pricing"
+  "ADDONS": {
+    "HEADING": "Add-ons"
   },
   "CTA": {
     "HEADING": "Still deciding?",

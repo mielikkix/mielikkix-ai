@@ -5,12 +5,17 @@ from ..schemas.chat import ChatMessageRequest, ChatMessageResponse
 from ..rag.pipeline import run_rag
 from ..rag.language_detect import detect_message_language
 from ..services import agent_access_service, plan_service
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
+from ..core.plans import get_plan
+from ..models.user import User
+from ..notifications import notify_quota_warning
 
 HISTORY_LIMIT = 6
 
 
-async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageResponse:
+async def handle_message(
+    db: Session, req: ChatMessageRequest, background_tasks: BackgroundTasks | None = None
+) -> ChatMessageResponse:
     business = db.query(Business).filter(
         Business.id == req.business_id, Business.status.in_(["active", "trial"])
     ).first()
@@ -27,6 +32,7 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
         Conversation.status == "open",
     ).first()
 
+    quota_warning = None
     if not conversation:
         # Only a brand-new conversation counts against the monthly cap --
         # a session that's already underway is never cut off mid-thread.
@@ -38,6 +44,9 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
         )
         db.add(conversation)
         db.flush()
+        # 80% / 100% quota email, claimed now (committed with this turn below)
+        # so two simultaneous conversations can't both send the same warning.
+        quota_warning = plan_service.claim_quota_warning(db, business)
 
     # Fetched before adding the current message below, so it naturally
     # excludes this turn and only contains prior conversation context.
@@ -97,6 +106,16 @@ async def handle_message(db: Session, req: ChatMessageRequest) -> ChatMessageRes
     )
     db.add(ai_msg)
     db.commit()
+
+    if quota_warning and background_tasks is not None:
+        level, used, limit = quota_warning
+        owners = [
+            u.email for u in db.query(User).filter(User.business_id == business.id, User.role == "owner").all() if u.email
+        ]
+        if owners:
+            background_tasks.add_task(
+                notify_quota_warning, owners, business.name, get_plan(business.plan).name, level, used, limit
+            )
 
     # An ungated business's chatbot never offers booking in the first place
     # -- not just blocked after the fact by agents_booking.py's own

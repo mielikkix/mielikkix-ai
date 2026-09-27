@@ -25,7 +25,7 @@
     "SETTINGS": "Innstillinger",
     "SAVE": "Lagre valg",
     "NECESSARY_TITLE": "Nødvendige",
-    "NECESSARY_DESC": "Husker språk, valuta og ditt valg om informasjonskapsler. Alltid på.",
+    "NECESSARY_DESC": "Husker språk og ditt valg om informasjonskapsler. Alltid på.",
     "ANALYTICS_TITLE": "Analyse (Google Analytics)",
     "ANALYTICS_DESC": "Statistikk om hvordan nettstedet brukes. Setter _ga-informasjonskapsler og sender data til Google (Google Ireland Ltd / Google LLC, USA)."
   },

@@ -28,7 +28,7 @@ class PlanFeaturesOut(BaseModel):
 class PlanCatalogEntry(BaseModel):
     key: str
     name: str
-    price_usd: int
+    price_nok: int
     tagline: str
     limits: PlanLimitsOut
     features: PlanFeaturesOut
@@ -44,7 +44,7 @@ class PlanUsageOut(BaseModel):
 class PlanStatusOut(BaseModel):
     plan: str
     plan_name: str
-    price_usd: int
+    price_nok: int
     limits: PlanLimitsOut
     usage: PlanUsageOut
     features: Dict[str, bool | str]

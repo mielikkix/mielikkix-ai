@@ -1,0 +1,13 @@
+---
+// Renders one {en, no} text in both languages; global.css shows the one matching
+// <html lang>. Used for content that comes from src/data/pricing.ts rather than
+// the per-page i18n JSON.
+import type { Text } from "../../data/pricing";
+
+interface Props {
+  text: Text;
+}
+const { text } = Astro.props;
+---
+
+<span class="i18n-en">{text.en}</span><span class="i18n-no" lang="nb">{text.no}</span>

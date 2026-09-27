@@ -44,7 +44,6 @@ const initial = SUPPORTED_LANGUAGES.find((l) => l.code === DEFAULT_LANGUAGE) ?? 
 
 <script>
   import { switchLanguage, getStoredLanguage, SUPPORTED_LANGUAGES, LANG_CHANGE_EVENT, type LanguageCode } from "../lib/i18n/translationService";
-  import { setCurrency } from "../stores/currencyStore";
 
   function currentPage(): string | undefined {
     return document.body.dataset.page;
@@ -76,9 +75,6 @@ const initial = SUPPORTED_LANGUAGES.find((l) => l.code === DEFAULT_LANGUAGE) ?? 
       applyActiveState(lang);
       closeAllDropdowns();
       void switchLanguage(lang, currentPage());
-      // Currency follows language as one combined switch — see SUPPORTED_LANGUAGES.
-      const currency = SUPPORTED_LANGUAGES.find((l) => l.code === lang)?.currency;
-      if (currency) setCurrency(currency);
     });
   });
 

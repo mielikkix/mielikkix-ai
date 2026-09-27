@@ -168,17 +168,10 @@ const structuredData = {
     <Footer />
     <ConsentBanner />
     <script>
-      import { initI18n, getStoredLanguage, SUPPORTED_LANGUAGES } from "../lib/i18n/translationService";
-      import { init as initCurrency } from "../stores/currencyStore";
-      import { DEFAULT_CURRENCY } from "../config/currency";
+      import { initI18n } from "../lib/i18n/translationService";
 
       const mielikkixPage = document.body.dataset.page;
       void initI18n(mielikkixPage);
-
-      // Currency follows the selected language as one combined switch (see SUPPORTED_LANGUAGES).
-      const storedLang = getStoredLanguage();
-      const currencyForLang = SUPPORTED_LANGUAGES.find((l) => l.code === storedLang)?.currency ?? DEFAULT_CURRENCY;
-      void initCurrency(currencyForLang);
     </script>
     <!--
       The real tenant-facing product widget (app.mielikkix.ai/widget.js),

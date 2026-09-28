@@ -17,6 +17,7 @@
 import Layout from "../../layouts/Layout.astro";
 import CTASection from "../../components/CTASection.astro";
 import { fetchArticleBySlug, fetchPublishedArticles } from "../../lib/articles";
+import { styleBareTables } from "../../lib/articleTables";
 
 export async function getStaticPaths() {
   const articles = await fetchPublishedArticles();
@@ -98,7 +99,7 @@ const structuredDataNodes = [
 
     <div
       class="prose-article mt-10 space-y-4 text-base leading-relaxed text-slate-700 [&_a]:text-indigo-600 [&_a]:underline [&_h2]:font-display [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:font-display [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-slate-900 [&_img]:rounded-2xl [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc"
-      set:html={resolvedArticle.content}
+      set:html={styleBareTables(resolvedArticle.content)}
     />
 
     <a href="/blog" class="mt-12 inline-block text-sm font-semibold text-violet-600 hover:underline">

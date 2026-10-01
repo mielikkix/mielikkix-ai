@@ -6,7 +6,7 @@ seo_service.py.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
@@ -380,6 +380,15 @@ async def chat(
 class _DemoRequest(BaseModel):
     review_text: str = Field(min_length=1, max_length=5000)
     tone: str | None = Field(default=None, max_length=30)
+
+    @field_validator("tone")
+    @classmethod
+    def _known_tone(cls, v: str | None) -> str | None:
+        # Public, unauthenticated route: the tone goes into the LLM prompt, so
+        # only the fixed list the demo page's tone picker offers is accepted.
+        if v is not None and v not in review_service.RESPONSE_TONES:
+            raise ValueError(f"tone must be one of {', '.join(review_service.RESPONSE_TONES)}")
+        return v
 
 
 class _DemoResponseOut(BaseModel):

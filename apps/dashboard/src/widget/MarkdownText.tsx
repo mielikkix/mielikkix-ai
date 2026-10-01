@@ -1,5 +1,5 @@
 // Minimal markdown renderer for chat replies: bold text, bullet/numbered
-// lists, and paragraphs. Deliberately not a full CommonMark implementation —
+// lists, pipe tables, and paragraphs. Deliberately not a full CommonMark implementation —
 // this covers what LLM responses actually produce, without pulling a markdown
 // parser library into the widget's single embeddable bundle.
 
@@ -23,6 +23,41 @@ function CodeBlock({ lines }: { lines: string[] }) {
   )
 }
 
+const cells = (row: string) => row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim())
+const isTableSeparator = (row: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(row)
+
+// Pipe tables: LLMs use them for price comparisons ("which Business plan?"),
+// and unrendered they showed as raw "| Produkt | ... |" lines in the widget.
+function Table({ rows, keyPrefix }: { rows: string[]; keyPrefix: string }) {
+  const [head, ...body] = rows.filter((r) => !isTableSeparator(r)).map(cells)
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr>
+            {head.map((c, i) => (
+              <th key={i} className="border-b border-gray-300 px-1.5 py-1 text-left font-semibold">
+                {renderInline(c, `${keyPrefix}-h-${i}`)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, r) => (
+            <tr key={r}>
+              {row.map((c, i) => (
+                <td key={i} className="border-b border-gray-200 px-1.5 py-1 align-top">
+                  {renderInline(c, `${keyPrefix}-${r}-${i}`)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export function MarkdownText({ text }: { text: string }) {
   const lines = text.split('\n')
   const blocks: ReactNode[] = []
@@ -31,6 +66,15 @@ export function MarkdownText({ text }: { text: string }) {
   let listStart = 1
   let inCodeBlock = false
   let codeLines: string[] = []
+  let tableRows: string[] = []
+
+  const flushTable = (key: string) => {
+    if (!tableRows.length) return
+    // A lone "| x |" line isn't a table -- keep it as a paragraph.
+    if (tableRows.length < 2) blocks.push(<p key={key}>{renderInline(tableRows[0], key)}</p>)
+    else blocks.push(<Table key={key} rows={tableRows} keyPrefix={key} />)
+    tableRows = []
+  }
 
   const flushList = (key: string) => {
     if (!listItems.length || !listType) return
@@ -57,6 +101,7 @@ export function MarkdownText({ text }: { text: string }) {
     if (/^\s*```/.test(line)) {
       if (!inCodeBlock) {
         flushList(`flush-${idx}`)
+        flushTable(`table-${idx}`)
         inCodeBlock = true
         codeLines = []
       } else {
@@ -70,6 +115,13 @@ export function MarkdownText({ text }: { text: string }) {
       codeLines.push(line)
       return
     }
+
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      flushList(`flush-${idx}`)
+      tableRows.push(line)
+      return
+    }
+    flushTable(`table-${idx}`)
 
     const bullet = line.match(/^\s*[-*]\s+(.*)/)
     const numbered = line.match(/^\s*(\d+)\.\s+(.*)/)
@@ -96,6 +148,7 @@ export function MarkdownText({ text }: { text: string }) {
     }
   })
   flushList('flush-end')
+  flushTable('table-end')
   // An unterminated fence (LLM cut off before closing ```) still renders
   // whatever was collected, rather than silently dropping it.
   if (inCodeBlock && codeLines.length) {

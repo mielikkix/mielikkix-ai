@@ -30,6 +30,11 @@ def list_leads(current_user: User = Depends(get_current_user), db: Session = Dep
 @router.post("", response_model=LeadCreateResponse, status_code=201)
 @limiter.limit("10/minute")
 def create_lead(request: Request, body: LeadCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    if body.fax:
+        # Honeypot filled: answer exactly like a success so the bot learns
+        # nothing, but store and send nothing.
+        logger.info("Lead honeypot triggered for business %s; discarded", body.business_id)
+        return LeadCreateResponse(success=True, message="Thank you. Your demo request has been received.")
     is_new = not (
         lead_service.is_marketing_business(body.business_id)
         and body.email

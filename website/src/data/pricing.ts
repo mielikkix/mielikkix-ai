@@ -131,8 +131,8 @@ const FAQ_CHANGE_PLAN: Faq = {
 const FAQ_VOICE_MINUTES: Faq = {
   q: t("What happens if I use more minutes than included?", "Hva skjer hvis jeg bruker flere minutter enn inkludert?"),
   a: t(
-    "Calls are always answered. Extra minutes are billed monthly at the overage rate shown on your plan (4.00, 3.50 or 3.00 kr per minute excl. VAT), and you'll see them itemised on your invoice.",
-    "Anrop blir alltid besvart. Ekstra minutter faktureres månedlig til tilleggsprisen på planen din (4,00, 3,50 eller 3,00 kr per minutt eks. mva.), og de spesifiseres på fakturaen.",
+    "Calls are always answered. Extra minutes are billed monthly at the overage rate shown on your plan ({nok:4.00}, {nok:3.50} or {nok:3.00} per minute excl. VAT), and you'll see them itemized on your invoice.",
+    "Anrop blir alltid besvart. Ekstra minutter faktureres månedlig til tilleggsprisen på planen din ({nok:4.00}, {nok:3.50} eller {nok:3.00} per minutt eks. mva.), og de spesifiseres på fakturaen.",
   ),
 };
 
@@ -169,7 +169,7 @@ export const products: Product[] = [
     ),
     usageUnit: t("conversations", "samtaler"),
     usageUnitOne: t("conversation", "samtale"),
-    detailHref: "/features",
+    detailHref: "/features/",
     limitRule: FAQ_SOFT_LIMIT(CHAT_CONVERSATIONS).a,
     tiers: [
       {
@@ -183,12 +183,12 @@ export const products: Product[] = [
           { label: t("Products in catalog", "Produkter i katalogen"), value: 10 },
           { label: t("Conversation history", "Samtalehistorikk"), value: t("7 days", "7 dager") },
           { label: t("Languages", "Språk"), value: 1 },
+          { label: t("Analytics", "Analyse"), value: t("Basic", "Grunnleggende") },
         ],
         features: [
           t("Knowledge base from your documents and website", "Kunnskapsbase fra dokumentene og nettsiden din"),
           t("Lead capture", "Leadfangst"),
           t("Email notifications", "E-postvarsler"),
-          t("Basic analytics", "Grunnleggende analyse"),
         ],
       },
       {
@@ -202,13 +202,13 @@ export const products: Product[] = [
           { label: t("Products in catalog", "Produkter i katalogen"), value: 100 },
           { label: t("Conversation history", "Samtalehistorikk"), value: t("90 days", "90 dager") },
           { label: t("Languages", "Språk"), value: 2 },
+          { label: t("Analytics", "Analyse"), value: t("Standard", "Standard") },
         ],
         features: [
           t("Knowledge base from your documents and website", "Kunnskapsbase fra dokumentene og nettsiden din"),
           t("Lead capture", "Leadfangst"),
           t("Email notifications", "E-postvarsler"),
           t("Custom branding", "Egen merkevare og farger"),
-          t("Standard analytics", "Standard analyse"),
         ],
       },
       {
@@ -223,13 +223,13 @@ export const products: Product[] = [
           { label: t("Products in catalog", "Produkter i katalogen"), value: UNLIMITED },
           { label: t("Conversation history", "Samtalehistorikk"), value: t("Up to 12 months", "Opptil 12 måneder") },
           { label: t("Languages", "Språk"), value: 10 },
+          { label: t("Analytics", "Analyse"), value: t("Advanced", "Avansert") },
         ],
         features: [
           t("Knowledge base from your documents and website", "Kunnskapsbase fra dokumentene og nettsiden din"),
           t("Lead capture", "Leadfangst"),
           t("Email notifications", "E-postvarsler"),
           t("Custom branding", "Egen merkevare og farger"),
-          t("Advanced analytics", "Avansert analyse"),
           t("Priority support", "Prioritert support"),
         ],
       },
@@ -244,13 +244,13 @@ export const products: Product[] = [
           { label: t("Products in catalog", "Produkter i katalogen"), value: UNLIMITED },
           { label: t("Conversation history", "Samtalehistorikk"), value: t("Up to 12 months", "Opptil 12 måneder") },
           { label: t("Languages", "Språk"), value: 10 },
+          { label: t("Analytics", "Analyse"), value: t("Advanced", "Avansert") },
         ],
         features: [
           t("Knowledge base from your documents and website", "Kunnskapsbase fra dokumentene og nettsiden din"),
           t("Lead capture", "Leadfangst"),
           t("Email notifications", "E-postvarsler"),
           t("Custom branding", "Egen merkevare og farger"),
-          t("Advanced analytics", "Avansert analyse"),
           t("Priority support", "Prioritert support"),
           t("API access included", "API-tilgang inkludert"),
         ],
@@ -279,7 +279,7 @@ export const products: Product[] = [
     ),
     usageUnit: t("minutes", "minutter"),
     usageUnitOne: t("minute", "minutt"),
-    detailHref: "/demo/voice-receptionist",
+    detailHref: "/demo/voice-receptionist/",
     limitRule: FAQ_VOICE_MINUTES.a,
     tiers: [
       {
@@ -359,7 +359,7 @@ export const products: Product[] = [
     ),
     usageUnit: t("calendars", "kalendere"),
     usageUnitOne: t("calendar", "kalender"),
-    detailHref: "/demo/booking-assistant",
+    detailHref: "/demo/booking-assistant/",
     tiers: [
       {
         id: "start",
@@ -436,7 +436,7 @@ export const products: Product[] = [
     ),
     usageUnit: t("tickets", "saker"),
     usageUnitOne: t("ticket", "sak"),
-    detailHref: "/demo/support-triage",
+    detailHref: "/demo/support-triage/",
     limitRule: FAQ_TRIAGE_TICKETS.a,
     tiers: [
       {
@@ -497,12 +497,12 @@ export const products: Product[] = [
     name: t("Review & Reputation", "Review & Reputation"),
     emoji: "⭐",
     tagline: t(
-      "Analyses your reviews and drafts on-brand replies you approve before they're published.",
+      "Analyzes your reviews and drafts on-brand replies you approve before they're published.",
       "Analyserer anmeldelsene dine og skriver utkast til svar som du godkjenner før de publiseres.",
     ),
     usageUnit: t("locations", "lokasjoner"),
     usageUnitOne: t("location", "lokasjon"),
-    detailHref: "/demo/review-reputation",
+    detailHref: "/demo/review-reputation/",
     tiers: [
       {
         id: "start",
@@ -568,12 +568,12 @@ export const products: Product[] = [
     name: t("SEO Audit & Optimize", "SEO Audit & Optimize"),
     emoji: "🔎",
     tagline: t(
-      "A real crawl of your website, turned into a prioritised action plan. Do it yourself, or let us do it for you.",
+      "A real crawl of your website, turned into a prioritized action plan. Do it yourself, or let us do it for you.",
       "En reell gjennomgang av nettsiden din, omgjort til en prioritert handlingsplan. Gjør det selv, eller la oss gjøre det for deg.",
     ),
     usageUnit: t("websites", "nettsider"),
     usageUnitOne: t("website", "nettside"),
-    detailHref: "/agent-pricing#seo-audit",
+    detailHref: "/agent-pricing/#seo-audit",
     tiers: [
       {
         id: "free",
@@ -585,7 +585,7 @@ export const products: Product[] = [
         ],
         features: [
           t("Technical, on-page and internal-linking audit", "Revisjon av teknisk SEO, innhold og intern lenking"),
-          t("Prioritised action plan with AI summary", "Prioritert handlingsplan med AI-sammendrag"),
+          t("Prioritized action plan with AI summary", "Prioritert handlingsplan med AI-sammendrag"),
           t("Keyword ideas", "Forslag til nøkkelord"),
           t("PDF report and audit history", "PDF-rapport og revisjonshistorikk"),
           t("Unlimited re-audits", "Ubegrensede nye revisjoner"),
@@ -667,7 +667,7 @@ export const products: Product[] = [
     ),
     usageUnit: t("integrations", "integrasjoner"),
     usageUnitOne: t("integration", "integrasjon"),
-    detailHref: "/agents#custom",
+    detailHref: "/agents/#custom",
     tiers: [
       {
         id: "start",
@@ -675,11 +675,11 @@ export const products: Product[] = [
         usage: 1,
         minTermMonths: CUSTOM_AGENT_MIN_TERM_MONTHS,
         included: [
-          { label: t("Agents", "Agenter"), value: 1 },
+          { label: t("Agents", "Agenter"), value: t("1 single-workflow agent", "1 agent for én arbeidsflyt") },
           { label: t("Integrations", "Integrasjoner"), value: 1 },
           { label: t("Setup fee", "Etableringsgebyr"), value: t("None", "Ingen") },
         ],
-        features: [t("One agent for one workflow", "Én agent for én arbeidsflyt"), t("Hosting and monitoring", "Drift og overvåking")],
+        features: [t("Hosting and monitoring", "Drift og overvåking")],
       },
       {
         id: "business",
@@ -688,12 +688,11 @@ export const products: Product[] = [
         usage: 3,
         minTermMonths: CUSTOM_AGENT_MIN_TERM_MONTHS,
         included: [
-          { label: t("Agents", "Agenter"), value: 1 },
+          { label: t("Agents", "Agenter"), value: t("1 multi-step agent", "1 agent med flere steg") },
           { label: t("Integrations", "Integrasjoner"), value: t("Up to 3", "Opptil 3") },
           { label: t("Setup fee", "Etableringsgebyr"), value: t("None", "Ingen") },
         ],
         features: [
-          t("Multi-step agent", "Agent med flere steg"),
           t("Hosting and monitoring", "Drift og overvåking"),
         ],
       },
@@ -709,7 +708,6 @@ export const products: Product[] = [
           { label: t("Setup fee", "Etableringsgebyr"), value: t("None", "Ingen") },
         ],
         features: [
-          t("Multi-step agent", "Agent med flere steg"),
           t("Hosting and monitoring", "Drift og overvåking"),
           t("Service level agreement (SLA)", "Tjenestenivåavtale (SLA)"),
           t("Dedicated support", "Dedikert support"),
@@ -837,6 +835,29 @@ export function effectiveFeatures(product: Product, tier: Tier): Feature[] {
   return out;
 }
 
+/** Self-serve sign-up in the dashboard (apps/dashboard RegisterPage). New accounts start on the Chat Widget Free plan. */
+export const SIGN_UP_URL = "https://app.mielikkix.ai/register";
+
+/**
+ * The call to action on a plan card -- the one place its label and link are decided, so the
+ * home page and the pricing pages agree. QA 2026-10-01 (B4): every button, including "Get
+ * started free", went to the demo form, and labels differed between pages.
+ *   - Chat Widget Free: real self-serve sign-up.
+ *   - SEO Free: needs to be switched on by us (no self-serve agent activation yet), so it's an
+ *     honest "request" via the demo form, preselected.
+ *   - Custom agents / Managed SEO: "Talk to us"; everything else "Book a demo".
+ */
+export function planCta(productId: ProductId, tier: Tier): { href: string; label: Text } {
+  const demo = `/demo/?product=${productId}`;
+  if (tier.priceNokMonthly === null) {
+    return productId === "chat-widget"
+      ? { href: SIGN_UP_URL, label: t("Get started free", "Kom i gang gratis") }
+      : { href: demo, label: t("Request free access", "Be om gratis tilgang") };
+  }
+  if (productId === "custom-agents" || tier.managed) return { href: demo, label: t("Talk to us", "Snakk med oss") };
+  return { href: demo, label: t("Book a demo", "Book en demo") };
+}
+
 export function bundleListPrice(bundle: Bundle): number {
   return bundle.parts.reduce((sum, part) => sum + (getTier(part.productId, part.tierId).priceNokMonthly ?? 0), 0);
 }
@@ -908,6 +929,38 @@ export function formatYearly(tier: Pick<Tier, "priceNokMonthly" | "priceFrom">, 
   const from = tier.priceFrom ? (lang === "no" ? "fra " : "from ") : "";
   const suffix = lang === "no" ? "/år eks. mva." : "/year excl. VAT";
   return `${from}${formatNok(yearlyPrice(tier.priceNokMonthly), lang)}${suffix}`;
+}
+
+const PRICE_TOKEN = /\{nok:(\d+(?:\.\d+)?)\}/g;
+
+/**
+ * Splits text with "{nok:4.00}" tokens into plain strings and NOK amounts, so a sentence can
+ * carry live, currency-switchable prices (Bi.astro renders each amount as a <Price>).
+ * Written with decimals ("4.00"), the amount keeps two decimals in its NOK label.
+ */
+export function splitPriceTokens(text: string, lang: Lang): (string | { nok: number; label: string })[] {
+  const out: (string | { nok: number; label: string })[] = [];
+  let last = 0;
+  for (const m of text.matchAll(PRICE_TOKEN)) {
+    if (m.index! > last) out.push(text.slice(last, m.index));
+    const nok = Number(m[1]);
+    const decimals = m[1].includes(".") ? 2 : 0;
+    const amount = nok.toLocaleString(lang === "no" ? "nb-NO" : "en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+    out.push({ nok, label: lang === "no" ? `${amount}${NBSP}kr` : `NOK${NBSP}${amount}` });
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+/** Text with its "{nok:...}" tokens written out in NOK, for places that can't render <Price> (meta, JSON-LD). */
+export function plainPriceText(text: string, lang: Lang): string {
+  return splitPriceTokens(text, lang)
+    .map((p) => (typeof p === "string" ? p : p.label))
+    .join("");
 }
 
 export function formatValue(value: number | Text, lang: Lang): string {

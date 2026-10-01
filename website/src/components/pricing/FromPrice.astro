@@ -1,0 +1,18 @@
+---
+// "Plans from NOK 590/month excl. VAT." under a demo page's hero, in both languages and
+// with a live <Price>, so it follows the currency switcher -- QA 2026-10-01 (B5): it was
+// a plain English string inside the hero subheading, always in NOK.
+import Price from "../Price.astro";
+import { getProduct, lowestPaidTier, type ProductId } from "../../data/pricing";
+
+interface Props {
+  productId: ProductId;
+}
+const nok = lowestPaidTier(getProduct(Astro.props.productId)).priceNokMonthly as number;
+---
+
+<p class="mx-auto mt-3 max-w-xl text-base font-semibold text-white">
+  <span class="i18n-en">Plans from <Price nok={nok} lang="en" />/month excl. VAT.</span><span class="i18n-no" lang="nb"
+    >Planer fra <Price nok={nok} lang="no" />/mnd eks. mva.</span
+  >
+</p>

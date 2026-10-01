@@ -14,6 +14,14 @@ const status = document.getElementById("demo-form-status");
 const errorEl = document.getElementById("demo-form-error");
 const submitButton = form?.querySelector('button[type="submit"]');
 
+// /demo?product=<pricing.ts product id> (set by the pricing CTAs) preselects that
+// product in "What are you interested in?".
+const requestedProduct = new URLSearchParams(location.search).get("product");
+if (requestedProduct) {
+  const option = form?.querySelector(`#interest option[data-product="${CSS.escape(requestedProduct)}"]`);
+  if (option) option.selected = true;
+}
+
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
   errorEl?.classList.add("hidden");
@@ -50,6 +58,8 @@ form?.addEventListener("submit", async (event) => {
         message: messageParts.join("\n") || undefined,
         source: "WEBSITE",
         marketing_consent: data.get("marketing_consent") === "on",
+        // Honeypot (hidden in demo.astro): the API discards any lead that fills it.
+        fax: (data.get("fax") || "").toString() || undefined,
       }),
     });
 

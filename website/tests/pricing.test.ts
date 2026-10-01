@@ -69,3 +69,22 @@ test("price formatting: Norwegian uses NBSP thousands and 'eks. mva.', English '
   assert.equal(formatMonthly(getTier("custom-agents", "growth"), "no"), "fra 14 900 kr/mnd eks. mva.");
   assert.equal(formatMonthly(getTier("chat-widget", "free"), "en"), "Free");
 });
+
+// --- QA 2026-10-01 -----------------------------------------------------------
+import { planCta, splitPriceTokens, plainPriceText, SIGN_UP_URL } from "../src/data/pricing.ts";
+
+test("B4: free Chat Widget signs up; free SEO requests access; paid plans book a demo for that product", () => {
+  assert.equal(planCta("chat-widget", getTier("chat-widget", "free")).href, SIGN_UP_URL);
+  assert.equal(planCta("seo-audit", getTier("seo-audit", "free")).href, "/demo/?product=seo-audit");
+  assert.equal(planCta("seo-audit", getTier("seo-audit", "free")).label.en, "Request free access");
+  assert.equal(planCta("voice-receptionist", getTier("voice-receptionist", "start")).label.en, "Book a demo");
+  assert.equal(planCta("custom-agents", getTier("custom-agents", "start")).label.en, "Talk to us");
+});
+
+test("B5: {nok:x} tokens become live prices and never leak into text", () => {
+  const parts = splitPriceTokens("at {nok:4.00} or {nok:3} per minute", "en");
+  assert.deepEqual(parts, ["at ", { nok: 4, label: "NOK 4.00" }, " or ", { nok: 3, label: "NOK 3" }, " per minute"]);
+  assert.equal(plainPriceText("{nok:3.50} per minutt", "no"), "3,50 kr per minutt");
+  for (const p of products)
+    for (const f of p.faq) for (const lang of ["en", "no"] as const) assert.ok(!plainPriceText(f.a[lang], lang).includes("{"));
+});

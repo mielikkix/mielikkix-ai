@@ -27,8 +27,8 @@ const agents = agentIds.map(getProduct);
 <Layout
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
-  path="/agent-pricing"
-  structuredDataNodes={agentIds.map((id) => pricingProductNode(id, `/agent-pricing#${id}`))}
+  path="/agent-pricing/"
+  structuredDataNodes={agentIds.map((id) => pricingProductNode(id, `/agent-pricing/#${id}`))}
   page="agent-pricing"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
@@ -69,12 +69,12 @@ const agents = agentIds.map(getProduct);
 
   <p class="pb-10 text-center text-sm text-slate-500">
     <span data-i18n="CHAT_NOTE">{en.CHAT_NOTE}</span>
-    <a href="/pricing#chat-widget" class="ml-1 font-semibold text-violet-600 hover:text-violet-700" data-i18n="CHAT_LINK">
+    <a href="/pricing/#chat-widget" class="ml-1 font-semibold text-violet-600 hover:text-violet-700" data-i18n="CHAT_LINK">
       {en.CHAT_LINK}
     </a>
   </p>
 
   <PricingLegalNote />
 
-  <CTASection heading={en.CTA.HEADING} subheading={en.CTA.SUBHEADING} headingKey="CTA.HEADING" subheadingKey="CTA.SUBHEADING" />
+  <CTASection heading={en.CTA.HEADING} subheading={en.CTA.SUBHEADING} headingKey="CTA.HEADING" subheadingKey="CTA.SUBHEADING" secondary="widget-pricing" />
 </Layout>

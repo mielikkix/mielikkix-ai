@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { supportTriageNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
 
@@ -32,25 +33,27 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
 <Layout
   title="Try Our Support Triage"
   description={`Try a live demo of Mielikkix's AI Support Triage — see it classify a question, answer when it's confident, and hand off to a human when it's not. ${fromPrice}`}
-  path="/demo/support-triage"
+  path="/demo/support-triage/"
   structuredDataNodes={[supportTriageNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
       &larr; Back to AI Agents
     </a>
   </div>
   <PageHero
     line1="Meet Mielikkix's"
     line2="Support Triage"
-    subheading={`A live demo — every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing. ${fromPrice}`}
-  />
+    subheading={`A live demo — every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing.`}
+  >
+    <FromPrice slot="extra" productId="support-triage" />
+  </PageHero>
 
   <section class="mx-auto max-w-lg px-6 py-16">
     <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
       <p role="note" class="rounded-t-3xl border-b border-slate-100 bg-slate-50 px-5 py-2 text-[11px] leading-snug text-slate-500">
         You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.
-        <a href="/privacy" class="underline">Privacy</a>
+        <a href="/privacy/" class="underline">Privacy</a>
       </p>
       <div id="transcript" class="flex flex-1 flex-col gap-1.5 overflow-y-auto p-5"></div>
 

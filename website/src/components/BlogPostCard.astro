@@ -8,11 +8,9 @@ interface Props {
   article: PublicArticle;
 }
 const { article } = Astro.props;
-const publishedDate = new Date(article.published_at).toLocaleDateString("en-US", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
+const dateOptions = { year: "numeric", month: "long", day: "numeric" } as const;
+const published = new Date(article.published_at);
+const publishedDate = { en: published.toLocaleDateString("en-US", dateOptions), no: published.toLocaleDateString("nb-NO", dateOptions) };
 ---
 
 <a
@@ -32,9 +30,14 @@ const publishedDate = new Date(article.published_at).toLocaleDateString("en-US",
     )
   }
   <div class="flex flex-1 flex-col p-6">
-    <p class="text-sm text-slate-400">{publishedDate}</p>
-    <h3 class="font-display mt-2 text-xl font-bold text-slate-900 group-hover:text-violet-600">{article.title}</h3>
-    {article.excerpt && <p class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{article.excerpt}</p>}
-    <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-600">Read more &rarr;</span>
+    <p class="text-sm text-slate-400">
+      <span class="i18n-en">{publishedDate.en}</span><span class="i18n-no" lang="nb">{publishedDate.no}</span>
+    </p>
+    {/* Articles are English-only; lang="en" so a screen reader on the Norwegian site reads them correctly. */}
+    <h3 lang="en" class="font-display mt-2 text-xl font-bold text-slate-900 group-hover:text-violet-600">{article.title}</h3>
+    {article.excerpt && <p lang="en" class="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{article.excerpt}</p>}
+    <span class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-600"
+      ><span class="i18n-en">Read more</span><span class="i18n-no" lang="nb">Les mer</span> &rarr;</span
+    >
   </div>
 </a>

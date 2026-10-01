@@ -57,7 +57,11 @@ def language_reminder(languages: Optional[List[str]]) -> str:
     codes = languages or ["en"]
     if len(codes) == 1:
         return f"(Reply in {LANGUAGE_NAMES.get(codes[0], codes[0])}.)"
-    return "(Reply in the same language as the question above.)"
+    # codes[0] is the language chat_service detected from THIS message, so name it:
+    # "the same language as the question" alone let the model follow the conversation
+    # history instead -- QA 2026-10-01 (B16): an English question in a conversation
+    # that started in Norwegian got a Norwegian reply.
+    return f"(Reply in {LANGUAGE_NAMES.get(codes[0], codes[0])}, the language of the question above.)"
 
 
 _BASE_SYSTEM_PROMPT = (

@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { reviewReputationNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
 
@@ -35,19 +36,21 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
 <Layout
   title="Try Our Review & Reputation Agent"
   description={`Try a live demo of Mielikkix's AI Review & Reputation agent — paste a review and see it analyzed, prioritized, and answered. ${fromPrice}`}
-  path="/demo/review-reputation"
+  path="/demo/review-reputation/"
   structuredDataNodes={[reviewReputationNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
       &larr; Back to AI Agents
     </a>
   </div>
   <PageHero
     line1="Meet Mielikkix's"
     line2="Review & Reputation Agent"
-    subheading={`Turn customer reviews into stronger relationships and a better reputation. ${fromPrice}`}
-  />
+    subheading={`Turn customer reviews into stronger relationships and a better reputation.`}
+  >
+    <FromPrice slot="extra" productId="review-reputation" />
+  </PageHero>
 
   <section class="mx-auto max-w-2xl px-6 py-16">
     <p class="mx-auto -mt-6 mb-10 max-w-xl text-center text-sm leading-relaxed text-slate-500">
@@ -86,10 +89,17 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
       </div>
 
       <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
-        <div class="flex items-center gap-2 text-xs text-slate-500">
+        <label class="flex items-center gap-2 text-xs text-slate-500">
           <span class="font-medium text-slate-600">Response tone:</span>
-          <span class="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">Professional</span>
-        </div>
+          <!-- Values must be in review_service.RESPONSE_TONES (the API rejects anything else). -->
+          <select id="toneSelect" class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-600 outline-none focus:border-violet-400">
+            <option value="professional" selected>Professional</option>
+            <option value="friendly">Friendly</option>
+            <option value="empathetic">Empathetic</option>
+            <option value="warm">Warm</option>
+            <option value="concise">Concise</option>
+          </select>
+        </label>
         <button
           id="analyzeBtn"
           type="button"
@@ -110,7 +120,7 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
         build a stronger reputation over time.
       </p>
       <a
-        href="/demo"
+        href="/demo/"
         class="mt-6 inline-block rounded-full bg-white px-7 py-3 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
       >
         Get Started

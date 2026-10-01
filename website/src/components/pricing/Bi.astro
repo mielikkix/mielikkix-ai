@@ -1,13 +1,20 @@
 ---
 // Renders one {en, no} text in both languages; global.css shows the one matching
 // <html lang>. Used for content that comes from src/data/pricing.ts rather than
-// the per-page i18n JSON.
-import type { Text } from "../../data/pricing";
+// the per-page i18n JSON. A "{nok:4.00}" token in the text renders as a live
+// <Price> (see priceTokens in pricing.ts), so amounts inside sentences follow the
+// currency switcher too -- QA 2026-10-01 (B5).
+import Price from "../Price.astro";
+import { splitPriceTokens, type Lang, type Text } from "../../data/pricing";
 
 interface Props {
   text: Text;
 }
 const { text } = Astro.props;
+const parts = (lang: Lang) => splitPriceTokens(text[lang], lang);
 ---
 
-<span class="i18n-en">{text.en}</span><span class="i18n-no" lang="nb">{text.no}</span>
+<span class="i18n-en">{parts("en").map((p) => (typeof p === "string" ? p : <Price nok={p.nok} lang="en" label={p.label} />))}</span><span
+  class="i18n-no"
+  lang="nb">{parts("no").map((p) => (typeof p === "string" ? p : <Price nok={p.nok} lang="no" label={p.label} />))}</span
+>

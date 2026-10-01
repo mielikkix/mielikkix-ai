@@ -48,6 +48,7 @@ class BusinessOut(BaseModel):
 class BusinessSettingsOut(BaseModel):
     tone: str
     welcome_message: str
+    welcome_messages: Optional[Dict[str, str]] = None
     fallback_message: str
     fallback_messages: Dict[str, str]
     business_hours: Optional[BusinessHours]
@@ -66,6 +67,9 @@ class BusinessSettingsOut(BaseModel):
 
 class PublicBusinessSettingsOut(BaseModel):
     welcome_message: str
+    # Per-language greetings, keyed by language code; the widget picks one by
+    # the host page's <html lang> (welcome_message is the primary-language one).
+    welcome_messages: Dict[str, str] = {}
     languages: List[str]
     primary_color: str
     # Linked from the widget's AI notice; null = only Mielikkix's own link shows.
@@ -80,6 +84,7 @@ class PublicBusinessSettingsOut(BaseModel):
 class BusinessSettingsUpdate(BaseModel):
     tone: Optional[str] = None
     welcome_message: Optional[str] = None
+    welcome_messages: Optional[Dict[str, str]] = None
     fallback_message: Optional[str] = None
     fallback_messages: Optional[Dict[str, str]] = None
     # Always sent whole (all seven days) by the Settings UI, same

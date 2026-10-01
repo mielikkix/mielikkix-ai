@@ -41,6 +41,7 @@ export interface CalendarStatus {
 export interface Settings {
   tone: string
   welcome_message: string
+  welcome_messages?: Record<string, string>
   fallback_message: string
   fallback_messages: Record<string, string>
   business_hours: BusinessHours | null

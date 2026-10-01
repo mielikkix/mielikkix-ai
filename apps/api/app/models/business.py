@@ -62,9 +62,11 @@ class BusinessSettings(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id"), nullable=False, unique=True)
     tone = Column(Text, default="friendly")
-    # Always shown as-is, in this one language, regardless of visitor -- shown before
-    # any message exists, so there's nothing to detect a visitor's language from yet.
+    # The primary-language greeting. Shown before the visitor has typed anything,
+    # so the widget picks the language from the host page's <html lang> instead.
     welcome_message = Column(Text, default="Hi! How can I help you today?")
+    # Per-language overrides for the greeting above, same shape as fallback_messages.
+    welcome_messages = Column(JSON, default=dict)
     fallback_message = Column(
         Text, default="I'm not sure about that. Would you like to speak with our team?"
     )

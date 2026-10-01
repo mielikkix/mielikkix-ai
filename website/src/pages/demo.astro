@@ -7,19 +7,24 @@ import en from "../assets/i18n/en/demo.json";
 // separate from the visible labels because the API maps these exact strings to
 // Mailchimp tags (apps/api/app/services/lead_service.py INTEREST_TAGS) -- a
 // label can be renamed (e.g. "Mielikkix Chat Widget") without breaking tagging.
-const interestValues = ["AI Chatbot", "AI Voice Agent", "Customer Support", "Review & Reputation", "Other"];
+//
+// productIds: the pricing.ts product each option stands for, so a CTA linking to
+// /demo?product=<id> preselects it (demo-form.js). QA 2026-10-01 (B11): Booking
+// Assistant, SEO Audit & Optimize and Custom AI Agents were missing from the list.
+const interestValues = ["AI Chatbot", "AI Voice Agent", "Booking Assistant", "Customer Support", "Review & Reputation", "SEO Audit", "Custom AI Agent", "Other"];
+const productIds = ["chat-widget", "voice-receptionist", "booking-assistant", "support-triage", "review-reputation", "seo-audit", "custom-agents", ""];
 ---
 
 <Layout
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
-  path="/demo"
+  path="/demo/"
   page="demo"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600" data-i18n="BACK_LINK">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600" data-i18n="BACK_LINK">
       &larr; {en.BACK_LINK}
     </a>
   </div>
@@ -43,7 +48,9 @@ const interestValues = ["AI Chatbot", "AI Voice Agent", "Customer Support", "Rev
       }
     </ul>
 
-    <form id="demo-form" class="space-y-5 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
+    <!-- method="post": with JavaScript off, a GET would put name/email/phone in the URL
+         (QA 2026-10-01, B3). demo-form.js sends the real request as JSON. -->
+    <form id="demo-form" method="post" class="space-y-5 rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
       <div class="grid gap-5 sm:grid-cols-2">
         <div>
           <label for="first-name" class="text-sm font-medium text-slate-700" data-i18n="FORM.FIRST_NAME_LABEL">{en.FORM.FIRST_NAME_LABEL}</label>
@@ -115,7 +122,7 @@ const interestValues = ["AI Chatbot", "AI Voice Agent", "Customer Support", "Rev
           >
             {
               en.FORM.INTEREST_OPTIONS.map((option, i) => (
-                <option value={interestValues[i] ?? option} data-i18n={`FORM.INTEREST_OPTIONS.${i}`}>{option}</option>
+                <option value={interestValues[i] ?? option} data-product={productIds[i] || undefined} data-i18n={`FORM.INTEREST_OPTIONS.${i}`}>{option}</option>
               ))
             }
           </select>
@@ -154,12 +161,18 @@ const interestValues = ["AI Chatbot", "AI Voice Agent", "Customer Support", "Rev
         ></textarea>
       </div>
 
+      <!-- Honeypot: hidden from people and screen readers; a bot that fills it is
+           silently discarded (demo-form.js and the API's create_lead). -->
+      <div class="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
+        <label for="fax">Fax</label>
+        <input type="text" id="fax" name="fax" tabindex="-1" autocomplete="off" />
+      </div>
       <label class="flex items-start gap-2.5 text-sm text-slate-600">
         <input type="checkbox" id="marketing-consent" name="marketing_consent" class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-violet-600 focus:ring-indigo-100" />
         <span data-i18n="FORM.CONSENT_LABEL">{en.FORM.CONSENT_LABEL}</span>
       </label>
       <p class="-mt-3 text-xs text-slate-400">
-        <a href="/privacy" class="underline hover:text-slate-600" data-i18n="FORM.PRIVACY_LINK">{en.FORM.PRIVACY_LINK}</a>
+        <a href="/privacy/" class="underline hover:text-slate-600" data-i18n="FORM.PRIVACY_LINK">{en.FORM.PRIVACY_LINK}</a>
       </p>
 
       <button

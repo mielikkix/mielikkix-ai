@@ -3,7 +3,11 @@
 // real NOK price (crawlable, correct with JS off); currencyStore.ts finds this node via
 // [data-price-nok] and rewrites it when the visitor picks EUR/USD, and restores this text
 // when they switch back to NOK.
-import { formatNok, type Lang } from "../data/pricing";
+//
+// `vat`: shows nok + VAT, but converted as (displayed ex-VAT amount) x 1.25 rather than
+// converting the incl.-VAT NOK amount on its own -- QA 2026-10-01 (B8): $61 ex VAT showed as
+// $77 incl. VAT (61 x 1.25 = 76.25), because each figure was rounded separately.
+import { formatNok, withVat, PRICING_META, type Lang } from "../data/pricing";
 
 interface Props {
   /** The price in NOK, as authored in src/data/pricing.ts. */
@@ -11,8 +15,12 @@ interface Props {
   lang: Lang;
   /** Server-rendered NOK text when it differs from formatNok (e.g. "4,00 kr"). */
   label?: string;
+  /** Show the price including VAT (nok stays the ex-VAT amount). */
+  vat?: boolean;
 }
-const { nok, lang, label } = Astro.props;
+const { nok, lang, label, vat = false } = Astro.props;
 ---
 
-<span data-price-nok={nok} data-lang={lang}>{label ?? formatNok(nok, lang)}</span>
+<span data-price-nok={nok} data-lang={lang} data-vat-rate={vat ? PRICING_META.vatRate : undefined}
+  >{label ?? formatNok(vat ? withVat(nok) : nok, lang)}</span
+>

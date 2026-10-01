@@ -12,11 +12,13 @@ interface Message {
 
 interface Props {
   businessId: string
-  welcomeMessage?: string
+  /** The greeting in a given language (see Widget.tsx); re-rendered as `lang` changes. */
+  welcomeFor: (lang: string) => string
   primaryColor?: string
   apiBaseUrl?: string
-  // Starting point only (the business's primary language) -- once the visitor
-  // sends a message, `lang` below tracks whatever language the backend actually
+  // Starting point only (the host page's language, else the business's primary
+  // one) and followed until the conversation starts -- once the visitor sends a
+  // message, `lang` below tracks whatever language the backend actually
   // detected from that message, so the lead form and other chrome stay in sync
   // with the conversation instead of a fixed guess made before anyone typed.
   initialLang?: string
@@ -56,7 +58,7 @@ const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 
 export function ChatWindow({
   businessId,
-  welcomeMessage = 'Hi! How can I help you today?',
+  welcomeFor,
   primaryColor = '#ff6b00',
   apiBaseUrl = DEFAULT_API_BASE_URL,
   initialLang,
@@ -69,10 +71,12 @@ export function ChatWindow({
     const s = genSession(); sessionStorage.setItem(SESSION_KEY, s); return s
   })())
 
-  const [messages, setMessages] = useState<Message[]>([
-    { sender: 'ai', content: welcomeMessage },
-    ...(stored?.messages ?? []),
-  ])
+  // The conversation after the greeting -- the greeting itself is derived from
+  // `lang` at render time, so it follows a site language switch.
+  const [messages, setMessages] = useState<Message[]>(stored?.messages ?? [])
+  useEffect(() => {
+    if (messages.length === 0 && initialLang) setLang(initialLang)
+  }, [initialLang, messages.length])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
@@ -88,9 +92,9 @@ export function ChatWindow({
 
   // Everything after the welcome message (which always comes fresh from settings).
   useEffect(() => {
-    if (messages.length < 2) return
+    if (messages.length < 1) return
     try {
-      const history: StoredHistory = { businessId, lang, messages: messages.slice(1).slice(-MAX_STORED_MESSAGES) }
+      const history: StoredHistory = { businessId, lang, messages: messages.slice(-MAX_STORED_MESSAGES) }
       sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history))
     } catch {
       // Storage full or blocked: the chat still works, it just won't carry over.
@@ -169,7 +173,7 @@ export function ChatWindow({
         </a>
       </p>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {messages.map((msg, i) => (
+        {[{ sender: 'ai' as const, content: welcomeFor(lang) }, ...messages].map((msg, i) => (
           <div key={i} className={`flex ${msg.sender === 'visitor' ? 'justify-end' : 'justify-start'}`}>
             <div
               className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${

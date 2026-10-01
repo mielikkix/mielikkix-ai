@@ -6,8 +6,19 @@ interface Props {
   subheading?: string;
   headingKey?: string;
   subheadingKey?: string;
+  /**
+   * Where the second button points. A pricing page passes the OTHER pricing page, so it
+   * never links to itself (QA 2026-10-01, B10: "See Pricing" on /pricing).
+   */
+  secondary?: "pricing" | "agent-pricing" | "widget-pricing";
 }
-const { heading, subheading, headingKey, subheadingKey } = Astro.props;
+const { heading, subheading, headingKey, subheadingKey, secondary = "pricing" } = Astro.props;
+const SECONDARY = {
+  pricing: { href: "/pricing/", key: "SEE_PRICING" },
+  "agent-pricing": { href: "/agent-pricing/", key: "SEE_AGENT_PRICING" },
+  "widget-pricing": { href: "/pricing/", key: "SEE_WIDGET_PRICING" },
+} as const;
+const second = SECONDARY[secondary];
 ---
 
 <section class="mx-auto max-w-[1440px] px-6 py-16">
@@ -18,18 +29,18 @@ const { heading, subheading, headingKey, subheadingKey } = Astro.props;
     )}
     <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
       <a
-        href="/demo"
+        href="/demo/"
         data-i18n="BUTTONS.BOOK_DEMO"
         class="rounded-full bg-white px-7 py-3 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
       >
         {en.BUTTONS.BOOK_DEMO}
       </a>
       <a
-        href="/pricing"
-        data-i18n="BUTTONS.SEE_PRICING"
+        href={second.href}
+        data-i18n={`BUTTONS.${second.key}`}
         class="rounded-full border border-white/60 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
       >
-        {en.BUTTONS.SEE_PRICING}
+        {en.BUTTONS[second.key]}
       </a>
     </div>
   </div>

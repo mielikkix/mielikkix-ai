@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { voiceReceptionistNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
 
@@ -19,19 +20,21 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("voice-recep
 <Layout
   title="Talk to Our Voice Receptionist"
   description={`Try a live demo of Mielikkix's AI Voice Receptionist — talk to it right in your browser. ${fromPrice}`}
-  path="/demo/voice-receptionist"
+  path="/demo/voice-receptionist/"
   structuredDataNodes={[voiceReceptionistNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
       &larr; Back to AI Agents
     </a>
   </div>
   <PageHero
     line1="Meet Mielikkix's"
     line2="Voice Receptionist"
-    subheading={`A live demo — talk to it right now, using your own microphone. ${fromPrice}`}
-  />
+    subheading={`A live demo — talk to it right now, using your own microphone.`}
+  >
+    <FromPrice slot="extra" productId="voice-receptionist" />
+  </PageHero>
 
   <section class="mx-auto max-w-lg px-6 py-16">
     <div class="rounded-3xl border border-slate-100 bg-white p-9 text-center shadow-sm">
@@ -90,7 +93,7 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("voice-recep
 
     <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
       Real voice in, real voice out via your browser's own speech recognition/synthesis &mdash;
-      not Twilio's voice or a real phone call (see our <a href="/features" class="underline">features page</a>
+      not Twilio's voice or a real phone call (see the <a href="#voice-receptionist" class="underline">plans and features below</a>
       for how the real product works). Proves the conversation and RAG-grounding logic; a real
       call will sound different. Speech-to-text briefly sends your audio to your browser's own
       recognition service, so this needs an internet connection. Speaks English and Norwegian

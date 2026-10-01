@@ -41,6 +41,9 @@ INTEREST_TAGS = {
     "AI Voice Agent": "AGENT_VOICE",
     "Customer Support": "AGENT_SUPPORT",
     "Review & Reputation": "AGENT_REPUTATION",
+    "Booking Assistant": "AGENT_BOOKING",
+    "SEO Audit": "AGENT_SEO",
+    "Custom AI Agent": "AGENT_CUSTOM",
 }
 INDUSTRY_TAGS = {
     "Restaurant": "INDUSTRY_RESTAURANT",

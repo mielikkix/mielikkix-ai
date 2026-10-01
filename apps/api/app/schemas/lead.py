@@ -41,6 +41,10 @@ class LeadCreate(BaseModel):
     interest: Optional[str] = Field(default=None, max_length=100)
     source: Optional[str] = Field(default=None, max_length=50)
     marketing_consent: bool = False
+    # Honeypot: a field the marketing site's demo form hides from people
+    # (public/demo-form.js). Anything in it means a bot filled the form --
+    # see create_lead in api/leads.py. QA 2026-10-01 (B3).
+    fax: Optional[str] = Field(default=None, max_length=200)
 
     @field_validator("phone")
     @classmethod

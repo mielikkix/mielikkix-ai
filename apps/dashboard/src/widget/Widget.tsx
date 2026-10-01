@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { MessageCircle, X } from 'lucide-react'
 import { ChatWindow, MIELIKKIX_PRIVACY_URL } from './ChatWindow'
 import { ConsentGate } from './ConsentGate'
-import { widgetStrings } from './i18n'
+import { pageLanguage, widgetStrings } from './i18n'
 
 interface Props {
   businessId: string
@@ -41,11 +41,23 @@ export function Widget({
   // so a business that requires consent never flashes an ungated chat.
   const [requireConsent, setRequireConsent] = useState<boolean | null>(null)
   const [agreed, setAgreed] = useState(() => readConsent(businessId))
-  // The business's first configured language -- not the visitor's browser locale,
-  // which has no relationship to what a visitor is about to type. Once the visitor
-  // sends a message, ChatWindow takes over and tracks the conversation's actual
-  // detected language itself (see its `lang` state, driven by each reply).
-  const [primaryLang, setPrimaryLang] = useState<string>('en')
+  // Before the visitor types, the greeting and chrome follow the HOST PAGE's own
+  // language (<html lang>, kept live below so a site-side language switch is
+  // picked up) when the business supports it, else the business's first
+  // configured language. Not the browser locale, which has no relationship to
+  // the site the visitor is reading. Once the visitor sends a message,
+  // ChatWindow tracks the conversation's detected language instead (its `lang`
+  // state, driven by each reply). QA 2026-10-01 (B16): mielikkix.ai in Norsk
+  // greeted visitors in English.
+  const [languages, setLanguages] = useState<string[]>(['en'])
+  const [welcomeMessages, setWelcomeMessages] = useState<Record<string, string>>({})
+  const [pageLang, setPageLang] = useState<string | null>(() => pageLanguage())
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setPageLang(pageLanguage()))
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -53,9 +65,10 @@ export function Widget({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled) return
-        const languages: string[] = data?.languages ?? []
-        setPrimaryLang(languages[0] ?? 'en')
+        const langs: string[] = data?.languages ?? []
+        if (langs.length) setLanguages(langs)
         if (data?.welcome_message) setFetchedWelcomeMessage(data.welcome_message)
+        if (data?.welcome_messages && typeof data.welcome_messages === 'object') setWelcomeMessages(data.welcome_messages)
         if (data?.primary_color) setFetchedPrimaryColor(data.primary_color)
         // Only http(s) -- the API validates this too, but never trust it into an href.
         if (typeof data?.privacy_policy_url === 'string' && /^https?:\/\//i.test(data.privacy_policy_url)) {
@@ -73,8 +86,15 @@ export function Widget({
     }
   }, [apiBaseUrl, businessId])
 
-  const resolvedWelcomeMessage = fetchedWelcomeMessage ?? welcomeMessage ?? DEFAULT_WELCOME_MESSAGE
+  const primaryLang = pageLang && languages.includes(pageLang) ? pageLang : languages[0]
   const strings = widgetStrings(primaryLang)
+  const welcomeFor = (lang: string): string => {
+    if (welcomeMessages[lang]) return welcomeMessages[lang]
+    const base = fetchedWelcomeMessage ?? welcomeMessage
+    // The API's untouched English default greets in the page's language instead.
+    if (!base || base === DEFAULT_WELCOME_MESSAGE) return widgetStrings(lang).defaultWelcome
+    return base
+  }
   // The dashboard-saved color (fetched above) wins over the script tag's data-color, so
   // picking a color in Settings applies to the live widget with no embed-code edits. The
   // data-color attribute still works as a manual override if the fetch fails or is skipped.
@@ -125,7 +145,7 @@ export function Widget({
               onCancel={() => setOpen(false)}
             />
           ) : (
-            <ChatWindow businessId={businessId} primaryColor={resolvedPrimaryColor} welcomeMessage={resolvedWelcomeMessage} apiBaseUrl={apiBaseUrl} initialLang={primaryLang} privacyPolicyUrl={privacyPolicyUrl} />
+            <ChatWindow businessId={businessId} primaryColor={resolvedPrimaryColor} welcomeFor={welcomeFor} apiBaseUrl={apiBaseUrl} initialLang={primaryLang} privacyPolicyUrl={privacyPolicyUrl} />
           )}
         </div>
       )}

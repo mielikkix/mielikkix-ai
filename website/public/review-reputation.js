@@ -9,11 +9,23 @@ const reviewError = document.getElementById("reviewError");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const analyzeStatus = document.getElementById("analyzeStatus");
 const resultWrap = document.getElementById("resultWrap");
+const toneSelect = document.getElementById("toneSelect");
+
+// QA 2026-10-01 (B17): a previous analysis stayed on screen under a new
+// "Please paste a review" error, as if it belonged to the (now empty) box.
+function clearResult() {
+  resultWrap.innerHTML = "";
+  resultWrap.classList.add("hidden");
+}
+reviewInput.addEventListener("input", () => {
+  if (!reviewInput.value.trim()) clearResult();
+});
 
 document.querySelectorAll(".example-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     reviewInput.value = btn.dataset.text;
     reviewError.classList.add("hidden");
+    clearResult();
     reviewInput.focus();
   });
 });
@@ -249,6 +261,7 @@ function stopAnalyzingStatus() {
 analyzeBtn.addEventListener("click", async () => {
   const text = reviewInput.value.trim();
   if (!text) {
+    clearResult();
     reviewError.classList.remove("hidden");
     reviewInput.focus();
     return;
@@ -257,14 +270,14 @@ analyzeBtn.addEventListener("click", async () => {
 
   analyzeBtn.disabled = true;
   analyzeBtn.textContent = "Analyzing...";
-  resultWrap.classList.add("hidden");
+  clearResult();
   startAnalyzingStatus();
 
   try {
     const resp = await fetch(`${apiUrl}/api/agents/reviews/demo`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ review_text: text, tone: "professional" }),
+      body: JSON.stringify({ review_text: text, tone: toneSelect?.value || "professional" }),
     });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data.detail || `Request failed (${resp.status})`);

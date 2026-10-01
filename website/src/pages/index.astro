@@ -4,7 +4,7 @@ import BentoCard from "../components/BentoCard.astro";
 import CTASection from "../components/CTASection.astro";
 import Bi from "../components/pricing/Bi.astro";
 import Price from "../components/Price.astro";
-import { TIER_NAMES, formatNumber, getProduct, priceParts } from "../data/pricing";
+import { TIER_NAMES, formatNumber, getProduct, planCta, priceParts } from "../data/pricing";
 import BlogPostCard from "../components/BlogPostCard.astro";
 import { fetchPublishedArticles } from "../lib/articles";
 import dashboardVideo from "../assets/mielikkix-dashboard-analysis.mp4";
@@ -80,7 +80,7 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
 
         <div class="mt-8">
           <a
-            href="/demo"
+            href="/demo/"
             data-i18n="BUTTONS.BOOK_DEMO"
             class="brand-gradient inline-block rounded-full px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 transition-transform hover:scale-105"
           >
@@ -200,7 +200,7 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
         }
       </div>
       <div class="mt-10 text-center">
-        <a href="/agents" class="text-sm font-semibold text-violet-600 hover:text-violet-700" data-i18n="AUDIENCE_SEGMENTS.EXPLORE_AGENTS_LINK">
+        <a href="/agents/" class="text-sm font-semibold text-violet-600 hover:text-violet-700" data-i18n="AUDIENCE_SEGMENTS.EXPLORE_AGENTS_LINK">
           {en.AUDIENCE_SEGMENTS.EXPLORE_AGENTS_LINK}
         </a>
       </div>
@@ -224,8 +224,9 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
               <span class="h-2 w-2 rounded-full bg-slate-300"></span>
               <span class="h-2 w-2 rounded-full bg-slate-300"></span>
             </div>
-            <div class="rounded-lg bg-slate-900 px-3 py-2 font-mono text-[11px] leading-relaxed text-blue-300">
-              &lt;script src="mielikkix.js"&gt;<br />&lt;/script&gt;
+            <div class="rounded-lg bg-slate-900 px-3 py-2 font-mono text-[11px] leading-relaxed text-blue-300 break-all">
+              <!-- The real embed code (DashboardPage.tsx hands out the same one); keep identical to the other page. -->
+              &lt;script src="https://app.mielikkix.ai/widget.js"<br />&nbsp;&nbsp;data-business="YOUR-BUSINESS-ID"&gt;&lt;/script&gt;
             </div>
           </div>
         </div>
@@ -341,7 +342,7 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
       </BentoCard>
     </div>
     <div class="mt-10 text-center">
-      <a href="/features" class="text-sm font-semibold text-violet-600 hover:text-violet-700" data-i18n="FEATURES_SECTION.SEE_ALL_LINK">
+      <a href="/features/" class="text-sm font-semibold text-violet-600 hover:text-violet-700" data-i18n="FEATURES_SECTION.SEE_ALL_LINK">
         {en.FEATURES_SECTION.SEE_ALL_LINK}
       </a>
     </div>
@@ -446,19 +447,13 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
               <span class="i18n-no" lang="nb">{formatNumber(plan.usage ?? 0, "no")} samtaler/mnd</span>
             </p>
             <a
-              href="/pricing#chat-widget"
+              href={planCta("chat-widget", plan).href}
               class:list={[
                 "mt-4 inline-block w-full rounded-full px-4 py-2.5 text-sm font-semibold transition-transform hover:scale-105",
                 plan.recommended ? "bg-white text-violet-700" : "bg-indigo-50 text-violet-700",
               ]}
             >
-              <Bi
-                text={
-                  plan.priceNokMonthly === null
-                    ? { en: "Start free", no: "Start gratis" }
-                    : { en: `Choose ${TIER_NAMES[plan.id].en}`, no: `Velg ${TIER_NAMES[plan.id].no}` }
-                }
-              />
+              <Bi text={planCta("chat-widget", plan).label} />
             </a>
             {plan.priceNokMonthly !== null && (
               <p
@@ -474,7 +469,7 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
     </div>
     <p class="mt-8 text-center text-sm text-slate-500">
       <span data-i18n="PRICING_TEASER.FOOTER_TEXT_BEFORE_LINK">{en.PRICING_TEASER.FOOTER_TEXT_BEFORE_LINK}</span>{" "}
-      <a href="/pricing" class="font-semibold text-violet-600 hover:text-violet-700" data-i18n="PRICING_TEASER.FOOTER_TEXT_LINK">
+      <a href="/pricing/" class="font-semibold text-violet-600 hover:text-violet-700" data-i18n="PRICING_TEASER.FOOTER_TEXT_LINK">
         {en.PRICING_TEASER.FOOTER_TEXT_LINK}
       </a><span data-i18n="PRICING_TEASER.FOOTER_TEXT_AFTER_LINK">{en.PRICING_TEASER.FOOTER_TEXT_AFTER_LINK}</span>
     </p>
@@ -484,8 +479,16 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
     recentArticles.length > 0 && (
       <section class="mx-auto max-w-[1440px] px-6 py-20">
         <div class="mx-auto max-w-2xl text-center">
-          <h2 class="font-display text-3xl font-bold text-slate-900 sm:text-4xl">From the blog</h2>
-          <p class="mt-4 text-slate-500">Guides and resources on AI automation for businesses of every size.</p>
+          {/* QA 2026-10-01 (B18): this block stayed English on the Norwegian site. The articles
+              themselves are English-only (CMS), so the Norwegian intro says so. */}
+          <h2 class="font-display text-3xl font-bold text-slate-900 sm:text-4xl">
+            <span class="i18n-en">From the blog</span><span class="i18n-no" lang="nb">Fra bloggen</span>
+          </h2>
+          <p class="mt-4 text-slate-500">
+            <span class="i18n-en">Guides and resources on AI automation for businesses of every size.</span><span class="i18n-no" lang="nb"
+              >Veiledninger og ressurser om AI-automatisering for bedrifter i alle størrelser (artiklene er på engelsk).</span
+            >
+          </p>
         </div>
         <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {recentArticles.map((article) => (
@@ -493,8 +496,8 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
           ))}
         </div>
         <p class="mt-10 text-center">
-          <a href="/blog" class="font-semibold text-violet-600 hover:text-violet-700">
-            View all blogs &rarr;
+          <a href="/blog/" class="font-semibold text-violet-600 hover:text-violet-700">
+            <span class="i18n-en">View all blogs</span><span class="i18n-no" lang="nb">Se alle blogginnlegg</span> &rarr;
           </a>
         </p>
       </section>

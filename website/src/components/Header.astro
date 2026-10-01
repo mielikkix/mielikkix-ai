@@ -7,9 +7,9 @@ import CurrencySwitcher from "./CurrencySwitcher.astro";
 import en from "../assets/i18n/en/common.json";
 
 const navLinks = [
-  { href: "/agents", label: en.NAV.AGENTS, key: "NAV.AGENTS" },
-  { href: "/features", label: en.NAV.FEATURES, key: "NAV.FEATURES" },
-  { href: "/blog", label: en.NAV.BLOG, key: "NAV.BLOG" },
+  { href: "/agents/", label: en.NAV.AGENTS, key: "NAV.AGENTS" },
+  { href: "/features/", label: en.NAV.FEATURES, key: "NAV.FEATURES" },
+  { href: "/blog/", label: en.NAV.BLOG, key: "NAV.BLOG" },
 ];
 
 // Pricing is two separate products now (the Chat Widget's own plan tiers,
@@ -18,8 +18,8 @@ const navLinks = [
 // decision) -- a hover/click dropdown on desktop instead of one flat link,
 // per business direction 2026-09-19.
 const pricingLinks = [
-  { href: "/pricing", label: en.NAV.PRICING_CHATBOT, key: "NAV.PRICING_CHATBOT" },
-  { href: "/agent-pricing", label: en.NAV.PRICING_AGENTS, key: "NAV.PRICING_AGENTS" },
+  { href: "/pricing/", label: en.NAV.PRICING_CHATBOT, key: "NAV.PRICING_CHATBOT" },
+  { href: "/agent-pricing/", label: en.NAV.PRICING_AGENTS, key: "NAV.PRICING_AGENTS" },
 ];
 // Production (static-host directory serving) resolves "/features" to
 // "/features/", while the Astro dev server keeps it bare -- strip a
@@ -96,7 +96,7 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
       <LanguageSwitcher />
       <CurrencySwitcher />
       <a
-        href="/demo"
+        href="/demo/"
         data-i18n="BUTTONS.BOOK_DEMO"
         class="brand-gradient rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-105"
       >
@@ -141,7 +141,7 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
       <CurrencySwitcher />
     </div>
     <a
-      href="/demo"
+      href="/demo/"
       data-i18n="BUTTONS.BOOK_DEMO"
       class="brand-gradient mt-2 rounded-full px-5 py-2.5 text-center text-sm font-semibold text-white"
     >

@@ -15,7 +15,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
 <Layout
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
-  path="/features"
+  path="/features/"
   structuredDataNodes={[chatWidgetNode]}
   page="features"
   titleKey="SEO.TITLE"
@@ -64,7 +64,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
       <div class="relative flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
         <p class="text-sm font-medium text-white" data-i18n="AGENTS_CALLOUT.TEXT">{en.AGENTS_CALLOUT.TEXT}</p>
         <a
-          href="/agents"
+          href="/agents/"
           data-i18n="AGENTS_CALLOUT.CTA"
           class="shrink-0 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
         >
@@ -112,6 +112,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
                 ))
               }
             </div>
+            <p class="mt-2 text-center text-[11px] italic text-slate-400" data-i18n="FEATURES.EXAMPLE_NOTE">{f.EXAMPLE_NOTE}</p>
             <div class="mt-6 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-700" data-i18n="FEATURES.AI_CHAT_ASSISTANT.CALLOUT">
               {f.AI_CHAT_ASSISTANT.CALLOUT}
             </div>
@@ -237,6 +238,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
             ))
           }
         </div>
+        <p class="mt-2 text-center text-[11px] italic text-slate-400" data-i18n="FEATURES.EXAMPLE_NOTE">{f.EXAMPLE_NOTE}</p>
       </FeatureBentoCard>
 
       <!-- Instant Notifications -->
@@ -322,7 +324,6 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
           }
         </ul>
         <div class="mt-6 flex flex-wrap gap-2 rounded-2xl border border-slate-300 bg-slate-100 p-4">
-          <span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 shadow-sm">₹ INR</span>
           <span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 shadow-sm">$ USD</span>
           <span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 shadow-sm">€ EUR</span>
           <span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-indigo-700 shadow-sm">kr NOK</span>
@@ -387,6 +388,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
           </p>
           <p class="text-xs text-slate-400" data-i18n="FEATURES.CUSTOMER_TRUST.REVIEWS_LABEL">{f.CUSTOMER_TRUST.REVIEWS_LABEL}</p>
         </div>
+        <p class="mt-2 text-center text-[11px] italic text-slate-400" data-i18n="FEATURES.EXAMPLE_NOTE">{f.EXAMPLE_NOTE}</p>
       </FeatureBentoCard>
 
       <!-- Security -->
@@ -443,8 +445,9 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
               <span class="h-2.5 w-2.5 rounded-full bg-slate-300"></span>
               <span class="h-2.5 w-2.5 rounded-full bg-slate-300"></span>
             </div>
-            <div class="rounded-lg bg-slate-900 px-4 py-3 font-mono text-xs leading-relaxed text-blue-300 sm:text-sm">
-              &lt;script src="https://cdn.mielikkix.ai/mielikkix.js"&gt;<br />&lt;/script&gt;
+            <div class="rounded-lg bg-slate-900 px-4 py-3 font-mono text-xs leading-relaxed text-blue-300 break-all sm:text-sm">
+              <!-- The real embed code (DashboardPage.tsx hands out the same one); keep identical to the other page. -->
+              &lt;script src="https://app.mielikkix.ai/widget.js"<br />&nbsp;&nbsp;data-business="YOUR-BUSINESS-ID"&gt;&lt;/script&gt;
             </div>
           </div>
         </div>

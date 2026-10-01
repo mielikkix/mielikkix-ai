@@ -10,6 +10,8 @@ interface Props {
   languageLabel: (code: string) => string
   fallbackMessages: Record<string, string>
   setFallbackMessageFor: (code: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  welcomeMessages: Record<string, string>
+  setWelcomeMessageFor: (code: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   personalityMut: UseMutationResult<unknown, unknown, void>
 }
 
@@ -20,6 +22,8 @@ export function PersonalitySection({
   languageLabel,
   fallbackMessages,
   setFallbackMessageFor,
+  welcomeMessages,
+  setWelcomeMessageFor,
   personalityMut,
 }: Props) {
   return (
@@ -40,7 +44,9 @@ export function PersonalitySection({
           </select>
         </div>
         <div>
-          <label className="block text-base font-medium text-slate-700 mb-1">Welcome message</label>
+          <label className="block text-base font-medium text-slate-700 mb-1">
+            Welcome message {languages.length > 1 && `(${languageLabel(languages[0])})`}
+          </label>
           <textarea
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base"
             rows={2}
@@ -48,10 +54,29 @@ export function PersonalitySection({
             onChange={set('welcome_message')}
           />
           <p className="text-sm text-slate-500 mt-1">
-            Shown to every visitor as the opening greeting, before they've typed anything for the bot to
-            go on — so it's always in this one language, regardless of which languages you enable below.
+            The opening greeting. Before the visitor has typed anything, the widget picks the language
+            from your website's own language setting (its <code>&lt;html lang&gt;</code>)
+            {languages.length > 1 && <>, and uses this {languageLabel(languages[0])} version when there's no match</>}.
           </p>
         </div>
+        {languages.slice(1).map((code) => (
+          <div key={`welcome-${code}`}>
+            <label className="block text-base font-medium text-slate-700 mb-1">
+              Welcome message ({languageLabel(code)})
+            </label>
+            <textarea
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base"
+              rows={2}
+              placeholder={form.welcome_message || ''}
+              value={welcomeMessages[code] || ''}
+              onChange={setWelcomeMessageFor(code)}
+            />
+            <p className="text-sm text-slate-500 mt-1">
+              Shown when your website is in {languageLabel(code)}. Auto-filled with a translation — edit it
+              anytime, or leave blank to use the {languageLabel(languages[0])} greeting above.
+            </p>
+          </div>
+        ))}
         <div>
           <label className="block text-base font-medium text-slate-700 mb-1">
             Fallback message {languages.length > 1 && `(${languageLabel(languages[0])})`}

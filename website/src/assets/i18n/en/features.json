@@ -18,6 +18,7 @@
     "Ready for Global Businesses"
   ],
   "FEATURES": {
+    "EXAMPLE_NOTE": "Illustrative example, not real customer results.",
     "AI_CHAT_ASSISTANT": {
       "TITLE": "AI Chat Assistant",
       "DESCRIPTION": "Intelligent conversations that understand your business, powered by your own content.",
@@ -165,7 +166,6 @@
       "TITLE": "Multi-Currency Ready",
       "DESCRIPTION": "Perfect for businesses serving customers worldwide.",
       "ITEMS": [
-        "Indian Rupee",
         "US Dollar",
         "Euro",
         "Norwegian Krone"

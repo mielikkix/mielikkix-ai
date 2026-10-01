@@ -18,6 +18,7 @@
     "Klar for globale bedrifter"
   ],
   "FEATURES": {
+    "EXAMPLE_NOTE": "Illustrasjon, ikke faktiske kunderesultater.",
     "AI_CHAT_ASSISTANT": {
       "TITLE": "AI-chatassistent",
       "DESCRIPTION": "Intelligente samtaler som forstår bedriften din, drevet av ditt eget innhold.",
@@ -165,7 +166,6 @@
       "TITLE": "Klar for flere valutaer",
       "DESCRIPTION": "Perfekt for bedrifter som betjener kunder over hele verden.",
       "ITEMS": [
-        "Indiske rupier",
         "Amerikanske dollar",
         "Euro",
         "Norske kroner"

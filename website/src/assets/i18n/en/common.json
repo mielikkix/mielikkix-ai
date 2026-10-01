@@ -9,7 +9,9 @@
   },
   "BUTTONS": {
     "BOOK_DEMO": "Book a Free Demo",
-    "SEE_PRICING": "See Pricing"
+    "SEE_PRICING": "See Pricing",
+    "SEE_AGENT_PRICING": "See AI Agent Pricing",
+    "SEE_WIDGET_PRICING": "See Chat Widget Pricing"
   },
   "LANGUAGE": {
     "SWITCH_LABEL": "Language",

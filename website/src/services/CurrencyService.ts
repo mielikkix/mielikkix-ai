@@ -108,6 +108,13 @@ export function convertFromNok(amountNok: number, rate: number | null): number |
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
+/** The amount as formatCurrency below actually shows it (same precision rules), so figures derived from a shown price add up. */
+export function roundForDisplay(amount: number): number {
+  const abs = Math.abs(amount);
+  if (abs < 1) return Number(amount.toPrecision(2));
+  return abs < 10 ? Math.round(amount * 100) / 100 : Math.round(amount);
+}
+
 /**
  * Locale follows the page language (the text around the price), symbol follows the currency:
  * "€42" on English pages, "42 €" on Norwegian ones. Amounts under 10 (per-minute overage) keep

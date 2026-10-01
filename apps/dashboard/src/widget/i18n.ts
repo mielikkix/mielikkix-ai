@@ -4,6 +4,9 @@
 // real coverage; anything missing here falls back to English.
 
 export interface WidgetStrings {
+  // Greeting used when the business never set its own (public-settings then
+  // returns the English API default, which shouldn't greet a Norwegian page).
+  defaultWelcome: string
   leadFormIntro: string
   namePlaceholder: string
   emailPlaceholder: string
@@ -46,6 +49,7 @@ export interface WidgetStrings {
 }
 
 const EN: WidgetStrings = {
+  defaultWelcome: 'Hi! How can I help you today?',
   leadFormIntro: "Leave your contact details and we'll get back to you:",
   namePlaceholder: 'Your name *',
   emailPlaceholder: 'Email',
@@ -92,6 +96,7 @@ const EN: WidgetStrings = {
 const WIDGET_STRINGS: Record<string, WidgetStrings> = {
   en: EN,
   no: {
+    defaultWelcome: 'Hei! Hvordan kan jeg hjelpe deg i dag?',
     leadFormIntro: 'Legg igjen kontaktinformasjonen din, så tar vi kontakt:',
     namePlaceholder: 'Navnet ditt *',
     emailPlaceholder: 'E-post',
@@ -138,4 +143,12 @@ const WIDGET_STRINGS: Record<string, WidgetStrings> = {
 
 export function widgetStrings(lang?: string | null): WidgetStrings {
   return (lang && WIDGET_STRINGS[lang]) || EN
+}
+
+/** The host page's language as a widget language code ("nb-NO" / "nn" -> "no"), or null. */
+export function pageLanguage(): string | null {
+  const raw = (document.documentElement.getAttribute('lang') || '').trim().toLowerCase()
+  if (!raw) return null
+  const base = raw.split(/[-_]/)[0]
+  return base === 'nb' || base === 'nn' ? 'no' : base
 }

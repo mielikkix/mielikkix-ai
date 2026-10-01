@@ -5,13 +5,17 @@
 // localStorage directly.
 //
 // The currency follows the selected language by default (see SUPPORTED_LANGUAGES in
-// translationService.ts); CurrencySwitcher overrides it, and the last choice is remembered.
+// translationService.ts) until the visitor picks one in CurrencySwitcher; from then on that
+// choice is remembered and a language switch no longer touches it (QA 2026-10-01, B15:
+// choosing USD, then Norsk, silently switched prices back to NOK).
 
 import {
   setCurrency as persistCurrency,
+  getStoredCurrency,
   getExchangeRate,
   convertFromNok,
   formatCurrency,
+  roundForDisplay,
 } from "../services/CurrencyService";
 import { BASE_CURRENCY, type CurrencyCode } from "../config/currency";
 
@@ -48,7 +52,10 @@ function applyToDom(): void {
     // The server-rendered NOK text is the source of truth; keep it to restore when switching back.
     if (el.dataset.nokText === undefined) el.dataset.nokText = el.textContent ?? "";
     const nok = Number(el.dataset.priceNok);
-    const converted = converting && Number.isFinite(nok) ? convertFromNok(nok, rate) : null;
+    let converted = converting && Number.isFinite(nok) ? convertFromNok(nok, rate) : null;
+    // Incl.-VAT price: VAT on the ex-VAT amount as displayed, so the two figures agree (see Price.astro).
+    const vatRate = Number(el.dataset.vatRate);
+    if (converted != null && vatRate > 0) converted = roundForDisplay(converted) * (1 + vatRate);
     el.textContent =
       converted == null ? el.dataset.nokText : formatCurrency(converted, state.currency, el.dataset.lang ?? "en");
   });
@@ -75,11 +82,21 @@ export async function init(currency: CurrencyCode): Promise<void> {
   await refreshRate(state.currency);
 }
 
-/** Called from CurrencySwitcher, or when the language changes. Persists the choice and applies it instantly (uses the cached rate if already warm). */
-export function setCurrency(currency: CurrencyCode): void {
-  persistCurrency(currency);
+function apply(currency: CurrencyCode): void {
   state = { ...state, currency };
   applyToDom();
   notify();
   void refreshRate(currency);
+}
+
+/** Called from CurrencySwitcher: the visitor's explicit choice. Persists it and applies it instantly (uses the cached rate if already warm). */
+export function setCurrency(currency: CurrencyCode): void {
+  persistCurrency(currency);
+  apply(currency);
+}
+
+/** Called when the language changes: follows that language's currency, unless the visitor has picked one themselves. Not persisted. */
+export function followLanguageCurrency(currency: CurrencyCode): void {
+  if (getStoredCurrency() !== null) return;
+  apply(currency);
 }

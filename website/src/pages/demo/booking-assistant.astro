@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { bookingAssistantNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
 
@@ -29,25 +30,27 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
 <Layout
   title="Try Our Booking Assistant"
   description={`Try a live demo of Mielikkix's AI Booking Assistant — describe what you want to book, right in a chat, and get a real calendar invite. ${fromPrice}`}
-  path="/demo/booking-assistant"
+  path="/demo/booking-assistant/"
   structuredDataNodes={[bookingAssistantNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
       &larr; Back to AI Agents
     </a>
   </div>
   <PageHero
     line1="Meet Mielikkix's"
     line2="Booking Assistant"
-    subheading={`A live demo — tell it what you'd like to book, right in the chat. ${fromPrice}`}
-  />
+    subheading={`A live demo — tell it what you'd like to book, right in the chat.`}
+  >
+    <FromPrice slot="extra" productId="booking-assistant" />
+  </PageHero>
 
   <section class="mx-auto max-w-lg px-6 py-16">
     <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
       <p role="note" class="rounded-t-3xl border-b border-slate-100 bg-slate-50 px-5 py-2 text-[11px] leading-snug text-slate-500">
         You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.
-        <a href="/privacy" class="underline">Privacy</a>
+        <a href="/privacy/" class="underline">Privacy</a>
       </p>
       <div id="transcript" class="flex flex-1 flex-col gap-2 overflow-y-auto p-5"></div>
 
@@ -77,8 +80,8 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
 
     <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
       Real calendar availability and a real Google Calendar invite — but every booking made here
-      lands on our one shared test calendar, not a real business's own calendar (see our
-      <a href="/features" class="underline">features page</a> for how the real per-business product
+      lands on our one shared test calendar, not a real business's own calendar (see the
+      <a href="#booking-assistant" class="underline">plans and features below</a> for how the real per-business product
       works). A confirmed booking really does create a calendar event and emails you an invite.
     </p>
   </section>

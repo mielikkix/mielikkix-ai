@@ -32,11 +32,11 @@ const langs: Lang[] = ["en", "no"];
 <Layout
   title={en.SEO.TITLE}
   description={en.SEO.DESCRIPTION}
-  path="/pricing"
+  path="/pricing/"
   page="pricing"
   titleKey="SEO.TITLE"
   descriptionKey="SEO.DESCRIPTION"
-  structuredDataNodes={[pricingProductNode("chat-widget", "/pricing")]}
+  structuredDataNodes={[pricingProductNode("chat-widget", "/pricing/")]}
 >
   <PageHero
     line1={en.PAGE_HERO.LINE1}
@@ -138,7 +138,7 @@ const langs: Lang[] = ["en", "no"];
                     </p>
                   </div>
                 ))}
-                <a href="/demo" class="brand-gradient mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-semibold text-white">
+                <a href="/demo/" class="brand-gradient mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-semibold text-white">
                   <Bi text={{ en: "Book a demo", no: "Book en demo" }} />
                 </a>
               </div>
@@ -180,7 +180,7 @@ const langs: Lang[] = ["en", "no"];
 
   <PricingLegalNote />
 
-  <CTASection heading={en.CTA.HEADING} subheading={en.CTA.SUBHEADING} headingKey="CTA.HEADING" subheadingKey="CTA.SUBHEADING" />
+  <CTASection heading={en.CTA.HEADING} subheading={en.CTA.SUBHEADING} headingKey="CTA.HEADING" subheadingKey="CTA.SUBHEADING" secondary="agent-pricing" />
 </Layout>
 
 <style>

@@ -59,3 +59,12 @@ code first.
 - Unit tests for the LLM client (mock provider responses; test retry/timeout behavior).
 - Unit tests for RAG retrieval (given a known document set, verify expected chunks return).
 - Any agent PR that touches agent-core must also state which agents were regression-tested.
+
+## Changelog
+
+- **0.1.1 (2026-10-01)** — `chat(json_mode=True)` on `provider="anthropic"` now strips prose
+  around the JSON object (`extract_json_object`). Found in QA (B2): a prompt-injection message
+  made Claude write its refusal as a sentence before the JSON, so Support Triage's parse failed.
+  Groq/OpenAI paths unchanged. Regression-tested: agent-core unit tests and apps/api's Support
+  Triage tests (`tests/test_agents_support.py`). Other `json_mode` callers on Anthropic
+  (Booking Assistant parse) only gain tolerance; plain-JSON replies pass through unchanged.

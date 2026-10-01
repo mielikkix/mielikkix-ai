@@ -11,8 +11,8 @@ apps/agents/support-triage stays a CLAUDE.md + scaffold, not a second
 running process.
 """
 
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
@@ -35,6 +35,8 @@ class _ChatMessageResponse(BaseModel):
     escalated: bool
     ticket_id: str
     suggest_booking_flow: bool = False
+    declined: bool = False
+    needs_contact: bool = False
 
 
 @router.post("/chat/message", response_model=_ChatMessageResponse)
@@ -54,4 +56,28 @@ async def chat_message(request: Request, body: _ChatMessageRequest, db: Session 
         escalated=result.escalated,
         ticket_id=result.ticket_id,
         suggest_booking_flow=result.suggest_booking_flow,
+        declined=result.declined,
+        needs_contact=result.needs_contact,
     )
+
+
+class _ContactRequest(BaseModel):
+    session_id: str = Field(min_length=1, max_length=MAX_ID_CHARS)
+    email: EmailStr
+    name: str | None = Field(default=None, max_length=200)
+
+
+class _ContactResponse(BaseModel):
+    reply: str
+    ticket_id: str
+
+
+@router.post("/chat/contact", response_model=_ContactResponse)
+@limiter.limit("5/minute")
+async def chat_contact(request: Request, body: _ContactRequest, db: Session = Depends(get_db)):
+    """The email field the widget shows after an escalated reply
+    (needs_contact) -- same origin-restricted CORS as /chat/message above."""
+    result = await support_service.add_contact(db, body.session_id, str(body.email), body.name)
+    if result is None:
+        raise HTTPException(status_code=404, detail="No conversation found for this session")
+    return _ContactResponse(reply=result.reply, ticket_id=result.ticket_id)

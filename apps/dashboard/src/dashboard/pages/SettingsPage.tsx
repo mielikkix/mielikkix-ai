@@ -51,6 +51,7 @@ export function SettingsPage() {
       api.patch('/businesses/me/settings', {
         tone: form.tone,
         welcome_message: form.welcome_message,
+        welcome_messages: form.welcome_messages,
         fallback_message: form.fallback_message,
         fallback_messages: form.fallback_messages,
       }),
@@ -96,6 +97,9 @@ export function SettingsPage() {
   const fallbackMessages = form.fallback_messages ?? {}
   const setFallbackMessageFor = (code: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, fallback_messages: { ...(f.fallback_messages ?? {}), [code]: e.target.value } }))
+  const welcomeMessages = form.welcome_messages ?? {}
+  const setWelcomeMessageFor = (code: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) =>
+    setForm((f) => ({ ...f, welcome_messages: { ...(f.welcome_messages ?? {}), [code]: e.target.value } }))
   const languageLabel = (code: string) => AVAILABLE_LANGUAGES.find((l) => l.code === code)?.label ?? code
   const toggleLanguage = (code: string) => {
     const has = languages.includes(code)
@@ -192,6 +196,8 @@ export function SettingsPage() {
               languageLabel={languageLabel}
               fallbackMessages={fallbackMessages}
               setFallbackMessageFor={setFallbackMessageFor}
+              welcomeMessages={welcomeMessages}
+              setWelcomeMessageFor={setWelcomeMessageFor}
               personalityMut={personalityMut}
             />
           )}

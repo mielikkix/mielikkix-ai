@@ -32,7 +32,7 @@ const { article } = Astro.props as { article: Awaited<ReturnType<typeof fetchArt
 // page were ever rendered outside getStaticPaths' own props.
 const resolvedArticle = article ?? (await fetchArticleBySlug(Astro.params.slug!));
 if (!resolvedArticle) {
-  return Astro.redirect("/blog", 404);
+  return Astro.redirect("/blog/", 404);
 }
 
 const canonicalArticleUrl = `https://mielikkix.ai/blog/${resolvedArticle.slug}/`;
@@ -102,7 +102,7 @@ const structuredDataNodes = [
       set:html={styleBareTables(resolvedArticle.content)}
     />
 
-    <a href="/blog" class="mt-12 inline-block text-sm font-semibold text-violet-600 hover:underline">
+    <a href="/blog/" class="mt-12 inline-block text-sm font-semibold text-violet-600 hover:underline">
       &larr; Back to all articles
     </a>
   </article>

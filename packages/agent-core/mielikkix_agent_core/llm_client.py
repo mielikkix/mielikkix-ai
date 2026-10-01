@@ -199,7 +199,8 @@ class LLMClient:
         provider -- Groq/OpenAI's response_format only *enforces* that the
         output parses as JSON, it doesn't invent the schema for you, and
         Anthropic's Messages API has no equivalent enforcement param at all
-        (json_mode is a no-op there beyond the prompt itself) -- callers
+        (json_mode there only strips any prose the model wrapped around the
+        JSON object -- see extract_json_object below) -- callers
         that need strict JSON enforcement should prefer Groq/OpenAI for
         that specific call; the existing parse-error/clarification-needed
         fallback every json_mode caller already has remains the real safety
@@ -223,7 +224,10 @@ class LLMClient:
             try:
                 if self.provider == "anthropic":
                     response = await self._create_anthropic(client, messages, max_tokens, temperature, tools, tool_choice)
-                    return self._to_result_anthropic(response)
+                    result = self._to_result_anthropic(response)
+                    if json_mode:
+                        result.text = extract_json_object(result.text)
+                    return result
 
                 # tools/tool_choice must be OMITTED from the request
                 # entirely when unused, not sent as an explicit null --
@@ -333,6 +337,35 @@ class LLMClient:
                 # docstring).
                 tool_calls.append(ToolCall(id=block.id, name=block.name, arguments=json.dumps(block.input)))
         return LLMResult(text="".join(text_parts), usage=llm_usage, tool_calls=tool_calls or None)
+
+
+def extract_json_object(text: str) -> str:
+    """Anthropic has no response_format, so a json_mode reply can arrive with
+    prose around the object -- confirmed live (QA 2026-10-01, B2): asked to
+    "ignore your previous instructions", Claude wrote its refusal as a
+    sentence and THEN the JSON, which support_service.py couldn't parse.
+    Returns `text` unchanged if it already parses (or holds no JSON object),
+    otherwise the last complete top-level JSON object found in it -- the last
+    one, since the model puts its explanation first and the answer after."""
+    stripped = text.strip()
+    try:
+        json.loads(stripped)
+        return stripped
+    except ValueError:
+        pass
+    decoder = json.JSONDecoder()
+    found = None
+    i = stripped.find("{")
+    while i != -1:
+        try:
+            obj, end = decoder.raw_decode(stripped, i)
+        except ValueError:
+            i = stripped.find("{", i + 1)
+            continue
+        if isinstance(obj, dict):
+            found = obj
+        i = stripped.find("{", end)
+    return json.dumps(found) if found is not None else text
 
 
 def _to_anthropic_messages(messages: list[dict]) -> tuple[str, list[dict]]:

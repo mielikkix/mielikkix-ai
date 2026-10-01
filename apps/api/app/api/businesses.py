@@ -48,6 +48,7 @@ def get_public_settings(business_id: str, db: Session = Depends(get_db)):
     primary_color = business.primary_color if business and business.primary_color else DEFAULT_PRIMARY_COLOR
     return PublicBusinessSettingsOut(
         welcome_message=welcome_message,
+        welcome_messages={k: v for k, v in ((s.welcome_messages if s else None) or {}).items() if v},
         languages=languages,
         primary_color=primary_color,
         privacy_policy_url=s.privacy_policy_url if s else None,
@@ -55,33 +56,41 @@ def get_public_settings(business_id: str, db: Session = Depends(get_db)):
     )
 
 
-async def _fill_default_fallback_translations(db: Session, s: BusinessSettings, new_languages: list) -> None:
-    """Best-effort: when a business enables a language it's never had before,
-    pre-fill fallback_messages for it via the configured LLM provider, so the
-    fallback reply isn't blank/English-only until the owner gets around to
-    writing their own -- see the "Fallback message (X)" field in Settings."""
-    existing_languages = set(s.languages or [])
-    added = [code for code in new_languages if code not in existing_languages]
-    if not added:
+async def _fill_missing_translations(db: Session, s: BusinessSettings) -> None:
+    """Best-effort: every enabled language after the primary one gets a
+    translated fallback reply and greeting via the configured LLM provider,
+    unless it already has one (an owner-written one, or a "" the owner left
+    blank on purpose -- only absent keys are filled). Fills ALL missing ones,
+    not just newly added languages: a language whose translation once failed
+    (no API key at the time) or that predates welcome_messages would
+    otherwise stay untranslated forever and reply in the wrong language.
+    See the "Fallback message (X)" / "Welcome message (X)" fields in Settings."""
+    languages = s.languages or ["en"]
+    targets = languages[1:]
+    if not targets:
         return
-    fallback_messages = dict(s.fallback_messages or {})
-    added = [code for code in added if code not in fallback_messages]
-    if not added:
-        return
-
-    provider = get_llm_provider(s.llm_provider, s.llm_model)
-    source_text = s.fallback_message or DEFAULT_FALLBACK_MESSAGE
-    for code in added:
-        target_language = LANGUAGE_NAMES.get(code, code)
-        try:
-            fallback_messages[code] = await provider.translate(source_text, target_language)
-            log_llm_usage(db, s.business_id, s.llm_provider, provider, kind="translate")
-        except Exception:
-            # No API key configured, provider unreachable, etc. -- leave it
-            # unset rather than fail the whole language-save; the owner can
-            # still write their own translation by hand.
-            pass
-    s.fallback_messages = fallback_messages
+    sources = {
+        "fallback_messages": s.fallback_message or DEFAULT_FALLBACK_MESSAGE,
+        "welcome_messages": s.welcome_message or DEFAULT_WELCOME_MESSAGE,
+    }
+    provider = None
+    for field, source_text in sources.items():
+        messages = dict(getattr(s, field) or {})
+        missing = [code for code in targets if code not in messages]
+        if not missing:
+            continue
+        provider = provider or get_llm_provider(s.llm_provider, s.llm_model)
+        for code in missing:
+            target_language = LANGUAGE_NAMES.get(code, code)
+            try:
+                messages[code] = await provider.translate(source_text, target_language)
+                log_llm_usage(db, s.business_id, s.llm_provider, provider, kind="translate")
+            except Exception:
+                # No API key configured, provider unreachable, etc. -- leave it
+                # unset rather than fail the whole save; the owner can still
+                # write their own translation by hand.
+                pass
+        setattr(s, field, messages)
 
 
 @router.get("/me", response_model=BusinessOut)
@@ -135,11 +144,12 @@ async def update_settings(
     updates = update.model_dump(exclude_none=True)
     if "languages" in updates:
         plan_service.check_language_limit(business, updates["languages"])
-        await _fill_default_fallback_translations(db, s, updates["languages"])
     if updates.get("privacy_policy_url") == "":
         updates["privacy_policy_url"] = None
     for field, val in updates.items():
         setattr(s, field, val)
+    if updates.keys() & {"languages", "welcome_message", "welcome_messages", "fallback_message", "fallback_messages"}:
+        await _fill_missing_translations(db, s)
     db.commit()
     db.refresh(s)
     return s

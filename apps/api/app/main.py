@@ -99,6 +99,20 @@ async def lifespan(app: FastAPI):
 
     embed_texts(["warmup"])
 
+    # QA 2026-10-01 (B1): unset in production, Support Triage had no docs to
+    # answer from and escalated every question -- even the demo page's own
+    # example. Loud at startup instead of silently "not confident" per message.
+    from .core.config import settings as _settings
+
+    for _name in ("support_agent_business_id", "voice_agent_business_id"):
+        if not getattr(_settings, _name, ""):
+            logging.getLogger(__name__).warning(
+                "%s is not set: that agent answers without Mielikkix's own docs and will escalate/decline "
+                "questions it should be able to answer. Set %s in .env.",
+                _name,
+                _name.upper(),
+            )
+
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
     from .services import seo_schedule_service
 

@@ -2,7 +2,9 @@ from sqlalchemy.orm import Session
 from ..models.conversation import Conversation, Message
 from ..models.business import Business, BusinessSettings
 from ..schemas.chat import ChatMessageRequest, ChatMessageResponse
-from ..rag.pipeline import run_rag
+from ..rag.pipeline import run_rag, log_llm_usage
+from ..rag.providers import get_llm_provider
+from ..rag.providers.base import LANGUAGE_NAMES
 from ..rag.language_detect import detect_message_language
 from ..services import agent_access_service, plan_service
 from fastapi import BackgroundTasks, HTTPException
@@ -11,6 +13,33 @@ from ..models.user import User
 from ..notifications import notify_quota_warning
 
 HISTORY_LIMIT = 6
+
+
+async def _fallback_for(db: Session, biz_settings: BusinessSettings | None, lang: str, primary: str) -> str | None:
+    """The "no info found" reply in `lang`. fallback_message itself is the
+    primary-language version, so any other language without its own entry is
+    translated once here and cached on the settings row (committed with the
+    rest of this message). Before this, a missing entry fell straight back to
+    the primary-language text -- QA 2026-10-01 (B16): an English question on
+    a Norwegian-primary business got "Jeg har dessverre ikke informasjon...".
+    An entry the owner deliberately left "" still means "use the primary one"."""
+    if biz_settings is None:
+        return None
+    messages = biz_settings.fallback_messages or {}
+    if lang in messages:
+        return messages[lang] or biz_settings.fallback_message
+    if lang == primary or not biz_settings.fallback_message:
+        return biz_settings.fallback_message
+    try:
+        provider = get_llm_provider(biz_settings.llm_provider, biz_settings.llm_model)
+        translated = await provider.translate(biz_settings.fallback_message, LANGUAGE_NAMES.get(lang, lang))
+        log_llm_usage(db, biz_settings.business_id, biz_settings.llm_provider, provider, kind="translate")
+    except Exception:
+        # Provider down/no key: the generic default is English, which is still
+        # closer for most visitors than a reply in a language they didn't use.
+        return None if lang == "en" else biz_settings.fallback_message
+    biz_settings.fallback_messages = {**messages, lang: translated}
+    return translated
 
 
 async def handle_message(
@@ -69,8 +98,6 @@ async def handle_message(
 
     provider = biz_settings.llm_provider if biz_settings else "groq"
     model = biz_settings.llm_model if biz_settings else None
-    fallback_message = biz_settings.fallback_message if biz_settings else None
-    fallback_messages = (biz_settings.fallback_messages if biz_settings else None) or {}
     tone = biz_settings.tone if biz_settings else "friendly"
     languages = (biz_settings.languages if biz_settings else None) or ["en"]
 
@@ -83,7 +110,7 @@ async def handle_message(
     # never reaches the LLM to detect anything from.
     detected_lang = detect_message_language(req.message, languages, default=languages[0])
     effective_languages = [detected_lang] + [lang for lang in languages if lang != detected_lang]
-    resolved_fallback = fallback_messages.get(detected_lang) or fallback_message
+    resolved_fallback = await _fallback_for(db, biz_settings, detected_lang, languages[0])
 
     reply, intent, confidence = await run_rag(
         db=db,

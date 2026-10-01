@@ -723,3 +723,15 @@ def test_manual_mailchimp_retry_endpoint_skips_without_consent(client, business,
     assert resp.status_code == 200, resp.text
     assert resp.json()["mailchimp_synced"] is False
     add_or_update.assert_not_called()
+
+
+def test_honeypot_filled_returns_success_but_stores_nothing(client, business, db_session):
+    """QA 2026-10-01 (B3): the demo form had no bot protection."""
+    resp = client.post(
+        "/api/leads",
+        json={"business_id": business["business_id"], "name": "Bot", "email": "bot@example.com", "fax": "http://spam.example"},
+    )
+
+    assert resp.status_code == 201
+    assert resp.json()["success"] is True
+    assert db_session.query(Lead).filter(Lead.business_id == business["business_id"]).first() is None

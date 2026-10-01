@@ -12,8 +12,8 @@ import {
   formatNumber,
   formatValue,
   getProduct,
-  withVat,
   effectiveFeatures,
+  planCta,
   type Lang,
   type ProductId,
   type Tier,
@@ -53,11 +53,6 @@ const L = {
   notIncluded: T("Not included", "Ikke inkludert"),
 };
 
-function ctaText(tier: Tier): Text {
-  if (tier.priceNokMonthly === null) return T("Get started free", "Kom i gang gratis");
-  if (productId === "custom-agents" || tier.managed) return T("Talk to us", "Snakk med oss");
-  return T("Book a demo", "Book en demo");
-}
 
 const NO_OVERAGE = T("No overage charges", "Ingen tilleggskostnader");
 
@@ -176,13 +171,13 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
             </ul>
 
             <a
-              href="/demo"
+              href={planCta(productId, tier).href}
               class:list={[
                 "mt-6 rounded-full px-4 py-2.5 text-center text-sm font-semibold shadow-sm transition-transform hover:scale-105",
                 featured ? "bg-white text-violet-700" : "brand-gradient text-white shadow-violet-200",
               ]}
             >
-              <Bi text={ctaText(tier)} />
+              <Bi text={planCta(productId, tier).label} />
             </a>
 
             <ul class="mt-6 space-y-2.5 text-sm">
@@ -238,7 +233,10 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
   <!-- Comparison table -->
   <div class="mx-auto mt-12 max-w-5xl">
     <h3 class="font-display text-xl font-bold text-slate-900"><Bi text={L.compare} /></h3>
-    <div class="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white" tabindex="0">
+    <!-- relative: the cells' sr-only labels are position:absolute, and without a positioned
+         ancestor here they escaped this scroll box and widened the whole page on phones
+         (QA 2026-10-01, B20: 493px document at a 375px viewport). -->
+    <div class="relative mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white" tabindex="0">
       <table class="w-full min-w-[560px] text-left text-sm">
         <caption class="sr-only">
           <Bi text={product.name} /> — <Bi text={L.compare} />
@@ -378,7 +376,7 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
                   : langs.map((lang) => (
                       <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
                         {tier.priceFrom ? (lang === "no" ? "fra " : "from ") : ""}
-                        <Price nok={withVat(tier.priceNokMonthly as number)} lang={lang} />
+                        <Price nok={tier.priceNokMonthly as number} lang={lang} vat />
                         {lang === "no" ? "/mnd" : "/month"}
                       </span>
                     ))}

@@ -29,7 +29,7 @@ const barW = Math.min(72, slot * 0.5);
 
 function usageLabel(usage: number | null, lang: Lang): string {
   if (usage === null) return lang === "no" ? "Tilpasset" : "Custom";
-  return `${formatNumber(usage, lang)} ${product.usageUnit[lang]}`;
+  return `${formatNumber(usage, lang)} ${(usage === 1 ? product.usageUnitOne : product.usageUnit)[lang]}`;
 }
 
 function priceLabel(price: number | null, lang: Lang): string {

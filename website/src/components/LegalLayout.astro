@@ -29,10 +29,14 @@ const langs = [
 <Layout title={titles.en} description={description} path={`/${doc}`} titleKey={`FOOTER.${titleKey}`}>
   <Fragment set:html="<!-- LEGAL REVIEW REQUIRED -->" />
   <section class="legal-page mx-auto max-w-3xl px-6 py-16">
+    <!-- One <h1> for the page (QA 2026-10-01, B19: each language's article had its own, so the
+         HTML carried two). global.css shows the span matching <html lang>. -->
+    <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">
+      <span class="i18n-en">{titles.en}</span><span class="i18n-no" lang="nb">{titles.no}</span>
+    </h1>
     {
       langs.map(({ code, lang, updatedLabel, versionLabel }) => (
         <article data-legal-lang={code} lang={lang} hidden={code !== "en"}>
-          <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">{titles[code]}</h1>
           <p class="mt-2 text-sm text-slate-500">
             {updatedLabel}: <time datetime={updated}>{updated}</time> · {versionLabel}: <code>{version}</code>
           </p>

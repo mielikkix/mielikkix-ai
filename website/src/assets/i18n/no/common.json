@@ -9,7 +9,9 @@
   },
   "BUTTONS": {
     "BOOK_DEMO": "Book en gratis demo",
-    "SEE_PRICING": "Se priser"
+    "SEE_PRICING": "Se priser",
+    "SEE_AGENT_PRICING": "Se priser for AI-agenter",
+    "SEE_WIDGET_PRICING": "Se priser for Chat Widget"
   },
   "LANGUAGE": {
     "SWITCH_LABEL": "Språk",

@@ -353,3 +353,25 @@ async def test_anthropic_chat_retries_on_retryable_error_then_succeeds(monkeypat
 
     assert result.text == "ok now"
     assert fake_create.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_anthropic_json_mode_strips_prose_around_the_json_object(monkeypatch):
+    """QA 2026-10-01 (B2): a prompt-injection message made Claude write its
+    refusal as prose before the JSON, which the caller's json.loads rejected."""
+    client = LLMClient(provider="anthropic", api_key="test-key", model="test-model")
+    reply = "I can't share my system prompt.\n\n" + '{"category": "general", "confidence": 0.9, "answer": "No {braces} here"}'
+    fake_create = AsyncMock(return_value=_fake_anthropic_response([_anthropic_text_block(reply)]))
+    monkeypatch.setattr(client, "_get_client", lambda: SimpleNamespace(messages=SimpleNamespace(create=fake_create)))
+
+    result = await client.chat([{"role": "user", "content": "hi"}], json_mode=True)
+
+    assert json.loads(result.text) == {"category": "general", "confidence": 0.9, "answer": "No {braces} here"}
+
+
+def test_extract_json_object_leaves_plain_json_and_non_json_alone():
+    from mielikkix_agent_core import extract_json_object
+
+    assert extract_json_object('{"a": 1}') == '{"a": 1}'
+    assert extract_json_object("no json at all") == "no json at all"
+    assert json.loads(extract_json_object('```json\n{"a": {"b": 2}}\n```')) == {"a": {"b": 2}}

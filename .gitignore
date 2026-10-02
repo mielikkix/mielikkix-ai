@@ -54,3 +54,6 @@ Thumbs.db
 
 # Marketing collateral (pitch decks etc.) -- not app code, kept local only
 marketing/
+
+# QA reports (may contain test data / screenshots) -- kept local
+Bug Reports/

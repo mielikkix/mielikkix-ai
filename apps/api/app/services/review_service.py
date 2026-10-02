@@ -246,6 +246,24 @@ async def _run_analysis(business: Business, review_text: str) -> AnalysisResult:
         raise ReviewAnalysisError(f"Could not parse review analysis JSON: {result.text!r}") from exc
 
 
+def _priority_from_rating(rating: Optional[int]) -> str:
+    if rating is not None and rating <= 2:
+        return "high"
+    return "medium"
+
+
+async def analyze_pending(db: Session, business_id: str) -> tuple[int, int]:
+    """Analyzes every not-yet-analyzed review (new, or a past analysis that
+    failed). Returns (analyzed, still_pending)."""
+    pending = db.query(Review.id).filter(Review.business_id == business_id, Review.analyzed_at.is_(None)).all()
+    analyzed = 0
+    for (review_id,) in pending:
+        review = await analyze_review(db, business_id, str(review_id))
+        if review.analyzed_at is not None:
+            analyzed += 1
+    return analyzed, len(pending) - analyzed
+
+
 async def analyze_review(db: Session, business_id: str, review_id: str, force: bool = False) -> Review:
     """Analyzes a stored Review exactly once, unless force=True -- avoids
     re-spending an LLM call on a review nothing has changed about (this
@@ -270,11 +288,17 @@ async def analyze_review(db: Session, business_id: str, review_id: str, force: b
         analysis = await _run_analysis(business, review.review_text)
     except ReviewAnalysisError as exc:
         logger.info("review_analysis_failed review_id=%s error=%s", review_id, exc)
+        # QA 2026-10-02 (D1): this used to keep the column default "low" (the
+        # old `review.priority or "medium"` never fired -- priority is never
+        # null) and stamp analyzed_at, so a failed 2-star review showed as
+        # "low" with no sentiment and could never be retried. Now: a priority
+        # from the star rating alone (the one real signal there is), flagged
+        # for a human, and analyzed_at left empty so it can be retried and
+        # shows as "not analyzed yet" instead of looking like a real verdict.
         review.requires_human_review = True
-        review.priority = review.priority or "medium"
-        review.escalation_reason = "unknown"
-        review.risk_reasons = ["unknown"]
-        review.analyzed_at = datetime.now(timezone.utc)
+        review.priority = _priority_from_rating(review.rating)
+        review.escalation_reason = "analysis_failed"
+        review.risk_reasons = ["analysis_failed"]
         db.commit()
         return review
 
@@ -638,6 +662,18 @@ def list_reviews(
     return query.order_by(Review.review_date.desc().nullslast(), Review.created_at.desc()).all()
 
 
+def delete_sample_reviews(db: Session, business_id: str) -> int:
+    """Removes the "Import sample reviews" demo data (platform "mock") so it
+    stops mixing into real reviews and their stats -- QA 2026-10-02 (D5)."""
+    deleted = (
+        db.query(Review)
+        .filter(Review.business_id == business_id, Review.platform == "mock")
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return deleted
+
+
 def create_manual_review(
     db: Session,
     business_id: str,
@@ -717,6 +753,8 @@ class Insights:
     top_negative_topics: list[dict]
     reviews_requiring_attention: int
     insufficient_data: bool = False
+    total_reviews: int = 0  # every review in the window, analyzed or not
+    unanalyzed_count: int = 0
 
 
 def get_insights(db: Session, business_id: str, days: Optional[int] = None) -> Insights:
@@ -726,16 +764,21 @@ def get_insights(db: Session, business_id: str, days: Optional[int] = None) -> I
     `days=None` means all-time; otherwise only reviews with review_date (or
     created_at, for one with no known review_date) within that window.
     """
-    query = db.query(Review).filter(Review.business_id == business_id, Review.analyzed_at.isnot(None))
+    query = db.query(Review).filter(Review.business_id == business_id)
     if days is not None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         query = query.filter((Review.review_date >= cutoff) | (Review.review_date.is_(None) & (Review.created_at >= cutoff)))
-    reviews = query.all()
+    all_reviews = query.all()
+    # Stats come from analyzed reviews only; failed analyses are flagged for a
+    # human, so they still count as needing attention.
+    reviews = [r for r in all_reviews if r.analyzed_at is not None]
+    attention = sum(1 for r in all_reviews if r.requires_human_review)
 
     if not reviews:
         return Insights(
             review_count=0, average_rating=None, sentiment_breakdown={}, top_positive_topics=[],
-            top_negative_topics=[], reviews_requiring_attention=0, insufficient_data=True,
+            top_negative_topics=[], reviews_requiring_attention=attention, insufficient_data=True,
+            total_reviews=len(all_reviews), unanalyzed_count=len(all_reviews),
         )
 
     ratings = [r.rating for r in reviews if r.rating is not None]
@@ -759,7 +802,9 @@ def get_insights(db: Session, business_id: str, days: Optional[int] = None) -> I
         },
         top_positive_topics=[{"topic": t, "count": c} for t, c in positive_topic_counts.most_common(5)],
         top_negative_topics=[{"topic": t, "count": c} for t, c in negative_topic_counts.most_common(5)],
-        reviews_requiring_attention=sum(1 for r in reviews if r.requires_human_review),
+        reviews_requiring_attention=attention,
+        total_reviews=len(all_reviews),
+        unanalyzed_count=len(all_reviews) - len(reviews),
     )
 
 

@@ -160,8 +160,13 @@ def test_analysis_is_not_repeated_unless_forced(client, business, grant_agent, m
 
 
 def test_analysis_failure_degrades_safely_instead_of_500(client, business, grant_agent, monkeypatch):
+    """QA 2026-10-02 (D1): a failed analysis used to keep priority "low", have no
+    sentiment and be stamped as analyzed -- so it could never be retried. Now it
+    is flagged for a human, prioritised from the stars, and left retryable."""
     grant_agent(business["business_id"], "review_reputation")
-    create_resp = client.post("/api/agents/reviews", json={"review_text": "Some review text."}, headers=business["headers"])
+    create_resp = client.post(
+        "/api/agents/reviews", json={"review_text": "Waited 45 minutes.", "rating": 2}, headers=business["headers"]
+    )
     review_id = create_resp.json()["id"]
     monkeypatch.setattr(review_service._llm_client, "chat", AsyncMock(side_effect=RuntimeError("provider down")))
 
@@ -170,7 +175,53 @@ def test_analysis_failure_degrades_safely_instead_of_500(client, business, grant
     assert resp.status_code == 200
     body = resp.json()
     assert body["requires_human_review"] is True
-    assert body["analyzed_at"] is not None
+    assert body["priority"] == "high"
+    assert body["escalation_reason"] == "analysis_failed"
+    assert body["analyzed_at"] is None
+
+
+def test_delete_sample_reviews_keeps_real_ones(client, business, grant_agent):
+    grant_agent(business["business_id"], "review_reputation")
+    client.post("/api/agents/reviews/import", json={"platform": "mock"}, headers=business["headers"])
+    client.post("/api/agents/reviews", json={"review_text": "A real one.", "rating": 4}, headers=business["headers"])
+
+    resp = client.delete("/api/agents/reviews/samples", headers=business["headers"])
+
+    assert resp.status_code == 200 and resp.json()["deleted"] > 0
+    remaining = client.get("/api/agents/reviews", headers=business["headers"]).json()
+    assert [r["review_text"] for r in remaining] == ["A real one."]
+
+
+def test_analyze_pending_retries_failed_reviews(client, business, grant_agent, monkeypatch):
+    grant_agent(business["business_id"], "review_reputation")
+    client.post("/api/agents/reviews", json={"review_text": "Lovely staff.", "rating": 5}, headers=business["headers"])
+    monkeypatch.setattr(review_service._llm_client, "chat", AsyncMock(side_effect=RuntimeError("provider down")))
+    first = client.post("/api/agents/reviews/analyze-pending", headers=business["headers"]).json()
+    assert first == {"analyzed": 0, "still_pending": 1}
+
+    _mock_analysis(monkeypatch, sentiment="positive", priority="low")
+    second = client.post("/api/agents/reviews/analyze-pending", headers=business["headers"]).json()
+    assert second == {"analyzed": 1, "still_pending": 0}
+
+
+def test_insights_stats_survive_a_failing_summary_and_count_every_review(client, business, grant_agent, monkeypatch):
+    """QA 2026-10-02 (D1): the AI summary call failing took the whole insights
+    endpoint down, so the cards showed 0 reviews while 8 were listed."""
+    grant_agent(business["business_id"], "review_reputation")
+    for text in ("Great food.", "Lovely place."):
+        rid = client.post("/api/agents/reviews", json={"review_text": text, "rating": 5}, headers=business["headers"]).json()["id"]
+        _mock_analysis(monkeypatch, sentiment="positive", priority="low", requires_human_review=False)
+        client.post(f"/api/agents/reviews/{rid}/analyze", headers=business["headers"])
+    client.post("/api/agents/reviews", json={"review_text": "Not analyzed yet.", "rating": 2}, headers=business["headers"])
+    monkeypatch.setattr(review_service._llm_client, "chat", AsyncMock(side_effect=RuntimeError("provider down")))
+
+    resp = client.get("/api/agents/reviews/insights", headers=business["headers"])
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["summary"] is None
+    assert (body["review_count"], body["total_reviews"], body["unanalyzed_count"]) == (2, 3, 1)
+    assert body["average_rating"] == 5.0
 
 
 # --- Response generation ---

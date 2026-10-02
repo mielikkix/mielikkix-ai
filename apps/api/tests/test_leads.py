@@ -735,3 +735,28 @@ def test_honeypot_filled_returns_success_but_stores_nothing(client, business, db
     assert resp.status_code == 201
     assert resp.json()["success"] is True
     assert db_session.query(Lead).filter(Lead.business_id == business["business_id"]).first() is None
+
+
+def _make_lead(client, business):
+    client.post("/api/leads", json={"business_id": business["business_id"], "name": "Kari", "email": "kari@example.com"})
+    return client.get("/api/leads", headers=business["headers"]).json()[0]
+
+
+def test_lead_status_and_notes_can_be_updated(client, business):
+    """QA 2026-10-02 (D4/E2): a visible status control and notes per lead."""
+    lead = _make_lead(client, business)
+
+    resp = client.patch(f"/api/leads/{lead['id']}", json={"status": "contacted", "notes": " Called, wants a demo Friday "}, headers=business["headers"])
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "contacted"
+    assert resp.json()["notes"] == "Called, wants a demo Friday"
+    # notes alone leave the status untouched
+    resp = client.patch(f"/api/leads/{lead['id']}", json={"notes": ""}, headers=business["headers"])
+    assert resp.json()["status"] == "contacted" and resp.json()["notes"] is None
+
+
+def test_unknown_lead_status_is_rejected(client, business):
+    lead = _make_lead(client, business)
+    resp = client.patch(f"/api/leads/{lead['id']}", json={"status": "maybe"}, headers=business["headers"])
+    assert resp.status_code == 422

@@ -6,14 +6,24 @@ import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { UsageMeter } from '../../shared/components/UsageMeter'
 import { usePlan } from '../../shared/hooks/usePlan'
-import { Upload, Trash2, FileText, Link2, Globe, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, Trash2, FileText, Link2, Globe, Loader2, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
 
 interface Doc {
   id: string
   filename: string
+  file_url: string
   file_type: string
   status: string
   created_at: string
+  title: string | null
+  char_count: number | null
+}
+
+// QA 2026-10-02 (E6): show what each document is, when it was added and how much text it gave.
+function textSize(chars: number | null): string | null {
+  if (chars == null) return null
+  if (chars < 1000) return `${chars} characters`
+  return `${(chars / 1000).toFixed(chars < 10000 ? 1 : 0)}k characters`
 }
 
 const statusIcon = (status: string) => {
@@ -30,6 +40,7 @@ export function DocumentsPage() {
   const [siteUrl, setSiteUrl] = useState('')
   const [siteError, setSiteError] = useState('')
   const [siteMessage, setSiteMessage] = useState('')
+  const [siteExclude, setSiteExclude] = useState('')
   // A crawl's first page can finish (and its Document row appear) before
   // our very next poll -- if that poll is also the first one, the query's
   // cached data won't show a "processing" row yet, so the "is anything
@@ -80,7 +91,13 @@ export function DocumentsPage() {
   })
 
   const siteMut = useMutation({
-    mutationFn: (url: string) => api.post('/documents/from-website', { url }).then((r) => r.data),
+    mutationFn: (url: string) =>
+      api
+        .post('/documents/from-website', {
+          url,
+          exclude: siteExclude.split(/[\n,]/).map((s) => s.trim()).filter(Boolean),
+        })
+        .then((r) => r.data),
     onSuccess: (data: { discovered: number; queued: number; message: string }) => {
       qc.invalidateQueries({ queryKey: ['documents'] })
       // Keep polling for a while regardless of what this immediate refetch
@@ -99,6 +116,11 @@ export function DocumentsPage() {
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => api.delete(`/documents/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  })
+
+  const refetchMut = useMutation({
+    mutationFn: (id: string) => api.post(`/documents/${id}/refetch`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   })
 
@@ -179,30 +201,65 @@ export function DocumentsPage() {
             <Globe size={16} className="mr-1" /> Import site
           </Button>
         </div>
+        <div className="mt-2">
+          <Input
+            placeholder="Leave out pages containing… e.g. /privacy, /terms, /blog/ (optional, comma-separated)"
+            value={siteExclude}
+            onChange={(e) => setSiteExclude(e.target.value)}
+          />
+        </div>
         {siteError && <p className="text-sm text-red-500 mt-2">{siteError}</p>}
         {siteMessage && <p className="text-sm text-emerald-600 mt-2">{siteMessage}</p>}
       </Card>
 
       <div className="space-y-3">
-        {docs.map((doc) => (
-          <Card key={doc.id}>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <FileText size={20} className="text-slate-400" />
-                <div>
-                  <p className="text-lg font-medium text-slate-900">{doc.filename}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {statusIcon(doc.status)}
-                    <span className="text-sm text-slate-500 capitalize">{doc.status}</span>
+        {docs.map((doc) => {
+          const isPage = doc.file_type === 'url'
+          const size = textSize(doc.char_count)
+          return (
+            <Card key={doc.id}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  {isPage ? <Globe size={20} className="flex-shrink-0 text-slate-400" /> : <FileText size={20} className="flex-shrink-0 text-slate-400" />}
+                  <div className="min-w-0">
+                    <p className="truncate text-lg font-medium text-slate-900">{doc.title || doc.filename}</p>
+                    {isPage && (
+                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="block truncate text-sm text-brand-600 hover:underline">
+                        {doc.filename}
+                      </a>
+                    )}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-sm text-slate-500">
+                      {statusIcon(doc.status)}
+                      <span className="capitalize">{doc.status}</span>
+                      <span>· added {new Date(doc.created_at).toLocaleDateString()}</span>
+                      {size && <span>· {size}</span>}
+                    </div>
                   </div>
                 </div>
+                <div className="flex flex-shrink-0 items-center gap-1">
+                  {isPage && (
+                    <button
+                      onClick={() => refetchMut.mutate(doc.id)}
+                      disabled={refetchMut.isPending && refetchMut.variables === doc.id}
+                      className="flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                      title="Fetch this page again"
+                    >
+                      <RefreshCw size={13} className={refetchMut.isPending && refetchMut.variables === doc.id ? 'animate-spin' : ''} /> Re-fetch
+                    </button>
+                  )}
+                  <button
+                    onClick={() => confirm(`Remove "${doc.title || doc.filename}" from your chatbot's knowledge?`) && deleteMut.mutate(doc.id)}
+                    className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600"
+                    aria-label="Delete document"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-              <button onClick={() => deleteMut.mutate(doc.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          )
+        })}
+        {refetchMut.isError && <p className="text-sm text-red-600">Couldn't fetch that page again. Check that it's still online.</p>}
         {docs.length === 0 && (
           <div className="text-center py-12 text-slate-400 text-base">No documents uploaded yet.</div>
         )}

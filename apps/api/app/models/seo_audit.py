@@ -30,6 +30,9 @@ class SeoAudit(Base):
     pages_discovered = Column(Integer, nullable=False, default=0)
     pages_crawled = Column(Integer, nullable=False, default=0)
     pages_blocked = Column(Integer, nullable=False, default=0)
+    # Page URLs the site's own sitemap lists (null: no sitemap found) -- shown next
+    # to pages crawled so a gap is visible (QA 2026-10-02, E7).
+    pages_in_sitemap = Column(Integer, nullable=True)
     # Each 0-100, null until the analyzer that produces it has run -- an
     # internal diagnostic score based on this agent's own checks, NEVER
     # presented as an actual Google ranking signal (see this agent's

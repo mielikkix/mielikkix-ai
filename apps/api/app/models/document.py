@@ -17,6 +17,10 @@ class Document(Base):
     status = Column(Text, default="pending")
     uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    # Shown in the Documents list (QA 2026-10-02, E6): a web page's <title> (the
+    # file name for uploads), and how much text the knowledge base got from it.
+    title = Column(Text, nullable=True)
+    char_count = Column(Integer, nullable=True)
 
     business = relationship("Business", back_populates="documents")
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")

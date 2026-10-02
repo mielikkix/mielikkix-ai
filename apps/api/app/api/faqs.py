@@ -8,6 +8,8 @@ from ..models.user import User
 from ..models.faq import FAQ
 from ..schemas.faq import FAQCreate, FAQUpdate, FAQOut
 from ..rag.embeddings import embed_query
+from ..services import knowledge_check_service
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/faqs", tags=["faqs"])
 
@@ -15,6 +17,21 @@ router = APIRouter(prefix="/api/faqs", tags=["faqs"])
 @router.get("", response_model=List[FAQOut])
 def list_faqs(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(FAQ).filter(FAQ.business_id == current_user.business_id).all()
+
+
+class _KnowledgeIssueOut(BaseModel):
+    kind: str
+    message: str
+    items: List[dict]
+
+
+@router.get("/issues", response_model=List[_KnowledgeIssueOut])
+def knowledge_issues(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """FAQs/products that may contradict each other (QA 2026-10-02, E9)."""
+    return [
+        _KnowledgeIssueOut(kind=i.kind, message=i.message, items=i.items)
+        for i in knowledge_check_service.find_issues(db, current_user.business_id)
+    ]
 
 
 @router.post("", response_model=FAQOut)

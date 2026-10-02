@@ -88,7 +88,10 @@ def update_lead(
     ).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
-    lead.status = body.status
+    if body.status is not None:
+        lead.status = body.status
+    if body.notes is not None:
+        lead.notes = body.notes.strip() or None
     db.commit()
     db.refresh(lead)
     return lead

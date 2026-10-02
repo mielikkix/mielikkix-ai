@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 from ..models.conversation import Conversation, Message
 from ..models.business import Business, BusinessSettings
@@ -6,7 +8,7 @@ from ..rag.pipeline import run_rag, log_llm_usage
 from ..rag.providers import get_llm_provider
 from ..rag.providers.base import LANGUAGE_NAMES
 from ..rag.language_detect import detect_message_language
-from ..services import agent_access_service, plan_service
+from ..services import agent_access_service, plan_service, website_service
 from fastapi import BackgroundTasks, HTTPException
 from ..core.plans import get_plan
 from ..models.user import User
@@ -42,9 +44,17 @@ async def _fallback_for(db: Session, biz_settings: BusinessSettings | None, lang
     return translated
 
 
+TEST_CHANNEL = "dashboard_test"
+
+
 async def handle_message(
-    db: Session, req: ChatMessageRequest, background_tasks: BackgroundTasks | None = None
+    db: Session,
+    req: ChatMessageRequest,
+    background_tasks: BackgroundTasks | None = None,
+    origin: str | None = None,
+    channel: str = "website_widget",
 ) -> ChatMessageResponse:
+    is_test = channel == TEST_CHANNEL
     business = db.query(Business).filter(
         Business.id == req.business_id, Business.status.in_(["active", "trial"])
     ).first()
@@ -55,27 +65,38 @@ async def handle_message(
         BusinessSettings.business_id == req.business_id
     ).first()
 
+    # Any status: a visitor writing again in a conversation the owner closed
+    # reopens it rather than starting a new one (which would count toward the
+    # monthly limit a second time).
     conversation = db.query(Conversation).filter(
         Conversation.business_id == req.business_id,
         Conversation.session_id == req.session_id,
-        Conversation.status == "open",
+        Conversation.channel == channel if is_test else plan_service.not_test_chat(),
     ).first()
+    if conversation is not None and conversation.status != "open":
+        conversation.status = "open"
 
     quota_warning = None
     if not conversation:
         # Only a brand-new conversation counts against the monthly cap --
         # a session that's already underway is never cut off mid-thread.
-        plan_service.check_conversation_limit(db, business)
+        # The owner's own test chats never count.
+        if not is_test:
+            plan_service.check_conversation_limit(db, business)
         conversation = Conversation(
             business_id=req.business_id,
             session_id=req.session_id,
             visitor_id=req.visitor_id,
+            channel=channel,
         )
         db.add(conversation)
         db.flush()
+        if not is_test:
+            # The site this widget runs on counts toward the plan's websites.
+            website_service.register_from_origin(db, business, origin)
         # 80% / 100% quota email, claimed now (committed with this turn below)
         # so two simultaneous conversations can't both send the same warning.
-        quota_warning = plan_service.claim_quota_warning(db, business)
+        quota_warning = None if is_test else plan_service.claim_quota_warning(db, business)
 
     # Fetched before adding the current message below, so it naturally
     # excludes this turn and only contains prior conversation context.
@@ -89,10 +110,14 @@ async def handle_message(
     history_rows.reverse()
     history = [{"sender": m.sender, "content": m.content} for m in history_rows]
 
+    # Explicit timestamps: the question is stamped when it arrives, the reply
+    # when it's ready -- never both at the same flush, so they always sort
+    # question-then-answer (QA 2026-10-02, D2).
     visitor_msg = Message(
         conversation_id=conversation.id,
         sender="visitor",
         content=req.message,
+        created_at=datetime.now(timezone.utc),
     )
     db.add(visitor_msg)
 
@@ -111,6 +136,7 @@ async def handle_message(
     detected_lang = detect_message_language(req.message, languages, default=languages[0])
     effective_languages = [detected_lang] + [lang for lang in languages if lang != detected_lang]
     resolved_fallback = await _fallback_for(db, biz_settings, detected_lang, languages[0])
+    conversation.language = detected_lang
 
     reply, intent, confidence = await run_rag(
         db=db,
@@ -128,6 +154,7 @@ async def handle_message(
         conversation_id=conversation.id,
         sender="ai",
         content=reply,
+        created_at=datetime.now(timezone.utc),
         intent=intent,
         confidence=confidence,
     )

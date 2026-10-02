@@ -51,6 +51,27 @@ def test_retention_default_and_update(client, business):
     assert resp.status_code == 200 and resp.json()["conversation_retention_days"] == 30
 
 
+def test_retention_cannot_be_raised_beyond_the_plan(client, business, set_plan):
+    """QA 2026-10-02 (M5): Free keeps 7 days of history, so it can't pick 365 --
+    but lowering from the 90-day default is fine, and Business allows 365."""
+    h = business["headers"]
+    assert client.patch("/api/businesses/me/settings", json={"conversation_retention_days": 365}, headers=h).status_code == 403
+    assert client.patch("/api/businesses/me/settings", json={"conversation_retention_days": 7}, headers=h).status_code == 200
+    assert client.patch("/api/businesses/me/settings", json={"conversation_retention_days": 30}, headers=h).status_code == 403
+    set_plan(business["business_id"], "business")
+    assert client.patch("/api/businesses/me/settings", json={"conversation_retention_days": 365}, headers=h).status_code == 200
+
+
+def test_customers_cannot_change_the_ai_provider(client, business):
+    """QA 2026-10-02 (D9): the AI provider is the platform operator's setting."""
+    h = business["headers"]
+    resp = client.patch("/api/businesses/me/settings", json={"llm_provider": "ollama"}, headers=h)
+    assert resp.status_code == 403
+    # Sending the unchanged value (as an old dashboard build would) is harmless.
+    current = client.get("/api/businesses/me/settings", headers=h).json()["llm_provider"]
+    assert client.patch("/api/businesses/me/settings", json={"llm_provider": current}, headers=h).status_code == 200
+
+
 @pytest.mark.parametrize("bad", ["javascript:alert(1)", "not a url", "ftp://x.no/p", "https://"])
 def test_privacy_url_must_be_web_address(client, business, bad):
     resp = client.patch("/api/businesses/me/settings", json={"privacy_policy_url": bad}, headers=business["headers"])

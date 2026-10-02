@@ -16,7 +16,11 @@ class Lead(Base):
     email = Column(Text, nullable=True, index=True)
     phone = Column(Text, nullable=True)
     message = Column(Text, nullable=True)
+    # One of LEAD_STATUSES (schemas/lead.py). "DEMO_REQUESTED" is the first stage
+    # for website demo requests (lead_service); the rest are the dashboard's pipeline.
     status = Column(Text, default="new")
+    # The owner's own notes about this lead (QA 2026-10-02, E2).
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     # When this row last actually changed -- e.g. a repeat "Book a Free
     # Demo" submission from the same email (create_or_update_lead's own

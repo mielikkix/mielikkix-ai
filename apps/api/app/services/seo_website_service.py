@@ -13,6 +13,7 @@ from ..core.agent_catalog import DEFAULT_SEO_WEBSITE_LIMIT
 from ..models.business import Business
 from ..models.seo_website import SeoWebsite, CRAWL_TIER_PAGE_LIMITS
 from . import web_crawl
+from .url_normalizer import normalize_url
 
 VALID_CRAWL_TIERS = set(CRAWL_TIER_PAGE_LIMITS.keys())
 
@@ -46,6 +47,12 @@ def create_website(
         raise HTTPException(status_code=400, detail=f"crawl_tier must be one of {sorted(VALID_CRAWL_TIERS)}.")
 
     web_crawl.assert_public_url(url)
+    # One entry per site -- QA 2026-10-02 (D8) found "https://mielikkix.ai/" and
+    # "https://mielikkix.ai" registered as two websites.
+    wanted = normalize_url(web_crawl.site_root(url))
+    for existing in db.query(SeoWebsite).filter(SeoWebsite.business_id == business.id).all():
+        if normalize_url(web_crawl.site_root(existing.url)) == wanted:
+            raise HTTPException(status_code=409, detail=f"{existing.url} is already registered for SEO audits.")
     check_website_limit(db, business)
 
     website = SeoWebsite(

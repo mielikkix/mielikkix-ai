@@ -12,6 +12,7 @@ class SeoAuditOut(BaseModel):
     pages_discovered: int
     pages_crawled: int
     pages_blocked: int
+    pages_in_sitemap: Optional[int] = None
     health_technical: Optional[int]
     health_on_page: Optional[int]
     health_performance: Optional[int]
@@ -46,6 +47,7 @@ class SeoAuditOut(BaseModel):
             pages_discovered=audit.pages_discovered,
             pages_crawled=audit.pages_crawled,
             pages_blocked=audit.pages_blocked,
+            pages_in_sitemap=audit.pages_in_sitemap,
             health_technical=audit.health_technical,
             health_on_page=audit.health_on_page,
             health_performance=audit.health_performance,

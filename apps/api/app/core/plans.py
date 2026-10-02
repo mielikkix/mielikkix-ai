@@ -134,8 +134,10 @@ PLANS: dict[str, Plan] = {
             max_conversations_per_month=5000,
             max_document_uploads=None,
             max_products=None,
-            max_languages=None,
-            conversation_history_days=None,
+            # The website sells Business/Growth with 10 languages and "up to 12
+            # months" of history (QA 2026-10-02, D9/M5) -- not unlimited.
+            max_languages=10,
+            conversation_history_days=365,
         ),
         features=PlanFeatures(
             knowledge_base=True,
@@ -147,7 +149,10 @@ PLANS: dict[str, Plan] = {
             multi_currency=True,
             custom_branding=True,
             api_access=False,
-            api_access_addon_available=True,  # +$12/mo add-on
+            # No longer offered: the website sells API access on Growth only
+            # (QA 2026-10-02, M2). A Business that already bought the add-on
+            # keeps it -- see plan_service.resolve_features.
+            api_access_addon_available=False,
             priority_support=True,
         ),
     ),
@@ -161,8 +166,8 @@ PLANS: dict[str, Plan] = {
             max_conversations_per_month=20000,
             max_document_uploads=None,
             max_products=None,
-            max_languages=None,
-            conversation_history_days=None,
+            max_languages=10,
+            conversation_history_days=365,
         ),
         features=PlanFeatures(
             knowledge_base=True,

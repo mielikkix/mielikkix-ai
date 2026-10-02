@@ -13,11 +13,10 @@ import { PaymentComingSoonModal } from '../components/PaymentComingSoonModal'
 import { usePlan, usePlanCatalog, PlanCatalogEntry } from '../../shared/hooks/usePlan'
 import { CurrencySwitcher } from '../components/CurrencySwitcher'
 import { useCurrency } from '../../shared/hooks/useCurrency'
+import { formatNok } from '../../shared/price'
 
-// The API access add-on price isn't part of the plan catalog response (it's a flat backend
-// constant, see app/api/businesses.py's set_api_access_addon docstring) -- kept in sync here.
-// The Business-plan API add-on is still priced in USD in the backend (open
-// pricing question -- not on the website's NOK price list yet).
+// The discontinued Business-plan API add-on -- only shown to a business that already has it
+// (it can be cancelled, not newly enabled; API access is sold on Growth, see plans.py).
 const API_ADDON_USD = 12
 
 // max_languages: null means no numeric cap, but the widget only ever offers the curated
@@ -44,9 +43,7 @@ const FEATURE_LABELS: Record<string, (f: PlanCatalogEntry['features']) => string
 }
 
 function apiAccessLabel(features: PlanCatalogEntry['features']): string | null {
-  if (features.api_access) return 'API access included'
-  if (features.api_access_addon_available) return `API access (+$${API_ADDON_USD}/mo add-on)`
-  return null
+  return features.api_access ? 'API access included' : null
 }
 
 interface Website {
@@ -163,16 +160,8 @@ function ApiAccessCard() {
 
   return (
     <Card title="API access">
-      {!hasAccess && !isBusinessPlan && <PlanGate feature="api_access"><span /></PlanGate>}
-
-      {isBusinessPlan && !plan.api_access_addon && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-base text-slate-600">Add API access to your Business plan for +${API_ADDON_USD}/mo.</p>
-          <Button size="sm" loading={addonMut.isPending} onClick={() => addonMut.mutate(true)}>
-            Enable add-on
-          </Button>
-        </div>
-      )}
+      {/* QA 2026-10-02 (M2): the website sells API access on Growth only -- no Business add-on upsell. */}
+      {!hasAccess && <PlanGate feature="api_access"><span /></PlanGate>}
 
       {hasAccess && (
         <div className="space-y-3">
@@ -217,12 +206,14 @@ function planFeatureLines(entry: PlanCatalogEntry): string[] {
     limits.max_products === null ? 'Unlimited products' : `${limits.max_products} products in catalog`,
     limits.conversation_history_days === null
       ? 'Conversation history up to your retention setting (max 12 months)'
-      : `${limits.conversation_history_days}-day conversation history`,
+      : limits.conversation_history_days >= 365
+        ? 'Conversation history up to 12 months'
+        : `${limits.conversation_history_days}-day conversation history`,
     FEATURE_LABELS.email_notifications(features)!,
   ]
-  if (features.instagram_integration) lines.push('Instagram integration')
+  if (features.instagram_integration) lines.push(`Instagram integration${COMING_SOON_SUFFIX}`)
   if (limits.max_languages === null) lines.push(`Up to ${SUPPORTED_LANGUAGE_COUNT} languages`)
-  else if (limits.max_languages > 1) lines.push(`${limits.max_languages} languages`)
+  else if (limits.max_languages > 1) lines.push(`Up to ${limits.max_languages} languages`)
   if (features.multi_currency) lines.push('Multi-currency')
   if (features.custom_branding) lines.push('Custom branding')
   const apiLine = apiAccessLabel(features)
@@ -273,7 +264,7 @@ export function PlanPage() {
         </div>
         <div className="flex flex-col items-end gap-1">
           <CurrencySwitcher currency={currency} onChange={setCurrency} />
-          {converted && <p className="text-xs text-slate-500">Approximate. You're invoiced in NOK.</p>}
+          <p className="text-xs text-slate-500">Prices in NOK, excl. 25% VAT. You're invoiced in NOK.</p>
         </div>
       </div>
 
@@ -316,12 +307,18 @@ export function PlanPage() {
               <p className={clsx('text-sm mt-1', isPopular ? 'text-brand-50' : 'text-slate-500')}>{entry.tagline}</p>
               <p className="mt-4">
                 <span className={clsx('text-3xl font-bold', isPopular ? 'text-white' : 'text-slate-900')}>
-                  {format(entry.price_nok)}
+                  {formatNok(entry.price_nok)}
                 </span>
                 <span className={clsx('text-sm', isPopular ? 'text-brand-50' : 'text-slate-500')}>
                   {entry.price_nok === 0 ? ' forever' : '/mo excl. VAT'}
                 </span>
               </p>
+              {/* NOK is the real price (QA 2026-10-02, M1); EUR/USD is only a conversion. */}
+              {converted && entry.price_nok > 0 && (
+                <p className={clsx('text-xs', isPopular ? 'text-brand-50' : 'text-slate-500')}>
+                  ≈ {format(entry.price_nok)} at today's rate
+                </p>
+              )}
 
               <Button
                 className="mt-4 w-full justify-center"

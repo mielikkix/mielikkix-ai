@@ -85,11 +85,27 @@ def test_api_addon_only_available_on_business_plan(client, business):
     assert resp.status_code == 403
 
 
-def test_api_addon_toggle_on_business_plan(client, business, set_plan):
+def test_api_addon_can_no_longer_be_enabled_on_business(client, business, set_plan):
+    """API access is sold on Growth only (QA 2026-10-02, M2)."""
     set_plan(business["business_id"], "business")
     resp = client.patch("/api/businesses/me/plan/api-access-addon", headers=business["headers"], json={"enabled": True})
+    assert resp.status_code == 403
+
+
+def test_existing_api_addon_is_kept_and_can_be_cancelled(client, business, set_plan, db_session):
+    from app.models.business import Business
+
+    set_plan(business["business_id"], "business")
+    biz = db_session.query(Business).filter(Business.id == business["business_id"]).first()
+    biz.api_access_addon = True
+    db_session.commit()
+
+    status = client.get("/api/businesses/me/plan", headers=business["headers"]).json()
+    assert status["features"]["api_access"] is True
+
+    resp = client.patch("/api/businesses/me/plan/api-access-addon", headers=business["headers"], json={"enabled": False})
     assert resp.status_code == 200
-    assert resp.json()["features"]["api_access"] is True
+    assert resp.json()["features"]["api_access"] is False
 
 
 # ---------------------------------------------------------------------------

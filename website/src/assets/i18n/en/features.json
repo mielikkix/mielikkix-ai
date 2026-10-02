@@ -208,8 +208,8 @@
       "DESCRIPTION": "Show visitors you're a trusted, established business.",
       "ITEMS": [
         {
-          "TEXT": "Google reviews",
-          "AVAILABLE": true
+          "TEXT": "Google reviews — coming soon",
+          "AVAILABLE": false
         },
         {
           "TEXT": "Contact form",

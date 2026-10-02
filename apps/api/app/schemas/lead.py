@@ -65,8 +65,21 @@ class LeadCreate(BaseModel):
         return self
 
 
+# Pipeline stages the dashboard can set. DEMO_REQUESTED is the first stage of a
+# website demo request (lead_service.create_or_update_lead) and stays valid.
+LEAD_STATUSES = ("new", "DEMO_REQUESTED", "contacted", "won", "lost")
+
+
 class LeadUpdate(BaseModel):
-    status: str
+    status: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=5000)
+
+    @field_validator("status")
+    @classmethod
+    def _known_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in LEAD_STATUSES:
+            raise ValueError(f"status must be one of {', '.join(LEAD_STATUSES)}")
+        return v
 
 
 class LeadOut(BaseModel):
@@ -77,6 +90,7 @@ class LeadOut(BaseModel):
     phone: Optional[str]
     message: Optional[str]
     status: str
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     first_name: Optional[str] = None

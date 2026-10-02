@@ -126,12 +126,29 @@ async def fetch_sitemap_xml(sitemap_url: str, _depth: int = 0) -> List[str]:
     return [el.text.strip() for el in root.iter() if el.tag.lower().endswith("loc") and el.text]
 
 
+# Tried in order when robots.txt doesn't name a sitemap. sitemap-index.xml is
+# what Astro (mielikkix.ai itself) and many generators publish.
+_SITEMAP_NAMES = ("sitemap.xml", "sitemap_index.xml", "sitemap-index.xml")
+
+
 async def discover_sitemap_urls(base_url: str) -> List[str]:
-    """base_url is a site root (e.g. https://example.com) -- resolves it to
-    /sitemap.xml once, then hands off to fetch_sitemap_xml for the actual
-    fetch+parse(+nested-index-following)."""
-    sitemap_url = urljoin(base_url + "/", "sitemap.xml")
-    return await fetch_sitemap_xml(sitemap_url)
+    """base_url is a site root (e.g. https://example.com). Uses the sitemap(s)
+    robots.txt declares (`Sitemap:` lines), else the common file names.
+    QA 2026-10-02 (D8): only /sitemap.xml was tried, so a site publishing
+    /sitemap-index.xml (as its robots.txt says) silently fell back to a link
+    crawl -- "18 crawled of 18 discovered" while the sitemap lists 23."""
+    robots_text = await fetch_robots_txt_text(base_url)
+    declared = [
+        line.split(":", 1)[1].strip()
+        for line in (robots_text or "").splitlines()
+        if line.lower().startswith("sitemap:") and line.split(":", 1)[1].strip()
+    ]
+    candidates = declared + [urljoin(base_url + "/", name) for name in _SITEMAP_NAMES]
+    for sitemap_url in dict.fromkeys(candidates):
+        urls = await fetch_sitemap_xml(sitemap_url)
+        if urls:
+            return urls
+    return []
 
 
 def _normalized_host(netloc: str) -> str:

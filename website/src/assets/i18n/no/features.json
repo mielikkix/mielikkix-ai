@@ -208,8 +208,8 @@
       "DESCRIPTION": "Vis besøkende at du er en pålitelig, etablert bedrift.",
       "ITEMS": [
         {
-          "TEXT": "Google-anmeldelser",
-          "AVAILABLE": true
+          "TEXT": "Google-anmeldelser — kommer snart",
+          "AVAILABLE": false
         },
         {
           "TEXT": "Kontaktskjema",

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BUSINESS_STATUS_LABELS, businessStatusLabel } from '../../components/admin/businessStatus'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Search, ChevronRight, ChevronLeft } from 'lucide-react'
@@ -99,9 +100,9 @@ export function AdminBusinessesPage() {
             className="rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           >
             <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="trial">Trial</option>
-            <option value="suspended">Suspended</option>
+            <option value="active">{BUSINESS_STATUS_LABELS.active}</option>
+            <option value="trial">{BUSINESS_STATUS_LABELS.trial}</option>
+            <option value="suspended">{BUSINESS_STATUS_LABELS.suspended}</option>
           </select>
         </div>
       </Card>
@@ -137,8 +138,8 @@ export function AdminBusinessesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={clsx('text-sm px-2 py-1 rounded-full font-medium capitalize', STATUS_COLORS[b.status] || STATUS_COLORS.trial)}>
-                      {b.status}
+                    <span className={clsx('text-sm px-2 py-1 rounded-full font-medium', STATUS_COLORS[b.status] || STATUS_COLORS.trial)}>
+                      {businessStatusLabel(b.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500">

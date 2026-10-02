@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 import json
 import uuid
 from typing import List
@@ -10,6 +11,7 @@ from ..core.config import settings
 from ..core.database import SessionLocal
 from ..rag.embeddings import embed_texts
 from . import plan_service, web_crawl
+from .url_normalizer import normalize_url
 # The SSRF guard, robots/sitemap parsing, and page-discovery crawler live in
 # web_crawl.py (shared with the SEO Audit agent's crawler, see apps/agents/
 # seo-audit/CLAUDE.md Stage 2), so both use the same hardened fetch path.
@@ -80,7 +82,18 @@ def _chunk_text(text: str, size: int, overlap: int) -> List[str]:
     return chunks
 
 
+# Unfilled template markers such as "{{VERIFY: org. number}}" -- QA 2026-10-02
+# (D12) found them embedded from draft legal pages; never useful as knowledge.
+_PLACEHOLDER_RE = re.compile(r"\{\{[^{}]*\}\}")
+
+
 async def _fetch_url_text(url: str) -> str:
+    text, _title, _canonical = await _fetch_url_page(url)
+    return text
+
+
+async def _fetch_url_page(url: str) -> tuple[str, str | None, str | None]:
+    """(text, <title>, canonical URL) of a web page."""
     from bs4 import BeautifulSoup
 
     # fetch_with_redirects already re-validates every redirect hop with
@@ -92,14 +105,36 @@ async def _fetch_url_text(url: str) -> str:
         raise HTTPException(status_code=400, detail=f"URL returned status {resp.status_code}")
 
     soup = BeautifulSoup(resp.text, "html.parser")
+    title = soup.title.get_text(strip=True) if soup.title else None
+    canonical_tag = soup.find("link", rel=lambda v: v and "canonical" in (v if isinstance(v, list) else [v]))
+    canonical = canonical_tag.get("href") if canonical_tag else None
     for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
         tag.decompose()
-    lines = [line.strip() for line in soup.get_text(separator="\n").splitlines() if line.strip()]
-    return "\n".join(lines)
+    lines = []
+    for line in soup.get_text(separator="\n").splitlines():
+        line = _PLACEHOLDER_RE.sub("", line).strip()
+        if line:
+            lines.append(line)
+    return "\n".join(lines), (title or None), (canonical.strip() if canonical else None)
 
 
-async def ingest_url(db: Session, business_id: str, user_id: str, url: str) -> Document:
-    text = await _fetch_url_text(url)
+def _page_key(url: str) -> str:
+    return normalize_url(url)
+
+
+async def ingest_url(
+    db: Session, business_id: str, user_id: str, url: str, seen_keys: set[str] | None = None
+) -> Document | None:
+    """Imports one web page. With `seen_keys` (a site import), a page whose
+    canonical URL was already imported is skipped (returns None) -- QA
+    2026-10-02 (D12): six /demo/?product=... variants of one page were
+    imported separately."""
+    text, title, canonical = await _fetch_url_page(url)
+    if seen_keys is not None:
+        keys = {_page_key(url)} | ({_page_key(canonical)} if canonical else set())
+        if keys & seen_keys:
+            return None
+        seen_keys.update(keys)
 
     doc = Document(
         business_id=business_id,
@@ -108,12 +143,30 @@ async def ingest_url(db: Session, business_id: str, user_id: str, url: str) -> D
         file_type="url",
         status="processing",
         uploaded_by=user_id,
+        title=title,
     )
     db.add(doc)
     db.commit()
     db.refresh(doc)
 
     _embed_and_store(db, doc, text)
+    return doc
+
+
+def is_excluded(url: str, exclude: List[str]) -> bool:
+    lowered = url.lower()
+    return any(p.strip().lower() in lowered for p in exclude if p and p.strip())
+
+
+async def refetch_url_document(db: Session, doc: Document) -> Document:
+    """Re-imports a web page document in place (fresh text, new chunks) -- E6."""
+    text, title, _canonical = await _fetch_url_page(doc.file_url)
+    db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).delete(synchronize_session=False)
+    doc.title = title or doc.title
+    doc.status = "processing"
+    db.commit()
+    _embed_and_store(db, doc, text)
+    db.refresh(doc)
     return doc
 
 
@@ -132,6 +185,12 @@ async def crawl_and_ingest_website(business_id: str, user_id: str, urls: List[st
         if not business:
             return
 
+        # Pages already in the knowledge base, by normalized address, so a
+        # re-import doesn't add "https://x.com/a" next to "https://x.com/a/".
+        seen_keys = {
+            _page_key(row[0])
+            for row in db.query(Document.file_url).filter(Document.business_id == business_id, Document.file_type == "url")
+        }
         for url in urls:
             plan = plan_service.get_plan(business.plan)
             if plan.limits.max_document_uploads is not None:
@@ -139,16 +198,11 @@ async def crawl_and_ingest_website(business_id: str, user_id: str, urls: List[st
                 if current_count >= plan.limits.max_document_uploads:
                     break  # plan cap reached mid-crawl -- stop, don't raise (nothing to return this to)
 
-            already_exists = (
-                db.query(Document)
-                .filter(Document.business_id == business_id, Document.filename == url)
-                .first()
-            )
-            if already_exists:
+            if _page_key(url) in seen_keys:
                 continue
 
             try:
-                await ingest_url(db, business_id, user_id, url)
+                await ingest_url(db, business_id, user_id, url, seen_keys=seen_keys)
             except Exception:
                 continue  # one bad page shouldn't abort the rest of the crawl
 
@@ -192,6 +246,7 @@ async def ingest_document(
         file_type=ext,
         status="processing",
         uploaded_by=user_id,
+        title=file.filename,
     )
     db.add(doc)
     db.commit()
@@ -207,6 +262,7 @@ def _process_document(db: Session, doc: Document, path: str, ext: str):
 
 
 def _embed_and_store(db: Session, doc: Document, text: str):
+    doc.char_count = len(text)
     try:
         chunks = _chunk_text(text, settings.chunk_size, settings.chunk_overlap)
         embeddings = embed_texts(chunks)

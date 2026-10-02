@@ -73,3 +73,31 @@ async def test_primary_language_uses_base_fallback_without_translating(db_sessio
     await chat_service.handle_message(db_session, req)
 
     assert seen == ["Jeg har dessverre ikke informasjon om det."]
+
+
+def test_opening_settings_fills_missing_translations_once(client, business, db_session, monkeypatch):
+    """QA 2026-10-02 (D9): the Norwegian welcome message showed blank though the
+    help text says it's auto-filled -- the language predated the feature."""
+    from app.api import businesses
+
+    s = _settings(db_session, business["business_id"])
+    s.languages = ["en", "no"]
+    s.welcome_messages = {}
+    s.fallback_messages = {}
+    db_session.commit()
+
+    calls = []
+
+    async def _translate(text, target_language):
+        calls.append(target_language)
+        return f"[{target_language}] {text}"
+
+    monkeypatch.setattr(businesses, "get_llm_provider", lambda *a: SimpleNamespace(translate=_translate))
+
+    first = client.get("/api/businesses/me/settings", headers=business["headers"]).json()
+    second = client.get("/api/businesses/me/settings", headers=business["headers"]).json()
+
+    assert first["welcome_messages"]["no"].startswith("[Norwegian]")
+    assert first["fallback_messages"]["no"].startswith("[Norwegian]")
+    assert second["welcome_messages"] == first["welcome_messages"]
+    assert calls == ["Norwegian", "Norwegian"]  # one per text, never repeated

@@ -510,7 +510,8 @@ export const products: Product[] = [
         usage: 1,
         included: [{ label: t("Locations", "Lokasjoner"), value: 1 }],
         features: [
-          t("Google reviews", "Google-anmeldelser"),
+          t("Analysis and reply drafts for every review you add", "Analyse og svarutkast for hver anmeldelse du legger inn"),
+          soon("Automatic import of Google reviews", "Automatisk import av Google-anmeldelser"),
           t("AI reply drafts, published only after your approval", "AI-utkast til svar, publiseres først etter din godkjenning"),
           t("Sentiment and priority for every review", "Stemning og prioritet for hver anmeldelse"),
         ],
@@ -522,7 +523,8 @@ export const products: Product[] = [
         usage: 3,
         included: [{ label: t("Locations", "Lokasjoner"), value: 3, soon: true }],
         features: [
-          t("Google reviews", "Google-anmeldelser"),
+          t("Analysis and reply drafts for every review you add", "Analyse og svarutkast for hver anmeldelse du legger inn"),
+          soon("Automatic import of Google reviews", "Automatisk import av Google-anmeldelser"),
           t("AI reply drafts, published only after your approval", "AI-utkast til svar, publiseres først etter din godkjenning"),
           t("Sentiment and priority for every review", "Stemning og prioritet for hver anmeldelse"),
           soon("Facebook and Trustpilot reviews", "Anmeldelser fra Facebook og Trustpilot"),
@@ -535,7 +537,8 @@ export const products: Product[] = [
         usage: 10,
         included: [{ label: t("Locations", "Lokasjoner"), value: 10, soon: true }],
         features: [
-          t("Google reviews", "Google-anmeldelser"),
+          t("Analysis and reply drafts for every review you add", "Analyse og svarutkast for hver anmeldelse du legger inn"),
+          soon("Automatic import of Google reviews", "Automatisk import av Google-anmeldelser"),
           t("AI reply drafts, published only after your approval", "AI-utkast til svar, publiseres først etter din godkjenning"),
           t("Sentiment and priority for every review", "Stemning og prioritet for hver anmeldelse"),
           soon("Facebook and Trustpilot reviews", "Anmeldelser fra Facebook og Trustpilot"),

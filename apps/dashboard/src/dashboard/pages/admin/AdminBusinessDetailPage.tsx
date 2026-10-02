@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BUSINESS_STATUS_LABELS, businessStatusLabel } from '../../components/admin/businessStatus'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Gauge, Ban, PlayCircle, TriangleAlert, CreditCard } from 'lucide-react'
@@ -130,8 +131,8 @@ export function AdminBusinessDetailPage() {
               <option key={p.key} value={p.key}>{p.label}</option>
             ))}
           </select>
-          <span className={clsx('text-sm px-3 py-1.5 rounded-full font-medium capitalize', STATUS_COLORS[data.status] || STATUS_COLORS.trial)}>
-            {data.status}
+          <span className={clsx('text-sm px-3 py-1.5 rounded-full font-medium', STATUS_COLORS[data.status] || STATUS_COLORS.trial)}>
+            {businessStatusLabel(data.status)}
           </span>
           {data.status === 'suspended' ? (
             <Button size="sm" variant="secondary" loading={statusMut.isPending} onClick={() => statusMut.mutate('active')}>
@@ -172,8 +173,8 @@ export function AdminBusinessDetailPage() {
               <span className="font-semibold capitalize">{pendingPlan}</span>? No payment is being taken — self-serve
               upgrades are Free-only until a real payment processor is connected, so this is the only way a business
               gets a paid plan today.
-              {pendingPlan !== 'free' && data.status !== 'suspended' && ' Status will be set to Active.'}
-              {pendingPlan === 'free' && data.status !== 'suspended' && ' Status will be set to Trial.'}
+              {pendingPlan !== 'free' && data.status !== 'suspended' && ` Status will be set to ${BUSINESS_STATUS_LABELS.active}.`}
+              {pendingPlan === 'free' && data.status !== 'suspended' && ` Status will be set to ${BUSINESS_STATUS_LABELS.trial}.`}
             </p>
             <div className="flex gap-2">
               <Button size="sm" variant="secondary" onClick={() => setPendingPlan(null)}>Cancel</Button>

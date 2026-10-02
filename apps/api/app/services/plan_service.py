@@ -8,7 +8,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from ..core.plans import PLANS, get_plan, NOT_YET_IMPLEMENTED_FEATURES
@@ -33,6 +33,7 @@ def get_usage(db: Session, business_id) -> dict:
     conversations_this_month = db.query(func.count(Conversation.id)).filter(
         Conversation.business_id == business_id,
         Conversation.started_at >= _current_month_start(),
+        not_test_chat(),
     ).scalar() or 0
 
     documents = db.query(func.count(Document.id)).filter(
@@ -54,9 +55,9 @@ def get_usage(db: Session, business_id) -> dict:
 def resolve_features(business: Business) -> dict:
     """Plan features, adjusted for per-business overrides.
 
-    Right now the only override is API access: Business-tier customers
-    don't get it by default, but can buy the add-on (business.api_access_addon).
-    Growth includes it outright, so the add-on flag is irrelevant there.
+    Right now the only override is API access: Growth includes it, and a
+    Business-tier customer who bought the (now discontinued) add-on keeps it
+    (business.api_access_addon). It can no longer be newly enabled.
     """
     plan = get_plan(business.plan)
     features = asdict(plan.features)
@@ -151,10 +152,17 @@ def conversation_hard_cap(limit: int) -> int:
     return limit + int(limit * CONVERSATION_GRACE_RATIO)
 
 
+def not_test_chat():
+    """Filter for real visitor conversations: the dashboard's "Test your chatbot"
+    chats never count toward limits or stats. NULL-safe (older rows)."""
+    return or_(Conversation.channel.is_(None), Conversation.channel != "dashboard_test")
+
+
 def _conversations_this_month(db: Session, business: Business) -> int:
     return db.query(func.count(Conversation.id)).filter(
         Conversation.business_id == business.id,
         Conversation.started_at >= _current_month_start(),
+        not_test_chat(),
     ).scalar() or 0
 
 

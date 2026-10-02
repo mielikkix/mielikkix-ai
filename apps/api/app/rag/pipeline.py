@@ -1,6 +1,8 @@
 import json
+import logging
 import math
 import re
+import time
 from typing import Dict, List, Tuple, Optional
 from sqlalchemy.orm import Session
 from ..models.document import DocumentChunk
@@ -9,6 +11,8 @@ from ..models.product import Product
 from ..models.llm_usage import LLMUsageLog
 from .embeddings import embed_query
 from .providers import get_llm_provider
+
+logger = logging.getLogger(__name__)
 
 
 def _cosine_similarity(a: List[float], b: List[float]) -> float:
@@ -123,7 +127,23 @@ async def run_rag(
         return (fallback_message or default_fallback, intent, 0.0)
 
     provider = get_llm_provider(llm_provider, llm_model)
-    reply = await provider.generate(message, context, tone, history, languages)
+    started = time.monotonic()
+    try:
+        reply = await provider.generate(message, context, tone, history, languages)
+    except Exception:
+        # Provider down, rate-limited past our one retry, or timed out: give the
+        # visitor the business's own fallback (confidence 0 -> the widget offers
+        # the lead form) instead of a 500 and a "didn't send" error.
+        logger.exception("chat_llm_failed business_id=%s provider=%s", business_id, llm_provider)
+        default_fallback = "I don't have specific information about that right now. Would you like me to connect you with our team?"
+        return (fallback_message or default_fallback, intent, 0.0)
+    elapsed = time.monotonic() - started
+    if elapsed > 8:
+        logger.warning("chat_llm_slow business_id=%s provider=%s seconds=%.1f", business_id, llm_provider, elapsed)
+    if not (reply or "").strip():
+        # Reasoning models can spend the whole token budget thinking and return no text.
+        default_fallback = "I don't have specific information about that right now. Would you like me to connect you with our team?"
+        return (fallback_message or default_fallback, intent, 0.0)
     log_llm_usage(db, business_id, llm_provider, provider, kind="chat")
     return reply, intent, best_score
 

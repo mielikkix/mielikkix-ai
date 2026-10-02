@@ -41,6 +41,7 @@ interface SeoAudit {
   status: 'pending' | 'running' | 'completed' | 'failed'
   pages_discovered: number
   pages_crawled: number
+  pages_in_sitemap?: number | null
   pages_blocked: number
   health_technical: number | null
   health_on_page: number | null
@@ -835,6 +836,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
             {latestAudit.pages_crawled} crawled
             {latestAudit.pages_discovered > 0 && ` of ${latestAudit.pages_discovered} discovered`}
             {latestAudit.pages_blocked > 0 && ` · ${latestAudit.pages_blocked} blocked`}
+            {latestAudit.pages_in_sitemap != null && ` · ${latestAudit.pages_in_sitemap} in your sitemap`}
           </span>
           {latestAudit.status === 'completed' && (
             <Button className="ml-auto" size="sm" variant="ghost" onClick={() => setShowFindings((v) => !v)}>

@@ -190,9 +190,10 @@ function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStat
   if (!status?.configured) {
     return (
       <Card title="Mailchimp">
+        {/* QA 2026-10-02 (D5): this read "isn't set up for this environment yet" -- developer wording. */}
         <p className="text-sm text-slate-500">
-          Mailchimp connection isn't set up for this environment yet. Once it's configured, you'll be able to
-          connect your real Mailchimp account here.
+          <span className="mr-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Coming soon</span>
+          Connecting your own Mailchimp account isn't available yet. We'll let you know as soon as it is.
         </p>
       </Card>
     )

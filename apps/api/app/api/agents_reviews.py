@@ -5,6 +5,8 @@ that service, the same split app/api/agents_seo.py uses for app/services/
 seo_service.py.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
@@ -16,6 +18,8 @@ from ..integrations.google_reviews_client import GoogleReviewsError
 from ..models.business import Business
 from ..models.user import User
 from ..services import agent_access_service, review_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/agents/reviews", tags=["review-reputation"])
 
@@ -148,6 +152,34 @@ async def import_reviews(
         # IS implemented, this specific call to it just didn't succeed.
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return [_ReviewOut.from_orm_review(r) for r in reviews]
+
+
+@router.delete("/samples")
+def delete_sample_reviews(
+    current_user: User = Depends(get_current_user),
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    """Deletes the sample reviews added by "Import sample reviews"."""
+    _require_enabled(db, business)
+    return {"deleted": review_service.delete_sample_reviews(db, str(current_user.business_id))}
+
+
+class _AnalyzePendingOut(BaseModel):
+    analyzed: int
+    still_pending: int
+
+
+@router.post("/analyze-pending", response_model=_AnalyzePendingOut)
+async def analyze_pending(
+    current_user: User = Depends(get_current_user),
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    """Retries every review that hasn't been analyzed yet (or whose analysis failed)."""
+    _require_enabled(db, business)
+    analyzed, still_pending = await review_service.analyze_pending(db, str(current_user.business_id))
+    return _AnalyzePendingOut(analyzed=analyzed, still_pending=still_pending)
 
 
 @router.post("/{review_id}/analyze", response_model=_ReviewOut)
@@ -297,6 +329,8 @@ class _InsightsOut(BaseModel):
     reviews_requiring_attention: int
     insufficient_data: bool
     summary: str | None = None
+    total_reviews: int = 0
+    unanalyzed_count: int = 0
 
 
 @router.get("/insights", response_model=_InsightsOut)
@@ -311,7 +345,13 @@ async def get_insights(
     insights = review_service.get_insights(db, str(current_user.business_id), days)
     summary = None
     if include_summary and not insights.insufficient_data:
-        summary = await review_service.generate_reputation_summary(db, str(current_user.business_id), days)
+        # The numbers never depend on the AI summary -- QA 2026-10-02 (D1): when
+        # this LLM call failed, the whole endpoint 500'd and every stat card on
+        # the Reviews page fell back to 0 / "-" while 8 reviews were listed.
+        try:
+            summary = await review_service.generate_reputation_summary(db, str(current_user.business_id), days)
+        except Exception:
+            logger.exception("reputation summary failed business_id=%s", current_user.business_id)
     return _InsightsOut(
         review_count=insights.review_count,
         average_rating=insights.average_rating,
@@ -321,6 +361,8 @@ async def get_insights(
         reviews_requiring_attention=insights.reviews_requiring_attention,
         insufficient_data=insights.insufficient_data,
         summary=summary,
+        total_reviews=insights.total_reviews,
+        unanalyzed_count=insights.unanalyzed_count,
     )
 
 

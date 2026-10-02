@@ -5,6 +5,7 @@ import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react'
+import { KnowledgeIssuesCard } from '../components/KnowledgeIssuesCard'
 
 interface FAQ {
   id: string
@@ -63,6 +64,8 @@ export function FAQsPage() {
           <Plus size={16} className="mr-1" /> Add FAQ
         </Button>
       </div>
+
+      <KnowledgeIssuesCard />
 
       {adding && (
         <Card title="New FAQ">

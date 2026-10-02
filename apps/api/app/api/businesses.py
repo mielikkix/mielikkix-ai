@@ -2,7 +2,7 @@ from typing import Dict
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..core.database import get_db
-from ..core.dependencies import get_current_user, get_current_business
+from ..core.dependencies import get_current_user, get_current_business, is_platform_admin
 from ..models.user import User
 from ..models.business import Business, BusinessSettings
 from ..schemas.business import (
@@ -126,10 +126,19 @@ def update_my_business(
 
 
 @router.get("/me/settings", response_model=BusinessSettingsOut)
-def get_settings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_settings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     s = db.query(BusinessSettings).filter(BusinessSettings.business_id == current_user.business_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Settings not found")
+    # QA 2026-10-02 (D9): a language enabled before per-language greetings
+    # existed (or while translation was unavailable) showed a blank Norwegian
+    # welcome message though the help text says it's auto-filled. Fill what's
+    # missing now -- once per language; later opens find nothing to do.
+    before = (dict(s.welcome_messages or {}), dict(s.fallback_messages or {}))
+    await _fill_missing_translations(db, s)
+    if (dict(s.welcome_messages or {}), dict(s.fallback_messages or {})) != before:
+        db.commit()
+        db.refresh(s)
     return s
 
 
@@ -142,6 +151,27 @@ async def update_settings(
 ):
     s = db.query(BusinessSettings).filter(BusinessSettings.business_id == current_user.business_id).first()
     updates = update.model_dump(exclude_none=True)
+    # The AI provider/model is the platform operator's choice, not a customer
+    # setting (QA 2026-10-02, D9) -- the dashboard only shows it to admins.
+    if not is_platform_admin(current_user):
+        for field in ("llm_provider", "llm_model"):
+            if field in updates and updates[field] != getattr(s, field):
+                raise HTTPException(status_code=403, detail="The AI provider is managed by Mielikkix.")
+            updates.pop(field, None)
+    # Retention can't be raised beyond the plan's conversation history (QA
+    # 2026-10-02, M5). An existing longer value (e.g. the 90-day default on
+    # Free) is kept, and lowering it is always allowed.
+    history_days = plan_service.get_plan(business.plan).limits.conversation_history_days
+    new_retention = updates.get("conversation_retention_days")
+    if (
+        new_retention is not None
+        and history_days is not None
+        and new_retention > max(history_days, s.conversation_retention_days or 0)
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Your plan includes up to {history_days} days of conversation history. Upgrade to keep conversations longer.",
+        )
     if "languages" in updates:
         plan_service.check_language_limit(business, updates["languages"])
     if updates.get("privacy_policy_url") == "":
@@ -215,12 +245,13 @@ def set_api_access_addon(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
-    """Toggle the Business-tier "+$12/mo API access" add-on. Growth doesn't
-    need this (API access is already included); Free/Basic don't offer it."""
-    if not plan_service.get_plan(business.plan).features.api_access_addon_available:
+    """The discontinued Business-tier API add-on: it can still be switched
+    OFF by a business that has it, but no longer newly enabled -- API access
+    is sold on Growth only (QA 2026-10-02, M2)."""
+    if body.enabled and not plan_service.get_plan(business.plan).features.api_access_addon_available:
         raise HTTPException(
             status_code=403,
-            detail="The API access add-on is only available on the Business plan.",
+            detail="API access is included on the Growth plan. Upgrade to Growth to use the API.",
         )
     business.api_access_addon = body.enabled
     db.commit()

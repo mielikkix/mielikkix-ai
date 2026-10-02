@@ -28,7 +28,9 @@ export const SUPPORTED_CURRENCIES: CurrencyDefinition[] = [CURRENCIES.EUR, CURRE
 export const BASE_CURRENCY: CurrencyCode = 'NOK'
 
 /** The dashboard is English, and English defaults to EUR (same as the website). */
-export const DEFAULT_CURRENCY: CurrencyCode = 'EUR'
+// NOK: prices are fixed and invoiced in NOK, the same as mielikkix.ai -- QA 2026-10-02 (M1)
+// saw Plan & Billing in EUR only. EUR/USD stay one click away in the switcher.
+export const DEFAULT_CURRENCY: CurrencyCode = 'NOK'
 
 const STORAGE_KEY = 'mielikkix_dashboard_currency'
 

@@ -7,7 +7,7 @@ from ..models.user import User
 from ..models.business import Business
 from ..models.website import BusinessWebsite
 from ..schemas.website import WebsiteCreate, WebsiteOut
-from ..services import plan_service
+from ..services import plan_service, website_service
 
 router = APIRouter(prefix="/api/websites", tags=["websites"])
 
@@ -26,8 +26,13 @@ def add_website(
     business: Business = Depends(get_current_business),
     db: Session = Depends(get_db),
 ):
+    domain = website_service.normalize_domain(body.domain)
+    if not domain:
+        raise HTTPException(status_code=422, detail="Enter a website address, e.g. yourbusiness.com")
+    if website_service.find(db, business.id, domain):
+        raise HTTPException(status_code=409, detail=f"{domain} is already registered.")
     plan_service.check_website_limit(db, business)
-    website = BusinessWebsite(business_id=business.id, domain=body.domain, label=body.label)
+    website = BusinessWebsite(business_id=business.id, domain=domain, label=body.label)
     db.add(website)
     db.commit()
     db.refresh(website)

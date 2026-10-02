@@ -45,6 +45,7 @@ from . import (
     web_crawl,
 )
 from .seo_finding_common import FindingDraft
+from .url_normalizer import normalize_url
 
 
 def _persist_findings(db: Session, audit: SeoAudit, drafts: list[FindingDraft]) -> None:
@@ -194,6 +195,9 @@ async def run_audit(audit_id: str) -> None:
             sitemap_urls = await web_crawl.discover_sitemap_urls(site_root)
         except Exception:
             sitemap_urls = []
+        audit.pages_in_sitemap = (
+            len({normalize_url(u) for u in sitemap_urls if web_crawl.looks_like_page(u)}) if sitemap_urls else None
+        )
 
         # Stage 13: structured data analyzer -- folded into health_technical
         # (schema markup validity is a crawlability/rich-snippet-eligibility

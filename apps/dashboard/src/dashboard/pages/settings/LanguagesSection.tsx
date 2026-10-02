@@ -17,12 +17,13 @@ interface Props {
 }
 
 export function LanguagesSection({ languages, maxLanguages, toggleLanguage, languagesMut }: Props) {
+  // undefined = plan not loaded yet (treat as 1); null limits arrive here as undefined too.
   const effectiveMax = maxLanguages ?? 1
   return (
     <Card title="Languages">
       <div className="space-y-3">
         <p className="text-sm text-slate-500">
-          {languages.length} / {maxLanguages ?? '—'} language{effectiveMax === 1 ? '' : 's'} selected
+          {languages.length} of {maxLanguages ?? 1} language{effectiveMax === 1 ? '' : 's'} on your plan selected
         </p>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_LANGUAGES.map(({ code, label }) => {

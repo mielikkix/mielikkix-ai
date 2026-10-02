@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../../shared/api/client'
+import { useAuthStore } from '../../shared/store/authStore'
 import { usePlan, useAgentAccess } from '../../shared/hooks/usePlan'
 import { SettingsNav, SettingsTab, isSettingsTab } from '../components/SettingsNav'
 import { PersonalitySection } from './settings/PersonalitySection'
@@ -27,6 +28,7 @@ import {
 // section's own slice of state, or an unsaved edit in one section could
 // silently vanish when the visitor switches away and back before saving.
 export function SettingsPage() {
+  const isPlatformAdmin = useAuthStore((st) => st.user?.is_platform_admin)
   const qc = useQueryClient()
   const { data } = useQuery<Settings>({
     queryKey: ['settings'],
@@ -63,8 +65,8 @@ export function SettingsPage() {
       api.patch('/businesses/me/settings', {
         contact_email: form.contact_email,
         contact_phone: form.contact_phone,
-        llm_provider: form.llm_provider,
-        llm_model: form.llm_model,
+        // The AI provider is a platform-admin setting (QA 2026-10-02, D9) -- customers never send it.
+        ...(isPlatformAdmin ? { llm_provider: form.llm_provider, llm_model: form.llm_model } : {}),
         // "" clears it server-side; the select stores a string, the API wants an int.
         privacy_policy_url: form.privacy_policy_url ?? '',
         conversation_retention_days: Number(form.conversation_retention_days ?? 90),
@@ -91,7 +93,8 @@ export function SettingsPage() {
 
   const { data: plan } = usePlan()
   const customBrandingAllowed = !!plan?.features.custom_branding
-  const maxLanguages = plan?.limits.max_languages ?? 1
+  // null = no numeric cap (the widget still only offers AVAILABLE_LANGUAGES); a missing plan = 1.
+  const maxLanguages = plan ? plan.limits.max_languages ?? Infinity : 1
 
   const languages = form.languages ?? ['en']
   const fallbackMessages = form.fallback_messages ?? {}
@@ -229,7 +232,15 @@ export function SettingsPage() {
               businessHoursMut={businessHoursMut}
             />
           )}
-          {tab === 'advanced' && <AdvancedSection form={form} set={set} advancedMut={advancedMut} />}
+          {tab === 'advanced' && (
+            <AdvancedSection
+              form={form}
+              set={set}
+              advancedMut={advancedMut}
+              isPlatformAdmin={!!isPlatformAdmin}
+              maxRetentionDays={plan?.limits.conversation_history_days ?? null}
+            />
+          )}
           {tab === 'privacy' && <PrivacySection />}
         </div>
       </div>

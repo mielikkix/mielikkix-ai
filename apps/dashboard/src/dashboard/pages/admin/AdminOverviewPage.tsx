@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { businessStatusLabel } from '../../components/admin/businessStatus'
 import { Building2, MessageSquare, Users, FileText } from 'lucide-react'
 import { api } from '../../../shared/api/client'
 import { Card } from '../../../shared/components/Card'
@@ -81,7 +82,7 @@ export function AdminOverviewPage() {
           <div className="space-y-2">
             {Object.entries(data?.businesses_by_status ?? {}).map(([status, count]) => (
               <div key={status} className="flex items-center justify-between text-base">
-                <span className="capitalize text-slate-600">{status}</span>
+                <span className="text-slate-600">{businessStatusLabel(status)}</span>
                 <span className="font-semibold text-slate-900">{count}</span>
               </div>
             ))}

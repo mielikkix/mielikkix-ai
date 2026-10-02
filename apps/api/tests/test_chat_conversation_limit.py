@@ -82,16 +82,18 @@ def test_history_hides_conversations_older_than_free_plan_window(client, busines
     assert session_ids == {"recent"}
 
 
-def test_history_unlimited_on_business_plan(client, business, db_session, set_plan):
+def test_history_up_to_12_months_on_business_plan(client, business, db_session, set_plan):
+    """The website sells Business with "up to 12 months" of history (QA 2026-10-02, M5)."""
     set_plan(business["business_id"], "business")
-    old = Conversation(business_id=business["business_id"], session_id="ancient")
-    old.started_at = datetime.now(timezone.utc) - timedelta(days=400)
-    db_session.add(old)
+    for session_id, age_days in [("recent", 200), ("ancient", 400)]:
+        conv = Conversation(business_id=business["business_id"], session_id=session_id)
+        conv.started_at = datetime.now(timezone.utc) - timedelta(days=age_days)
+        db_session.add(conv)
     db_session.commit()
 
     resp = client.get("/api/chat/conversations", headers=business["headers"])
     session_ids = {c["session_id"] for c in resp.json()}
-    assert "ancient" in session_ids
+    assert session_ids == {"recent"}
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Literal, Optional, List
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
@@ -54,6 +54,20 @@ class ConversationOut(BaseModel):
     status: str
     started_at: datetime
     messages: List[MessageOut] = []
+    channel: Optional[str] = None
+    language: Optional[str] = None
+    preview: Optional[str] = None
+    last_message_at: Optional[datetime] = None
+
+
+class ConversationStatusUpdate(BaseModel):
+    status: Literal["open", "closed"]
+
+
+class TestChatRequest(BaseModel):
+    """The dashboard's "Test your chatbot" panel (QA 2026-10-02, E5)."""
+    session_id: str = Field(min_length=1, max_length=MAX_ID_CHARS)
+    message: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_CHARS)
 
     class Config:
         from_attributes = True

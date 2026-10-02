@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -12,6 +14,25 @@ from ..services import plan_service
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
+_WORD_RE = re.compile(r"[\w']+", re.UNICODE)
+
+
+def top_visitor_questions(rows, limit: int = 5) -> list[tuple[str, int]]:
+    """rows: (conversation_id, message). Groups case/punctuation variants, counts
+    each conversation once per question, skips messages under 2 words or 6
+    letters ("how?", "hi"), and shows the most recent wording of each."""
+    seen: dict[str, set] = {}
+    shown: dict[str, str] = {}
+    for conversation_id, text in rows:
+        words = _WORD_RE.findall((text or "").lower())
+        if len(words) < 2 or sum(len(w) for w in words) < 6:
+            continue
+        key = " ".join(words)
+        seen.setdefault(key, set()).add(conversation_id)
+        shown.setdefault(key, text.strip())
+    ranked = sorted(seen.items(), key=lambda kv: len(kv[1]), reverse=True)[:limit]
+    return [(shown[key], len(convs)) for key, convs in ranked]
+
 
 @router.get("/summary", response_model=AnalyticsSummary)
 def get_summary(
@@ -22,8 +43,9 @@ def get_summary(
     business_id = current_user.business_id
     tier = plan_service.resolve_analytics_tier(business)  # "basic" | "standard" | "advanced"
 
+    real = plan_service.not_test_chat()  # the dashboard's test chats never count
     conv_count = db.query(func.count(Conversation.id)).filter(
-        Conversation.business_id == business_id
+        Conversation.business_id == business_id, real
     ).scalar()
 
     lead_count = db.query(func.count(Lead.id)).filter(
@@ -33,7 +55,7 @@ def get_summary(
     msg_count = (
         db.query(func.count(Message.id))
         .join(Conversation, Message.conversation_id == Conversation.id)
-        .filter(Conversation.business_id == business_id, Message.sender == "visitor")
+        .filter(Conversation.business_id == business_id, real, Message.sender == "visitor")
         .scalar()
     )
 
@@ -41,24 +63,29 @@ def get_summary(
     # question/intent breakdowns are a "standard"/"advanced" perk.
     top_questions: list[TopQuestion] = []
     if tier in ("standard", "advanced"):
-        top_rows = (
-            db.query(Message.content, func.count(Message.id).label("cnt"))
+        # QA 2026-10-02 (D10): "how?" was the top question (8 times). Each
+        # question now counts once per conversation, near-identical wording is
+        # grouped, and one-word / very short messages are left out.
+        rows = (
+            db.query(Message.conversation_id, Message.content)
             .join(Conversation, Message.conversation_id == Conversation.id)
-            .filter(Conversation.business_id == business_id, Message.sender == "visitor")
-            .group_by(Message.content)
-            .order_by(func.count(Message.id).desc())
-            .limit(5)
+            .filter(Conversation.business_id == business_id, real, Message.sender == "visitor")
+            .order_by(Message.created_at.desc())
+            .limit(5000)
             .all()
         )
-        top_questions = [TopQuestion(question=r.content, count=r.cnt) for r in top_rows]
+        top_questions = [TopQuestion(question=text, count=n) for text, n in top_visitor_questions(rows)]
 
     intent_breakdown: dict[str, int] = {}
     if tier == "advanced":
+        # Conversations per intent, not messages (QA 2026-10-02, D10: the
+        # counts added up to 112 messages while there were 37 conversations).
         intent_rows = (
-            db.query(Message.intent, func.count(Message.id).label("cnt"))
+            db.query(Message.intent, func.count(func.distinct(Message.conversation_id)).label("cnt"))
             .join(Conversation, Message.conversation_id == Conversation.id)
             .filter(
                 Conversation.business_id == business_id,
+                real,
                 Message.sender == "ai",
                 Message.intent.isnot(None),
             )

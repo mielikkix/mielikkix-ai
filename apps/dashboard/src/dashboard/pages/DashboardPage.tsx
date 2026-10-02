@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { MessageSquare, Users, TrendingUp, Code, Lock } from 'lucide-react'
+import { usePlan } from '../../shared/hooks/usePlan'
+import { UsageMeter } from '../../shared/components/UsageMeter'
+import { TestChatbotCard } from '../components/TestChatbotCard'
 
 interface Summary {
   conversation_count: number
@@ -24,6 +27,7 @@ export function DashboardPage() {
     queryKey: ['analytics'],
     queryFn: () => api.get('/analytics/summary').then((r) => r.data),
   })
+  const { data: plan } = usePlan()
   const { data: business } = useQuery<Business>({
     queryKey: ['business'],
     queryFn: () => api.get('/businesses/me').then((r) => r.data),
@@ -64,6 +68,26 @@ export function DashboardPage() {
         ))}
       </div>
 
+      {/* QA 2026-10-02 (E4): usage against the plan, where the owner looks first. */}
+      {plan && (
+        <Card>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="min-w-[14rem] flex-1">
+              <UsageMeter
+                label={`AI conversations this month (${plan.plan_name} plan)`}
+                used={plan.usage.conversations_this_month}
+                limit={plan.limits.max_conversations_per_month}
+              />
+            </div>
+            <Link to="/dashboard/plan" className="text-sm font-semibold text-brand-600 hover:underline">
+              Plan &amp; usage
+            </Link>
+          </div>
+        </Card>
+      )}
+
+      <TestChatbotCard />
+
       {summary?.analytics_tier === 'basic' && (
         <Card title="Top visitor questions">
           <div className="flex items-center gap-3 text-base text-slate-500">
@@ -87,7 +111,7 @@ export function DashboardPage() {
                       : 'flex-shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-sm font-bold text-violet-700'
                   }
                 >
-                  {q.count}×
+                  {q.count} chat{q.count === 1 ? '' : 's'}
                 </span>
               </li>
             ))}
@@ -96,12 +120,14 @@ export function DashboardPage() {
       )}
 
       {summary?.analytics_tier === 'advanced' && Object.keys(summary.intent_breakdown).length > 0 && (
-        <Card title="Conversation intent breakdown">
+        <Card title="Conversations by intent">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Object.entries(summary.intent_breakdown).map(([intent, count]) => (
               <div key={intent} className="rounded-xl bg-slate-50 p-3 text-center">
                 <p className="text-2xl font-bold text-slate-900">{count}</p>
-                <p className="text-sm capitalize text-slate-500">{intent.replace('_', ' ')}</p>
+                <p className="text-sm capitalize text-slate-500">
+                  {intent.replace('_', ' ')} · conversation{count === 1 ? '' : 's'}
+                </p>
               </div>
             ))}
           </div>

@@ -141,6 +141,7 @@ export function PrivacySection() {
           What you agreed to and when. Read the current <a className="text-brand-600 underline" href={LEGAL_URLS.terms} target="_blank" rel="noopener noreferrer">Terms</a>,{' '}
           <a className="text-brand-600 underline" href={LEGAL_URLS.dpa} target="_blank" rel="noopener noreferrer">DPA</a> and{' '}
           <a className="text-brand-600 underline" href={LEGAL_URLS.privacy} target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+          {' '}The Privacy Policy explains how we handle your data; it isn't something you agree to, so it isn't listed below.
         </p>
         {data.history.length === 0 ? (
           <p className="text-base text-slate-500">No records yet.</p>

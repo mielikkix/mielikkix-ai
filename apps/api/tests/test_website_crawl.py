@@ -105,7 +105,7 @@ async def test_crawl_skips_url_that_already_exists_as_document(client, business,
 
     calls = []
 
-    async def fake_ingest_url(db, business_id, user_id, url):
+    async def fake_ingest_url(db, business_id, user_id, url, **kwargs):
         calls.append(url)
 
     monkeypatch.setattr(document_service, "ingest_url", fake_ingest_url)
@@ -117,7 +117,7 @@ async def test_crawl_skips_url_that_already_exists_as_document(client, business,
 
 @pytest.mark.asyncio
 async def test_crawl_continues_after_one_page_fails(business, db_session, monkeypatch, use_test_db_for_crawl):
-    async def flaky_ingest_url(db, business_id, user_id, url):
+    async def flaky_ingest_url(db, business_id, user_id, url, **kwargs):
         if "bad" in url:
             raise RuntimeError("simulated fetch failure")
         db.add(Document(business_id=business_id, filename=url, file_url=url, file_type="url", status="embedded"))
@@ -133,7 +133,7 @@ async def test_crawl_continues_after_one_page_fails(business, db_session, monkey
 
 @pytest.mark.asyncio
 async def test_crawl_stops_once_plan_document_cap_is_reached(business, db_session, monkeypatch, use_test_db_for_crawl):
-    async def fake_ingest_url(db, business_id, user_id, url):
+    async def fake_ingest_url(db, business_id, user_id, url, **kwargs):
         db.add(Document(business_id=business_id, filename=url, file_url=url, file_type="url", status="embedded"))
         db.commit()
 
@@ -145,3 +145,72 @@ async def test_crawl_stops_once_plan_document_cap_is_reached(business, db_sessio
     # though 5 URLs were queued.
     saved = db_session.query(Document).filter(Document.business_id == business["business_id"]).all()
     assert len(saved) == 2
+
+
+# --- QA 2026-10-02 (D12/E6) ------------------------------------------------
+
+from types import SimpleNamespace
+
+
+def _page(html):
+    async def fake_fetch(url, max_bytes=None):
+        return SimpleNamespace(status_code=200, text=html(url)), [url]
+
+    return fake_fetch
+
+
+@pytest.mark.asyncio
+async def test_query_variants_of_one_page_are_imported_once(business, db_session, monkeypatch, use_test_db_for_crawl, mock_embeddings):
+    """Six /demo/?product=... links to the same page (one canonical) were imported separately."""
+    html = lambda url: (
+        '<html><head><title>Book a demo</title><link rel="canonical" href="https://greenleaf.test/demo/"></head>'
+        "<body><p>Book a free demo.</p><p>Org. number: {{VERIFY: org. number}}</p></body></html>"
+    )
+    monkeypatch.setattr(document_service.web_crawl, "fetch_with_redirects", _page(html))
+    urls = [f"https://greenleaf.test/demo/?product={p}" for p in ("chat-widget", "seo-audit", "voice")]
+    from app.models.user import User
+
+    user_id = str(db_session.query(User).filter(User.business_id == business["business_id"]).first().id)
+    await document_service.crawl_and_ingest_website(business["business_id"], user_id, urls)
+
+    docs = db_session.query(Document).filter(Document.business_id == business["business_id"]).all()
+    assert len(docs) == 1
+    assert docs[0].title == "Book a demo"
+    chunks = " ".join(c.content for c in docs[0].chunks)
+    assert "Book a free demo." in chunks and "{{" not in chunks and "VERIFY" not in chunks
+    assert docs[0].char_count and docs[0].char_count > 0
+
+
+def test_from_website_respects_exclusions(client, business, monkeypatch):
+    queued = {}
+
+    async def fake_discover(url):
+        return ["https://greenleaf.test/", "https://greenleaf.test/privacy", "https://greenleaf.test/menu"]
+
+    async def fake_crawl(business_id, user_id, urls):
+        queued["urls"] = urls
+
+    monkeypatch.setattr(documents_api, "discover_website_pages", fake_discover)
+    monkeypatch.setattr(documents_api, "crawl_and_ingest_website", fake_crawl)
+
+    resp = client.post(
+        "/api/documents/from-website", json={"url": "https://greenleaf.test", "exclude": ["/privacy"]}, headers=business["headers"]
+    )
+
+    assert resp.status_code == 200
+    assert "https://greenleaf.test/privacy" not in queued["urls"] and len(queued["urls"]) == 2
+
+
+def test_refetch_replaces_a_pages_text(client, business, db_session, monkeypatch, mock_embeddings):
+    html = {"v": "<html><head><title>Menu</title></head><body><p>Old menu.</p></body></html>"}
+    monkeypatch.setattr(document_service.web_crawl, "fetch_with_redirects", _page(lambda url: html["v"]))
+    doc = client.post("/api/documents/from-url", json={"url": "https://greenleaf.test/menu"}, headers=business["headers"]).json()
+
+    html["v"] = "<html><head><title>Menu 2026</title></head><body><p>New menu.</p></body></html>"
+    resp = client.post(f"/api/documents/{doc['id']}/refetch", headers=business["headers"])
+
+    assert resp.status_code == 200 and resp.json()["title"] == "Menu 2026"
+    saved = db_session.query(Document).filter(Document.id == doc["id"]).one()
+    db_session.refresh(saved)
+    content = " ".join(c.content for c in saved.chunks)
+    assert "New menu." in content and "Old menu." not in content

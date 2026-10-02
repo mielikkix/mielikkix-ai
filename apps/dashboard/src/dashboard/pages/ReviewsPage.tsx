@@ -58,7 +58,13 @@ interface Insights {
   reviews_requiring_attention: number
   insufficient_data: boolean
   summary: string | null
+  // every review in the window, and how many still wait for (or failed) AI analysis
+  total_reviews: number
+  unanalyzed_count: number
 }
+
+// "mock" = the demo data added by "Import sample reviews".
+const PLATFORM_LABELS: Record<string, string> = { mock: 'Sample', manual: 'Added manually', google: 'Google' }
 
 interface Trends {
   current_period_days: number
@@ -190,9 +196,12 @@ function GoogleConnectionCard() {
             </Button>
           </>
         ) : status && !status.configured ? (
+          // QA 2026-10-02 (D5): this read "isn't set up for this environment yet" -- developer wording. The
+          // Google Business Profile API needs Google's approval of our app, which is still pending.
           <p className="text-sm text-slate-500">
-            Google Business Profile connection isn't set up for this environment yet. Once it's configured, you'll be
-            able to connect your real business listing here.
+            <span className="mr-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Coming soon</span>
+            Automatic import from your Google Business Profile is waiting for Google's approval. Until then, paste any
+            review into "Log a review" below and it is analyzed and answered the same way.
           </p>
         ) : (
           <>
@@ -284,7 +293,13 @@ function ReviewCard({ review }: { review: Review }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-slate-900">{review.customer_name || 'Anonymous'}</span>
-            <span className="text-xs uppercase tracking-wide text-slate-400">{review.platform}</span>
+            {review.platform === 'mock' ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Sample
+              </span>
+            ) : (
+              <span className="text-xs uppercase tracking-wide text-slate-400">{PLATFORM_LABELS[review.platform] ?? review.platform}</span>
+            )}
             {review.rating != null && (
               <span className="flex items-center gap-0.5 text-amber-500">
                 {Array.from({ length: review.rating }).map((_, i) => (
@@ -300,6 +315,9 @@ function ReviewCard({ review }: { review: Review }) {
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${SENTIMENT_COLORS[review.sentiment]}`}>
               {review.sentiment}
             </span>
+          )}
+          {!review.analyzed_at && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">not analyzed yet</span>
           )}
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_COLORS[review.priority]}`}>
             {review.priority}
@@ -483,9 +501,24 @@ function ReviewsPageContent() {
         .then((r) => r.data),
   })
 
-  const { data: insights } = useQuery<Insights>({
+  const {
+    data: insights,
+    isError: insightsFailed,
+    refetch: refetchInsights,
+  } = useQuery<Insights>({
     queryKey: ['reviews', 'insights'],
     queryFn: () => api.get('/agents/reviews/insights').then((r) => r.data),
+  })
+  const hasSamples = reviews.some((r) => r.platform === 'mock')
+
+  const analyzePendingMut = useMutation({
+    mutationFn: () => api.post('/agents/reviews/analyze-pending').then((r) => r.data as { analyzed: number; still_pending: number }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['reviews'] }),
+  })
+
+  const deleteSamplesMut = useMutation({
+    mutationFn: () => api.delete('/agents/reviews/samples'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reviews'] }),
   })
 
   const { data: trends } = useQuery<Trends>({
@@ -549,10 +582,17 @@ function ReviewsPageContent() {
               Import from Google
             </Button>
           )}
-          <Button size="sm" variant="secondary" loading={importMut.isPending} onClick={() => importMut.mutate()}>
-            <Download size={16} className="mr-1" />
-            Import sample reviews
-          </Button>
+          {hasSamples ? (
+            <Button size="sm" variant="secondary" loading={deleteSamplesMut.isPending} onClick={() => deleteSamplesMut.mutate()}>
+              <X size={16} className="mr-1" />
+              Remove sample reviews
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" loading={importMut.isPending} onClick={() => importMut.mutate()}>
+              <Download size={16} className="mr-1" />
+              Import sample reviews
+            </Button>
+          )}
         </div>
       </div>
       {importGoogleMut.isError && (
@@ -563,14 +603,43 @@ function ReviewsPageContent() {
 
       <GoogleConnectionCard />
 
+      {/* QA 2026-10-02 (D1): when stats failed to load these used to show "0" next to a list of 8 reviews. */}
+      {insightsFailed && (
+        <p className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <AlertTriangle size={16} /> Couldn't load review statistics.
+          <button className="font-semibold underline" onClick={() => refetchInsights()}>
+            Try again
+          </button>
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Reputation score" value={reputationScore != null ? `${reputationScore}` : '-'} />
         <StatCard label="Average rating" value={insights?.average_rating != null ? insights.average_rating.toFixed(1) : '-'} />
-        <StatCard label="Total reviews" value={String(insights?.review_count ?? 0)} />
-        <StatCard label="Positive %" value={insights ? `${insights.sentiment_breakdown.positive ?? 0}%` : '-'} />
-        <StatCard label="Negative %" value={insights ? `${insights.sentiment_breakdown.negative ?? 0}%` : '-'} />
-        <StatCard label="Needs attention" value={String(insights?.reviews_requiring_attention ?? 0)} />
+        <StatCard label="Total reviews" value={insights ? String(insights.total_reviews ?? insights.review_count) : '-'} />
+        <StatCard
+          label="Positive %"
+          value={insights && !insights.insufficient_data ? `${insights.sentiment_breakdown.positive ?? 0}%` : '-'}
+        />
+        <StatCard
+          label="Negative %"
+          value={insights && !insights.insufficient_data ? `${insights.sentiment_breakdown.negative ?? 0}%` : '-'}
+        />
+        <StatCard label="Needs attention" value={insights ? String(insights.reviews_requiring_attention) : '-'} />
       </div>
+
+      {(insights?.unanalyzed_count ?? 0) > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <span>
+            {insights!.unanalyzed_count} review{insights!.unanalyzed_count === 1 ? " hasn't" : "s haven't"} been analyzed yet, so
+            {insights!.unanalyzed_count === 1 ? ' it is' : ' they are'} not in the percentages above.
+            {analyzePendingMut.data && analyzePendingMut.data.still_pending > 0 &&
+              ' The AI analysis is failing right now; try again in a few minutes.'}
+          </span>
+          <Button size="sm" variant="secondary" loading={analyzePendingMut.isPending} onClick={() => analyzePendingMut.mutate()}>
+            <RefreshCw size={14} className="mr-1" /> Analyze now
+          </Button>
+        </div>
+      )}
 
       {insights?.insufficient_data ? (
         <Card>

@@ -7,7 +7,13 @@ from ..models.user import User
 from ..models.business import Business
 from ..models.document import Document
 from ..schemas.document import DocumentOut, DocumentFromUrlRequest, WebsiteCrawlRequest, WebsiteCrawlOut
-from ..services.document_service import ingest_document, ingest_url, crawl_and_ingest_website
+from ..services.document_service import (
+    crawl_and_ingest_website,
+    ingest_document,
+    ingest_url,
+    is_excluded,
+    refetch_url_document,
+)
 from ..services.web_crawl import discover_website_pages
 from ..services import plan_service
 
@@ -16,7 +22,12 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 @router.get("", response_model=List[DocumentOut])
 def list_documents(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Document).filter(Document.business_id == current_user.business_id).all()
+    return (
+        db.query(Document)
+        .filter(Document.business_id == current_user.business_id)
+        .order_by(Document.created_at.desc())
+        .all()
+    )
 
 
 @router.post("", response_model=DocumentOut)
@@ -55,7 +66,7 @@ async def add_documents_from_website(
     see discover_website_pages/crawl_and_ingest_website in document_service.py."""
     plan_service.check_document_limit(db, business)
 
-    discovered = await discover_website_pages(body.url)
+    discovered = [u for u in await discover_website_pages(body.url) if not is_excluded(u, body.exclude)]
     if not discovered:
         raise HTTPException(status_code=400, detail="Couldn't find any pages to import from that site.")
 
@@ -79,6 +90,23 @@ async def add_documents_from_website(
         message=f"Importing {len(queued)} page{'s' if len(queued) != 1 else ''} from your website. "
                 f"They'll appear below as they're processed.",
     )
+
+
+@router.post("/{doc_id}/refetch", response_model=DocumentOut)
+async def refetch_document(
+    doc_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Re-imports a web page so the chatbot answers from its current text (E6)."""
+    doc = db.query(Document).filter(
+        Document.id == doc_id, Document.business_id == current_user.business_id
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.file_type != "url":
+        raise HTTPException(status_code=400, detail="Only web pages can be fetched again. Upload a new version of a file instead.")
+    return await refetch_url_document(db, doc)
 
 
 @router.delete("/{doc_id}")

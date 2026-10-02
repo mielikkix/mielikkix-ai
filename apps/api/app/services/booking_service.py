@@ -47,7 +47,7 @@ from fastapi import HTTPException
 # range and duration is exactly the "strong multi-turn reasoning,
 # structured tool use" case Claude Sonnet is assigned to, not the
 # lower-stakes cheap tier.
-_llm_client = LLMClient(provider="anthropic")
+_llm_client = LLMClient(provider="anthropic", usage_tag="booking")
 # Module-level instance, resolved once via the CalendarProvider factory (see
 # calendar_provider.py) rather than importing Google-specific functions
 # directly, so this module has no knowledge of which calendar provider is

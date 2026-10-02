@@ -7,7 +7,7 @@ import { useAuthStore } from '../../shared/store/authStore'
 const nav = [
   { to: '/admin', icon: LayoutDashboard, label: 'Overview' },
   { to: '/admin/businesses', icon: Building2, label: 'Businesses' },
-  { to: '/admin/usage', icon: Gauge, label: 'Groq Usage' },
+  { to: '/admin/usage', icon: Gauge, label: 'AI Usage' },
   { to: '/admin/bookings', icon: CalendarCheck, label: 'Bookings' },
   { to: '/admin/tickets', icon: MessagesSquare, label: 'Support Tickets' },
   { to: '/admin/articles', icon: Newspaper, label: 'Articles' },

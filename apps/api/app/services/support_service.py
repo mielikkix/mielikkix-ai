@@ -28,7 +28,7 @@ from ..rag.pipeline import retrieve_chunks, retrieve_faqs, retrieve_products, _d
 # claude-sonnet-5) -- a "complex agent" per Mielikkix's tier assignment
 # (classification + confidence-gated answering + booking-intent handoff,
 # see this module's own phased plan), not the cheap/fast tier.
-_llm_client = LLMClient(provider="anthropic")
+_llm_client = LLMClient(provider="anthropic", usage_tag="support_triage")
 
 # Python note: a triple-quoted string built with .format()-style {json braces
 # escaped as {{ }} would get messy fast -- this is plain string

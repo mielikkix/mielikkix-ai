@@ -6,18 +6,22 @@ from ..core.database import Base
 
 
 class LLMUsageLog(Base):
-    """One row per LLM API call, for the platform-admin usage dashboard
-    (see api/admin.py). Only the Groq provider records usage today -- see
-    the last_usage capture in rag/providers/groq_provider.py."""
+    """One row per LLM API call, for the platform-admin AI Usage page (see
+    api/admin.py). Groq rows come from the Chat Widget's provider
+    (rag/pipeline.py's log_llm_usage); Claude/OpenAI rows from every
+    agent-core LLMClient call (core/llm_usage.py)."""
 
     __tablename__ = "llm_usage_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id"), nullable=False, index=True)
+    # NULL for calls with no logged-in business: the public demo pages
+    # (Support Triage, Voice, Booking, Review demos).
+    business_id = Column(UUID(as_uuid=True), ForeignKey("businesses.id"), nullable=True, index=True)
     provider = Column(Text, nullable=False)
     model = Column(Text, nullable=True)
-    # "chat" (a visitor message answered via run_rag) or "translate" (the
-    # one-off fallback-message translation in api/businesses.py).
+    # What the call was for: "chat" / "translate" (Chat Widget, Groq), or the
+    # agent's usage_tag ("support_triage", "booking", "voice", "seo_copywriter",
+    # "seo_keywords", "seo_recommendations", "reviews").
     kind = Column(Text, nullable=False)
     prompt_tokens = Column(Integer, nullable=False, default=0)
     completion_tokens = Column(Integer, nullable=False, default=0)

@@ -27,6 +27,15 @@ _engine = create_engine(TEST_DATABASE_URL)
 
 
 @pytest.fixture(autouse=True)
+def _llm_usage_to_test_db(monkeypatch):
+    """core/llm_usage.py records agent LLM calls through its own session --
+    point it at the test database, never the dev one."""
+    from app.core import llm_usage
+
+    monkeypatch.setattr(llm_usage, "session_factory", sessionmaker(autocommit=False, autoflush=False, bind=_engine))
+
+
+@pytest.fixture(autouse=True)
 def _reset_rate_limits():
     # The Limiter's in-memory storage is a module-level singleton (see
     # core/limiter.py), so without this every test shares one "testclient"

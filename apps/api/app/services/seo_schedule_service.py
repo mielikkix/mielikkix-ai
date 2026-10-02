@@ -17,6 +17,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from ..core.llm_usage import usage_business
 from ..models.seo_website import SeoWebsite
 from . import seo_audit_service
 
@@ -83,7 +84,9 @@ async def run_due_audits(db: Session) -> int:
     for website in due_websites(db):
         try:
             audit = seo_audit_service.create_audit(db, website)
-            await seo_audit_service.run_audit(str(audit.id))
+            # No request here, so attribute this audit's LLM calls explicitly (AI Usage page).
+            with usage_business(website.business_id):
+                await seo_audit_service.run_audit(str(audit.id))
             started += 1
         except Exception:
             pass

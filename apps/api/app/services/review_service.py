@@ -47,7 +47,7 @@ class PublishFailedError(Exception):
 # same tier SEO Copywriter is on (apps/agents/CLAUDE.md's "simple agents"
 # row) -- this is single-review analysis/response generation, not
 # multi-turn reasoning or tool orchestration.
-_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model)
+_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model, usage_tag="reviews")
 
 # Deliberately NOT a DB enum / hard-coded CHECK constraint (see
 # models/review.py's own comment on `topics`) -- a prompt-level suggested

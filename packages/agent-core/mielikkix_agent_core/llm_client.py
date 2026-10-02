@@ -36,9 +36,13 @@ are async.
 
 import asyncio
 import json
+import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Transient errors worth retrying (network hiccup, rate limit, the
 # provider's own 5xx) vs. errors that will never succeed on retry (bad API
@@ -99,6 +103,39 @@ class LLMResult:
 # never at import time, same reasoning apps/api/app/rag/providers/__init__.py's
 # get_llm_provider() already follows for the Chat Widget's own provider
 # selection.
+# Usage reporting: the app registers ONE callback (set_usage_hook) and every
+# LLMClient call reports to it -- so token usage is recorded centrally, not by
+# each agent. Kept as a plain callback (not a DB write) because this package
+# has no database of its own; apps/api's hook writes llm_usage_logs.
+UsageHook = Callable[["UsageEvent"], None]
+_usage_hook: UsageHook | None = None
+
+
+@dataclass
+class UsageEvent:
+    provider: str
+    model: str
+    usage: LLMUsage
+    # What the call was for (e.g. "support_triage"), from LLMClient(usage_tag=...).
+    tag: str | None
+
+
+def set_usage_hook(hook: UsageHook | None) -> None:
+    """Registers the callback every LLMClient reports token usage to (None clears it)."""
+    global _usage_hook
+    _usage_hook = hook
+
+
+def _report_usage(provider: str, model: str, result: "LLMResult", tag: str | None) -> None:
+    if _usage_hook is None or result.usage is None:
+        return
+    try:
+        _usage_hook(UsageEvent(provider=provider, model=model, usage=result.usage, tag=tag))
+    except Exception:
+        # Bookkeeping must never break the actual LLM call.
+        logger.exception("LLM usage hook failed")
+
+
 _PROVIDER_SETTINGS_FIELDS = {
     "groq": ("groq_api_key", "groq_model"),
     "openai": ("openai_api_key", "openai_model"),
@@ -114,6 +151,7 @@ class LLMClient:
         model: str | None = None,
         timeout_seconds: float = 15.0,
         max_retries: int = 2,
+        usage_tag: str | None = None,
     ):
         settings = get_settings()
         self.provider = provider or settings.default_llm_provider
@@ -124,6 +162,7 @@ class LLMClient:
         self.model = model or getattr(settings, model_field)
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
+        self.usage_tag = usage_tag
         # Only relevant for provider="anthropic" -- see settings.anthropic_workspace_id's
         # own comment for why most keys never need this.
         self.anthropic_workspace_id = settings.anthropic_workspace_id
@@ -227,6 +266,7 @@ class LLMClient:
                     result = self._to_result_anthropic(response)
                     if json_mode:
                         result.text = extract_json_object(result.text)
+                    _report_usage(self.provider, self.model, result, self.usage_tag)
                     return result
 
                 # tools/tool_choice must be OMITTED from the request
@@ -255,7 +295,9 @@ class LLMClient:
                     response_format={"type": "json_object"} if json_mode else None,
                     **extra_kwargs,
                 )
-                return self._to_result(response)
+                result = self._to_result(response)
+                _report_usage(self.provider, self.model, result, self.usage_tag)
+                return result
             except Exception as exc:
                 if attempt >= self.max_retries or not self._is_retryable(exc):
                     raise

@@ -7,6 +7,7 @@ from ..core.dependencies import get_current_user, get_current_business
 from ..models.user import User
 from ..models.business import Business
 from ..models.product import Product, product_embedding_text
+from ..models.seo_draft import SeoDraft
 from ..schemas.product import ProductCreate, ProductUpdate, ProductOut
 from ..services import plan_service
 from ..rag.embeddings import embed_query
@@ -79,6 +80,11 @@ def delete_product(
     ).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    # seo_drafts.product_id is a plain foreign key (no ON DELETE rule), so a
+    # product with SEO Copywriter drafts couldn't be deleted -- a 500 in
+    # production (2026-10-02). The drafts were written for this product and
+    # mean nothing without it, so they go with it.
+    db.query(SeoDraft).filter(SeoDraft.product_id == product.id).delete(synchronize_session=False)
     db.delete(product)
     db.commit()
     return {"ok": True}

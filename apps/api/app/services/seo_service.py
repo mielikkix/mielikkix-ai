@@ -30,7 +30,7 @@ from ..rag.embeddings import embed_query
 # content generation from a product's own existing name/category/
 # description, not multi-step reasoning, so it doesn't need a
 # higher-reasoning tier's cost.
-_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model)
+_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model, usage_tag="seo_copywriter")
 
 _SYSTEM_PROMPT = (
     "You write product copy that actually targets real search intent -- "

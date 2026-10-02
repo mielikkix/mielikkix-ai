@@ -11,6 +11,7 @@ from .core.config import settings
 from .core.cors import PublicRouteCORSMiddleware
 from .core.database import Base, engine
 from .core.limiter import limiter
+from .core import llm_usage
 from .api import auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin, admin_articles, public_articles, agents_voice, agents_booking, agents_support, agents_seo, agents_seo_audit, agents_reviews, calendar_oauth, review_oauth, mailchimp_oauth, google_oauth, campaigns, consent, account
 
 # Without this, every module's logger.info() call (e.g. agents_voice.py's
@@ -147,6 +148,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+# Token usage of every agent-core LLMClient call (Claude/OpenAI) -> llm_usage_logs,
+# for the admin AI Usage page. See core/llm_usage.py.
+llm_usage.install()
+app.add_middleware(llm_usage.UsageContextMiddleware)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

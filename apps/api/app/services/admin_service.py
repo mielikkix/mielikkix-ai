@@ -242,9 +242,15 @@ def get_platform_overview(db: Session) -> dict:
     }
 
 
-def get_llm_usage(db: Session, business_id: Optional[str] = None, days: int = 30) -> dict:
+def get_llm_usage(
+    db: Session, business_id: Optional[str] = None, days: int = 30, provider: Optional[str] = None
+) -> dict:
+    """Every provider by default (Groq from the Chat Widget, Claude/OpenAI from
+    the Force agents -- see core/llm_usage.py); `provider` narrows to one."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    base = db.query(LLMUsageLog).filter(LLMUsageLog.provider == "groq", LLMUsageLog.created_at >= cutoff)
+    base = db.query(LLMUsageLog).filter(LLMUsageLog.created_at >= cutoff)
+    if provider:
+        base = base.filter(LLMUsageLog.provider == provider)
     if business_id:
         base = base.filter(LLMUsageLog.business_id == business_id)
 
@@ -267,8 +273,9 @@ def get_llm_usage(db: Session, business_id: Optional[str] = None, days: int = 30
     )
     by_day = [{"date": str(d), "requests": r, "total_tokens": t} for d, r, t in day_rows]
 
+    # Outer join: public-demo calls have no business (business_id NULL).
     business_rows = (
-        base.join(Business, Business.id == LLMUsageLog.business_id)
+        base.outerjoin(Business, Business.id == LLMUsageLog.business_id)
         .with_entities(
             LLMUsageLog.business_id,
             Business.name,
@@ -281,9 +288,30 @@ def get_llm_usage(db: Session, business_id: Optional[str] = None, days: int = 30
         .all()
     )
     by_business = [
-        {"business_id": bid, "business_name": name, "requests": r, "total_tokens": t}
+        {"business_id": bid, "business_name": name or "Platform / public demos", "requests": r, "total_tokens": t}
         for bid, name, r, t in business_rows
     ]
+
+    def _grouped(column):
+        rows = (
+            base.with_entities(
+                column,
+                func.count(LLMUsageLog.id),
+                func.coalesce(func.sum(LLMUsageLog.prompt_tokens), 0),
+                func.coalesce(func.sum(LLMUsageLog.completion_tokens), 0),
+                func.coalesce(func.sum(LLMUsageLog.total_tokens), 0),
+            )
+            .group_by(column)
+            .order_by(func.coalesce(func.sum(LLMUsageLog.total_tokens), 0).desc())
+            .all()
+        )
+        return [
+            {"key": key or "other", "requests": r, "prompt_tokens": p, "completion_tokens": c, "total_tokens": t}
+            for key, r, p, c, t in rows
+        ]
+
+    by_provider = _grouped(LLMUsageLog.provider)
+    by_feature = _grouped(LLMUsageLog.kind)
 
     return {
         "totals": {
@@ -294,6 +322,8 @@ def get_llm_usage(db: Session, business_id: Optional[str] = None, days: int = 30
         },
         "by_day": by_day,
         "by_business": by_business,
+        "by_provider": by_provider,
+        "by_feature": by_feature,
     }
 
 

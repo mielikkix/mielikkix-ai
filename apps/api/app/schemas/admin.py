@@ -122,9 +122,19 @@ class AdminLLMUsageByDay(BaseModel):
 
 
 class AdminLLMUsageByBusiness(BaseModel):
-    business_id: UUID
+    # None = public demo calls with no logged-in business.
+    business_id: Optional[UUID]
     business_name: str
     requests: int
+    total_tokens: int
+
+
+class AdminLLMUsageGroup(BaseModel):
+    """One provider ("groq"/"anthropic"/"openai") or one feature ("chat", "support_triage", ...)."""
+    key: str
+    requests: int
+    prompt_tokens: int
+    completion_tokens: int
     total_tokens: int
 
 
@@ -132,6 +142,8 @@ class AdminLLMUsageOut(BaseModel):
     totals: AdminLLMUsageSummary
     by_day: List[AdminLLMUsageByDay]
     by_business: List[AdminLLMUsageByBusiness]
+    by_provider: List[AdminLLMUsageGroup] = []
+    by_feature: List[AdminLLMUsageGroup] = []
 
 
 class AdminBookingListItem(BaseModel):

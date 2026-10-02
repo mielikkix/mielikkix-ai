@@ -375,3 +375,42 @@ def test_extract_json_object_leaves_plain_json_and_non_json_alone():
     assert extract_json_object('{"a": 1}') == '{"a": 1}'
     assert extract_json_object("no json at all") == "no json at all"
     assert json.loads(extract_json_object('```json\n{"a": {"b": 2}}\n```')) == {"a": {"b": 2}}
+
+
+@pytest.mark.asyncio
+async def test_usage_hook_receives_provider_model_tokens_and_tag(monkeypatch):
+    from mielikkix_agent_core import set_usage_hook
+
+    events = []
+    set_usage_hook(events.append)
+    try:
+        client = LLMClient(provider="anthropic", api_key="k", model="test-model", usage_tag="support_triage")
+        fake_create = AsyncMock(return_value=_fake_anthropic_response([_anthropic_text_block("hi")], 12, 3))
+        monkeypatch.setattr(client, "_get_client", lambda: SimpleNamespace(messages=SimpleNamespace(create=fake_create)))
+        await client.chat([{"role": "user", "content": "hi"}])
+    finally:
+        set_usage_hook(None)
+
+    assert len(events) == 1
+    e = events[0]
+    assert (e.provider, e.model, e.tag) == ("anthropic", "test-model", "support_triage")
+    assert (e.usage.prompt_tokens, e.usage.completion_tokens, e.usage.total_tokens) == (12, 3, 15)
+
+
+@pytest.mark.asyncio
+async def test_a_failing_usage_hook_never_breaks_the_call(monkeypatch):
+    from mielikkix_agent_core import set_usage_hook
+
+    def boom(event):
+        raise RuntimeError("db down")
+
+    set_usage_hook(boom)
+    try:
+        client = LLMClient(provider="anthropic", api_key="k", model="m")
+        fake_create = AsyncMock(return_value=_fake_anthropic_response([_anthropic_text_block("still works")]))
+        monkeypatch.setattr(client, "_get_client", lambda: SimpleNamespace(messages=SimpleNamespace(create=fake_create)))
+        result = await client.chat([{"role": "user", "content": "hi"}])
+    finally:
+        set_usage_hook(None)
+
+    assert result.text == "still works"

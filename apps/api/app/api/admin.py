@@ -79,9 +79,10 @@ def set_business_agent_access(
 def get_llm_usage(
     business_id: Optional[str] = None,
     days: int = Query(30, ge=1, le=365),
+    provider: Optional[str] = Query(None, pattern="^(groq|anthropic|openai|gemini|ollama)$"),
     db: Session = Depends(get_db),
 ):
-    return admin_service.get_llm_usage(db, business_id=business_id, days=days)
+    return admin_service.get_llm_usage(db, business_id=business_id, days=days, provider=provider)
 
 
 @router.get("/bookings", response_model=AdminBookingListOut)

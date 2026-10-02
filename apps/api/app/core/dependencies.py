@@ -2,6 +2,7 @@ import uuid
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from jose import JWTError
+from .llm_usage import set_usage_business
 from .config import settings
 from .database import get_db
 from .security import decode_token
@@ -50,6 +51,8 @@ def get_current_user(
     user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    # LLM calls later in this request are logged against this business (AI Usage page).
+    set_usage_business(user.business_id)
     if not request.url.path.startswith(REACCEPTANCE_EXEMPT_PREFIXES):
         from ..services.consent_service import pending_documents
 

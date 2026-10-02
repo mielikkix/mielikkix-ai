@@ -26,7 +26,7 @@ from ..models.seo_website import SeoWebsite
 
 # Same tier as the rest of this agent's LLM calls (apps/agents/CLAUDE.md:
 # OpenAI cheap/fast tier for routine generation, not multi-step reasoning).
-_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model)
+_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model, usage_tag="seo_keywords")
 
 MAX_KEYWORD_IDEAS = 15
 # Bounds the prompt to a representative sample of the site, not its full

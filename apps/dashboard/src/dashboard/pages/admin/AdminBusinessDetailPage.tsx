@@ -243,7 +243,7 @@ export function AdminBusinessDetailPage() {
         </Card>
       </div>
 
-      <Card title="Groq usage — last 30 days">
+      <Card title="AI usage (all providers) — last 30 days">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             <div><p className="text-2xl font-bold text-slate-900">{data.llm_usage_30d.requests}</p><p className="text-sm text-slate-500">Requests</p></div>

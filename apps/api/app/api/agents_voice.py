@@ -554,7 +554,7 @@ def _evict_stale_calls() -> None:
 # response budget is itself only ~15s total for the whole turn -- verify
 # both numbers against real measured latency via /dev/voice-test rather
 # than trusting this guess.
-_llm_client = LLMClient(provider="openai", timeout_seconds=8.0)
+_llm_client = LLMClient(provider="openai", timeout_seconds=8.0, usage_tag="voice")
 
 # Fire-and-forget booking-notification tasks (see _fire_booking_notification)
 # need a kept reference or asyncio can garbage-collect a running task mid-

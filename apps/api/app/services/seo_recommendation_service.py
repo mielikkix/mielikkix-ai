@@ -28,7 +28,7 @@ from ..models.seo_audit import SeoFinding
 # Same tier as the existing SEO Copywriter (apps/agents/CLAUDE.md: OpenAI
 # cheap/fast tier for routine, low-stakes generation) -- summarizing a
 # short list of already-known findings is not multi-step reasoning.
-_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model)
+_llm_client = LLMClient(provider="openai", model=get_agent_core_settings().openai_mini_model, usage_tag="seo_recommendations")
 
 # severity -> priority tier (Phase 11's Priority 1/Critical, 2/High,
 # 3/Medium-and-below). A fixed mapping, not an LLM judgment call.

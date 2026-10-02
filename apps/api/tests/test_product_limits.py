@@ -45,3 +45,20 @@ def test_product_limit_unlimited_on_growth_plan(client, business, set_plan):
     for i in range(15):  # comfortably above the Free/Basic caps
         r = client.post("/api/products", headers=business["headers"], json=_product(name=f"Item {i}"))
         assert r.status_code == 200
+
+
+def test_deleting_a_product_with_seo_drafts_succeeds_and_removes_them(client, business, db_session):
+    """Production 2026-10-02: DELETE /api/products/<id> returned 500 for a product
+    that had an SEO Copywriter draft -- seo_drafts.product_id is a plain foreign
+    key, so Postgres refused to delete the product out from under the draft."""
+    from app.models.seo_draft import SeoDraft
+
+    created = client.post("/api/products", headers=business["headers"], json=_product()).json()
+    db_session.add(SeoDraft(business_id=business["business_id"], product_id=created["id"], draft_seo_title="x"))
+    db_session.commit()
+
+    resp = client.delete(f"/api/products/{created['id']}", headers=business["headers"])
+
+    assert resp.status_code == 200
+    db_session.expire_all()
+    assert db_session.query(SeoDraft).filter(SeoDraft.product_id == created["id"]).count() == 0

@@ -11,7 +11,7 @@ agent can use it, not just the widget.
 ## Current status (honesty check for whoever reads this next)
 
 Only the **LLM client** below is actually built (`mielikkix_agent_core.LLMClient`,
-`LLMResult`, `LLMUsage` — a thin wrapper with retries/JSON-mode, no tool-calling). The
+`LLMResult`, `LLMUsage` — a thin wrapper with retries/JSON-mode/tool-calling and a usage hook). The
 **prompt/tool-calling framework**, **memory/RAG utilities**, and **tenant context
 loader** below are still just this file's stated intent, not code that exists yet.
 Concretely: the Chat Widget (`rag/pipeline.py`), Support Triage, Voice Receptionist,
@@ -61,6 +61,13 @@ code first.
 - Any agent PR that touches agent-core must also state which agents were regression-tested.
 
 ## Changelog
+
+- **0.2.0 (2026-10-02)** — Usage reporting: `set_usage_hook(fn)` registers one callback that
+  every `LLMClient.chat()` reports to (`UsageEvent`: provider, model, token usage, and the
+  client's new optional `usage_tag`). apps/api's `core/llm_usage.py` uses it to log Claude/
+  OpenAI calls for the admin AI Usage page. Additive: no tag/hook = old behaviour; a failing
+  hook is logged, never raised. Regression-tested: agent-core unit tests, apps/api Support
+  Triage, SEO, Reviews, Voice and Booking tests.
 
 - **0.1.1 (2026-10-01)** — `chat(json_mode=True)` on `provider="anthropic"` now strips prose
   around the JSON object (`extract_json_object`). Found in QA (B2): a prompt-injection message

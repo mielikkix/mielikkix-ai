@@ -6,3 +6,13 @@
     Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
     Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://plausible.io https://app.mielikkix.ai https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://api.frankfurter.dev https://api.mielikkix.ai https://plausible.io https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; frame-ancestors 'self'"
 </IfModule>
+
+# Branded, translated 404 page (src/pages/404.astro) instead of Hostinger's
+# stock English one -- QA 2026-10-05, BUG-14.
+ErrorDocument 404 /404.html
+
+# /company is a common guess for the About page (QA 2026-10-05, BUG-14).
+<IfModule mod_alias.c>
+    RedirectMatch 301 ^/company/?$ /about/
+    RedirectMatch 301 ^/no/company/?$ /no/about/
+</IfModule>

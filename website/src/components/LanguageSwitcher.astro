@@ -43,7 +43,15 @@ const initial = SUPPORTED_LANGUAGES.find((l) => l.code === DEFAULT_LANGUAGE) ?? 
 </details>
 
 <script>
-  import { switchLanguage, getStoredLanguage, SUPPORTED_LANGUAGES, LANG_CHANGE_EVENT, type LanguageCode } from "../lib/i18n/translationService";
+  import {
+    switchLanguage,
+    getStoredLanguage,
+    setStoredLanguage,
+    languageUrl,
+    SUPPORTED_LANGUAGES,
+    LANG_CHANGE_EVENT,
+    type LanguageCode,
+  } from "../lib/i18n/translationService";
   import { followLanguageCurrency } from "../stores/currencyStore";
 
   function currentPage(): string | undefined {
@@ -75,11 +83,19 @@ const initial = SUPPORTED_LANGUAGES.find((l) => l.code === DEFAULT_LANGUAGE) ?? 
       if (!lang) return;
       applyActiveState(lang);
       closeAllDropdowns();
-      void switchLanguage(lang, currentPage());
       // Switching language also switches to that language's currency -- unless the visitor
       // already picked one in CurrencySwitcher, which then stays (see followLanguageCurrency).
       const currency = SUPPORTED_LANGUAGES.find((l) => l.code === lang)?.currency;
       if (currency) followLanguageCurrency(currency);
+      // A page with its own URL per language goes there (QA 2026-10-05, BUG-13), so the
+      // address bar, shared links and search engines all see the chosen language.
+      const target = languageUrl(lang);
+      if (target) {
+        setStoredLanguage(lang);
+        location.href = target;
+        return;
+      }
+      void switchLanguage(lang, currentPage());
     });
   });
 

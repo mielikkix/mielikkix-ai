@@ -79,6 +79,9 @@ export function ChatWindow({
   }, [initialLang, messages.length])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  // Enter pressed while the previous answer is still loading: sent as soon as
+  // it arrives, instead of silently waiting for a second Enter (QA 2026-10-05).
+  const [queued, setQueued] = useState(false)
   const [showLeadForm, setShowLeadForm] = useState(false)
   // The message that triggered the booking flow (see BookingFlow's Props
   // doc) -- null means "not showing", same on/off role showLeadForm plays,
@@ -103,7 +106,11 @@ export function ChatWindow({
 
   const send = async () => {
     const msg = input.trim()
-    if (!msg || loading) return
+    if (!msg) return
+    if (loading) {
+      setQueued(true)
+      return
+    }
     setInput('')
     setMessages((m) => [...m, { sender: 'visitor', content: msg }])
 
@@ -129,7 +136,13 @@ export function ChatWindow({
       const res = await fetch(`${apiBaseUrl}/api/chat/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ business_id: businessId, session_id: sessionId.current, message: msg }),
+        // The host page's language decides an ambiguous short message (QA 2026-10-05, BUG-02).
+        body: JSON.stringify({
+          business_id: businessId,
+          session_id: sessionId.current,
+          message: msg,
+          page_lang: document.documentElement.lang || undefined,
+        }),
       })
       // Business is over its monthly conversation limit (incl. the 10% grace):
       // no AI reply, but the visitor can still leave their details.
@@ -155,6 +168,13 @@ export function ChatWindow({
     }
   }
 
+  useEffect(() => {
+    if (!loading && queued) {
+      setQueued(false)
+      void send()
+    }
+  }, [loading, queued])
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* GDPR Phase 5: AI disclosure, always visible above the conversation. */}
@@ -176,7 +196,9 @@ export function ChatWindow({
         {[{ sender: 'ai' as const, content: welcomeFor(lang) }, ...messages].map((msg, i) => (
           <div key={i} className={`flex ${msg.sender === 'visitor' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+              // [overflow-wrap:anywhere]: replies with no-break spaces inside numbers
+              // ("NOK 1 790") overflowed the bubble with a scrollbar (QA 2026-10-05, BUG-03).
+              className={`max-w-[80%] min-w-0 px-3 py-2 rounded-2xl text-sm leading-relaxed [overflow-wrap:anywhere] ${
                 msg.sender === 'visitor'
                   ? 'text-white rounded-br-sm'
                   : 'bg-gray-100 text-gray-800 rounded-bl-sm'
@@ -245,7 +267,7 @@ export function ChatWindow({
         />
         <button
           onClick={send}
-          disabled={!input.trim() || loading}
+          disabled={!input.trim() || queued}
           className="w-9 h-9 flex items-center justify-center rounded-full text-white disabled:opacity-40 flex-shrink-0"
           style={{ backgroundColor: primaryColor }}
         >

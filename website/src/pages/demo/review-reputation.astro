@@ -6,6 +6,23 @@ import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
 
+// One set of example reviews per language; global.css shows the set matching
+// <html lang> (QA 2026-10-05, BUG-09: the Norwegian site only had English ones).
+const examples = {
+  en: [
+    "The food was excellent and the staff were very friendly, but we waited almost an hour for our order.",
+    "It was fine, nothing special…",
+    "Absolutely fantastic — the service was outstanding!",
+    "I was overcharged and when I contacted the staff, nobody helped me.",
+  ],
+  no: [
+    "Maten var nydelig og personalet veldig hyggelig, men vi ventet nesten en time på bestillingen.",
+    "Det var greit, ikke noe spesielt …",
+    "Helt fantastisk — servicen var enestående!",
+    "Jeg ble belastet for mye, og da jeg tok kontakt, var det ingen som hjalp meg.",
+  ],
+};
+
 const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-reputation")).priceNokMonthly as number, "en")}/month excl. VAT.`;
 
 // Not linked from the header nav (see Header.astro), same as the other
@@ -37,10 +54,13 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
   title="Try Our Review & Reputation Agent"
   description={`Try a live demo of Mielikkix's AI Review & Reputation agent — paste a review and see it analyzed, prioritized, and answered. ${fromPrice}`}
   path="/demo/review-reputation/"
+  page="demos"
+  titleKey="REVIEW.SEO.TITLE"
+  descriptionKey="REVIEW.SEO.DESCRIPTION"
   structuredDataNodes={[reviewReputationNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600" data-i18n="COMMON.BACK_LINK">
       &larr; Back to AI Agents
     </a>
   </div>
@@ -48,62 +68,68 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
     line1="Meet Mielikkix's"
     line2="Review & Reputation Agent"
     subheading={`Turn customer reviews into stronger relationships and a better reputation.`}
+    line1Key="COMMON.MEET"
+    line2Key="REVIEW.HERO_LINE2"
+    subheadingKey="REVIEW.SUBHEADING"
   >
     <FromPrice slot="extra" productId="review-reputation" />
   </PageHero>
 
   <section class="mx-auto max-w-2xl px-6 py-16">
-    <p class="mx-auto -mt-6 mb-10 max-w-xl text-center text-sm leading-relaxed text-slate-500">
+    <p class="mx-auto -mt-6 mb-10 max-w-xl text-center text-sm leading-relaxed text-slate-500" data-i18n="REVIEW.INTRO">
       Paste a customer review below and let your AI reputation assistant analyze the feedback, detect sentiment,
       identify the key issue, and draft a professional response in seconds.
     </p>
 
     <div class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-      <label for="reviewInput" class="text-sm font-semibold text-slate-700">Customer review</label>
+      <label for="reviewInput" class="text-sm font-semibold text-slate-700" data-i18n="REVIEW.REVIEW_LABEL">Customer review</label>
       <textarea
         id="reviewInput"
         rows={4}
         maxlength="5000"
         placeholder="Paste a real or sample review here…"
+        data-i18n-attr="placeholder:REVIEW.REVIEW_PLACEHOLDER"
         class="mt-2 w-full rounded-2xl border border-slate-200 p-3.5 text-sm outline-none focus:border-violet-400"
       ></textarea>
-      <p id="reviewError" class="mt-1.5 hidden text-xs font-medium text-red-600">Please paste a review to analyze.</p>
+      <p id="reviewError" class="mt-1.5 hidden text-xs font-medium text-red-600" data-i18n="REVIEW.REVIEW_ERROR">Please paste a review to analyze.</p>
 
-      <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Try an example</p>
+      <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400" data-i18n="REVIEW.TRY_EXAMPLE">Try an example</p>
       <div class="mt-2 flex flex-wrap gap-1.5">
-        {[
-          "The food was excellent and the staff were very friendly, but we waited almost an hour for our order.",
-          "It was fine, nothing special…",
-          "Absolutely fantastic — the service was outstanding!",
-          "I was overcharged and when I contacted the staff, nobody helped me.",
-        ].map((example) => (
-          <button
-            type="button"
-            class="example-btn rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:border-violet-400 hover:text-violet-600"
-            data-text={example}
-            title={example}
-          >
-            "{example.length > 36 ? example.slice(0, 36) + "…" : example}"
-          </button>
-        ))}
+        {(["en", "no"] as const).flatMap((lang) =>
+          examples[lang].map((example) => (
+            <button
+              type="button"
+              class:list={[
+                lang === "no" ? "i18n-no" : "i18n-en",
+                "example-btn rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:border-violet-400 hover:text-violet-600",
+              ]}
+              lang={lang === "no" ? "nb" : undefined}
+              data-text={example}
+              title={example}
+            >
+              {lang === "no" ? "«" : '"'}{example.length > 36 ? example.slice(0, 36) + "…" : example}{lang === "no" ? "»" : '"'}
+            </button>
+          ))
+        )}
       </div>
 
       <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
         <label class="flex items-center gap-2 text-xs text-slate-500">
-          <span class="font-medium text-slate-600">Response tone:</span>
+          <span class="font-medium text-slate-600" data-i18n="REVIEW.TONE_LABEL">Response tone:</span>
           <!-- Values must be in review_service.RESPONSE_TONES (the API rejects anything else). -->
           <select id="toneSelect" class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-600 outline-none focus:border-violet-400">
-            <option value="professional" selected>Professional</option>
-            <option value="friendly">Friendly</option>
-            <option value="empathetic">Empathetic</option>
-            <option value="warm">Warm</option>
-            <option value="concise">Concise</option>
+            <option value="professional" selected data-i18n="REVIEW.TONES.PROFESSIONAL">Professional</option>
+            <option value="friendly" data-i18n="REVIEW.TONES.FRIENDLY">Friendly</option>
+            <option value="empathetic" data-i18n="REVIEW.TONES.EMPATHETIC">Empathetic</option>
+            <option value="warm" data-i18n="REVIEW.TONES.WARM">Warm</option>
+            <option value="concise" data-i18n="REVIEW.TONES.CONCISE">Concise</option>
           </select>
         </label>
         <button
           id="analyzeBtn"
           type="button"
           class="brand-gradient rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          data-i18n="REVIEW.ANALYZE"
         >
           Analyze Review &amp; Draft Response
         </button>
@@ -114,19 +140,20 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
     <div id="resultWrap" class="mt-6 hidden"></div>
 
     <div class="brand-gradient relative mt-10 overflow-hidden rounded-3xl px-8 py-10 text-center shadow-xl shadow-violet-200">
-      <h2 class="font-display text-2xl font-bold text-white">Ready to manage your reputation with AI?</h2>
-      <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-indigo-50">
+      <h2 class="font-display text-2xl font-bold text-white" data-i18n="REVIEW.CTA_HEADING">Ready to manage your reputation with AI?</h2>
+      <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-indigo-50" data-i18n="REVIEW.CTA_TEXT">
         Connect your business to monitor reviews, understand customer sentiment, draft personalized responses, and
         build a stronger reputation over time.
       </p>
       <a
         href="/demo/"
         class="mt-6 inline-block rounded-full bg-white px-7 py-3 text-sm font-semibold text-violet-700 shadow-sm transition-transform hover:scale-105"
+        data-i18n="REVIEW.CTA_BUTTON"
       >
         Get Started
       </a>
     </div>
-    <p class="mt-4 text-center text-xs text-slate-400">Demo only — responses are never published automatically.</p>
+    <p class="mt-4 text-center text-xs text-slate-400" data-i18n="REVIEW.DEMO_ONLY">Demo only — responses are never published automatically.</p>
   </section>
 
   <script src="/review-reputation.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>

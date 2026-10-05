@@ -31,12 +31,14 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
   <input type="checkbox" id="nav-toggle" class="peer hidden" />
 
   <div class="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4">
-    <a href="/" class="flex items-center gap-1.5 font-display text-xl font-bold tracking-tight">
+    <a href="/" class="mr-6 flex shrink-0 items-center gap-1.5 font-display text-xl font-bold tracking-tight">
       <img src="/favicon.png" alt="" width="28" height="28" class="h-7 w-7 rounded-full" />
       <span>Mielikki<span class="brand-gradient-text">x</span></span>
     </a>
 
-    <nav class="hidden items-center gap-6 md:flex">
+    <!-- lg, not md: at ~900 px the Norwegian labels pushed the logo against "Agenter"
+         and wrapped "Book en gratis demo" (QA 2026-10-05, BUG-12). -->
+    <nav class="hidden items-center gap-5 lg:flex">
       {
         navLinks.map((link) => (
           <a
@@ -98,7 +100,7 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
       <a
         href="/demo/"
         data-i18n="BUTTONS.BOOK_DEMO"
-        class="brand-gradient rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-105"
+        class="brand-gradient whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform hover:scale-105"
       >
         {en.BUTTONS.BOOK_DEMO}
       </a>
@@ -106,7 +108,7 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
 
     <label
       for="nav-toggle"
-      class="grid h-10 w-10 cursor-pointer place-items-center rounded-lg text-slate-700 md:hidden"
+      class="grid h-10 w-10 cursor-pointer place-items-center rounded-lg text-slate-700 lg:hidden"
       aria-label="Toggle menu"
       data-i18n-attr="aria-label:A11Y.TOGGLE_MENU"
     >
@@ -116,7 +118,7 @@ const currentPath = Astro.url.pathname.replace(/(.)\/$/, "$1");
     </label>
   </div>
 
-  <div class="hidden flex-col gap-3 border-t border-slate-100 bg-white px-6 py-4 peer-checked:flex md:hidden">
+  <div class="hidden flex-col gap-3 border-t border-slate-100 bg-white px-6 py-4 peer-checked:flex lg:hidden">
     {
       navLinks.map((link) => (
         <a href={link.href} data-i18n={link.key} class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">

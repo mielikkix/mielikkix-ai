@@ -8,7 +8,59 @@
 // which is exactly what triggers the CSP block in the first place.
 // postJSON comes from widget-common.js, loaded before this file.
 const { apiUrl } = document.currentScript.dataset;
-const { postJSON } = window.MlxWidget;
+const { postJSON, lang } = window.MlxWidget;
+
+// Page chrome per site language (QA 2026-10-05, BUG-07: the Norwegian site
+// greeted in English with English labels). The spoken replies themselves
+// come from the server, in the call's language.
+const STRINGS = {
+  en: {
+    pill: { idle: "Speak now", connecting: "Connecting you to Mieli...", active: "Speak with Mieli" },
+    getReady: "Get ready...",
+    listening: "Listening...",
+    thinking: "Thinking...",
+    speaking: "Speaking...",
+    connecting: "Connecting...",
+    serverError: "Sorry, something went wrong reaching the server.",
+    startFailed: "Couldn't reach the server -- check your connection and try again.",
+    ended: "Call ended -- click Speak now to talk again",
+    micProblem: "Mic problem: ",
+    seeConsole: "see the browser console (F12) for details.",
+    noNorwegianVoice:
+      "Your browser has no Norwegian voice installed, so Mieli reads the Norwegian replies with its default voice. The text below is always correct.",
+    errors: {
+      "not-allowed": "Microphone permission was denied/blocked. Click the mic/lock icon in the address bar and allow it.",
+      "audio-capture": "No microphone was found. Check a mic is connected and selected as the default input device.",
+      network: "Couldn't reach the speech-recognition service. Check your internet connection.",
+      "service-not-allowed": "The browser blocked access to its speech-recognition service.",
+      aborted: "Recognition was interrupted before it finished.",
+    },
+  },
+  no: {
+    pill: { idle: "Snakk nå", connecting: "Kobler deg til Mieli ...", active: "Snakk med Mieli" },
+    getReady: "Gjør deg klar ...",
+    listening: "Lytter ...",
+    thinking: "Tenker ...",
+    speaking: "Snakker ...",
+    connecting: "Kobler til ...",
+    serverError: "Beklager, noe gikk galt i kontakten med serveren.",
+    startFailed: "Fikk ikke kontakt med serveren -- sjekk tilkoblingen og prøv igjen.",
+    ended: "Samtalen er avsluttet -- klikk Snakk nå for å snakke igjen",
+    micProblem: "Problem med mikrofonen: ",
+    seeConsole: "se nettleserkonsollen (F12) for detaljer.",
+    noNorwegianVoice:
+      "Nettleseren din har ingen norsk stemme installert, så Mieli leser de norske svarene med standardstemmen. Teksten nedenfor er alltid riktig.",
+    errors: {
+      "not-allowed": "Tilgang til mikrofonen ble avvist. Klikk på mikrofon- eller hengelåsikonet i adressefeltet og gi tilgang.",
+      "audio-capture": "Fant ingen mikrofon. Sjekk at en mikrofon er koblet til og valgt som standard inndataenhet.",
+      network: "Fikk ikke kontakt med talegjenkjenningstjenesten. Sjekk internettforbindelsen.",
+      "service-not-allowed": "Nettleseren blokkerte tilgang til talegjenkjenningstjenesten.",
+      aborted: "Gjenkjenningen ble avbrutt før den var ferdig.",
+    },
+  },
+};
+const T = STRINGS[lang()];
+const voiceNoticeEl = document.getElementById("voiceNotice");
 
 const avatarRing = document.getElementById("avatarRing");
 const waveformEl = document.getElementById("waveform");
@@ -27,11 +79,7 @@ const unsupportedEl = document.getElementById("unsupported");
 // disabled) -> "Speak with Mieli" (call live; the detailed Listening/
 // Thinking/Speaking status and waveform take over below it, and "End call"
 // appears as its own control instead of overloading the pill).
-const PILL_LABELS = {
-  idle: "Speak now",
-  connecting: "Connecting you to Mieli...",
-  active: "Speak with Mieli",
-};
+const PILL_LABELS = T.pill;
 
 function setPill(state) {
   pillLabel.textContent = PILL_LABELS[state];
@@ -76,7 +124,7 @@ function logLine(who, text) {
     p.className = base + " brand-gradient self-end rounded-br-md text-white";
   } else if (who === "error") {
     p.className = base + " self-center rounded-lg bg-red-50 font-semibold text-red-700";
-    text = "Mic problem: " + text;
+    text = T.micProblem + text;
   } else {
     p.className = base + " self-start rounded-bl-md bg-slate-100 text-slate-800";
   }
@@ -118,14 +166,21 @@ getVoicesAsync().then((voices) => {
 
 function speak(text) {
   return new Promise((resolve) => {
-    setState("speaking", "Speaking...");
+    setState("speaking", T.speaking);
     const utterance = new SpeechSynthesisUtterance(text);
     // Falls back to the browser's default voice (reading Norwegian text
     // with an English accent) if this browser/OS has no Norwegian voice
     // installed at all -- still understandable, and better than silently
     // speaking the wrong language's voice for English text instead.
+    // The voice list can still be loading on the first reply.
+    if (!norwegianVoice) norwegianVoice = pickNorwegianVoice(window.speechSynthesis.getVoices());
     const voice = currentLanguage === "no" ? norwegianVoice : femaleVoice;
     if (voice) utterance.voice = voice;
+    // Say so instead of silently reading Norwegian with an English voice.
+    if (currentLanguage === "no" && !norwegianVoice) {
+      voiceNoticeEl.textContent = T.noNorwegianVoice;
+      voiceNoticeEl.classList.remove("hidden");
+    }
     utterance.lang = currentLanguage === "no" ? "nb-NO" : "en-US";
     utterance.onend = resolve;
     utterance.onerror = resolve;
@@ -141,7 +196,7 @@ function listenOnce() {
     // right away, clipping the first word or two of what they said.
     // The status only switches to "Listening..." once recognition has
     // genuinely started (onstart, below).
-    setState("listening", "Get ready...");
+    setState("listening", T.getReady);
     recognizer = new SpeechRecognitionCtor();
     recognizer.lang = currentLanguage === "no" ? "nb-NO" : "en-US";
     recognizer.continuous = false;
@@ -155,7 +210,7 @@ function listenOnce() {
       resolve({ transcript, error: error || null });
     };
 
-    recognizer.onstart = () => setState("listening", "Listening...");
+    recognizer.onstart = () => setState("listening", T.listening);
     recognizer.onresult = (event) => finish(event.results[0][0].transcript);
     recognizer.onerror = (event) => {
       console.error("SpeechRecognition error:", event.error);
@@ -166,13 +221,7 @@ function listenOnce() {
   });
 }
 
-const ERROR_HINTS = {
-  "not-allowed": "Microphone permission was denied/blocked. Click the mic/lock icon in the address bar and allow it.",
-  "audio-capture": "No microphone was found. Check a mic is connected and selected as the default input device.",
-  network: "Couldn't reach the speech-recognition service. Check your internet connection.",
-  "service-not-allowed": "The browser blocked access to its speech-recognition service.",
-  aborted: "Recognition was interrupted before it finished.",
-};
+const ERROR_HINTS = T.errors;
 
 // These won't resolve themselves by just trying again -- a denied mic
 // permission or missing hardware stays denied/missing on every retry, so
@@ -187,7 +236,7 @@ async function conversationLoop() {
     if (!active) return;
 
     if (error) {
-      logLine("error", `${error} -- ${ERROR_HINTS[error] || "see the browser console (F12) for details."}`);
+      logLine("error", `${error} -- ${ERROR_HINTS[error] || T.seeConsole}`);
       if (FATAL_RECOGNITION_ERRORS.has(error)) {
         hangUp();
         return;
@@ -197,7 +246,7 @@ async function conversationLoop() {
 
     const callerBubble = transcript ? logLine("caller", transcript) : null;
 
-    setState("thinking", "Thinking...");
+    setState("thinking", T.thinking);
     let reply, ended = false, heard_as = null;
     try {
       const result = await postJSON(apiUrl, "/api/agents/voice/dev/gather", { call_sid: callSid, speech: transcript });
@@ -207,7 +256,7 @@ async function conversationLoop() {
       // in the new language immediately, not one turn late.
       if (result.language) currentLanguage = result.language;
     } catch (err) {
-      reply = "Sorry, something went wrong reaching the server.";
+      reply = T.serverError;
     }
     if (!active) return;
     // If the server recognized this as a known mishearing of
@@ -233,9 +282,11 @@ async function startCall() {
   callSid = crypto.randomUUID();
   transcriptEl.innerHTML = "";
   active = true;
-  currentLanguage = "en"; // every new call starts English -- see agents_voice.py's _start_call
+  // A call starts in the site's language -- see agents_voice.py's _start_call.
+  currentLanguage = lang();
+  voiceNoticeEl.classList.add("hidden");
   setPill("connecting");
-  setState("thinking", "Connecting...");
+  setState("thinking", T.connecting);
 
   // Unlike the /gather call in conversationLoop (which falls back to an
   // apology reply and keeps going, since the call is already underway by
@@ -245,12 +296,12 @@ async function startCall() {
   // forever with no feedback.
   let reply;
   try {
-    ({ reply } = await postJSON(apiUrl, "/api/agents/voice/dev/start", { call_sid: callSid }));
+    ({ reply } = await postJSON(apiUrl, "/api/agents/voice/dev/start", { call_sid: callSid, language: currentLanguage }));
   } catch (err) {
     console.error("Failed to start call:", err);
     active = false;
     setPill("idle");
-    setState("idle", "Couldn't reach the server -- check your connection and try again.");
+    setState("idle", T.startFailed);
     return;
   }
 
@@ -268,7 +319,7 @@ function hangUp() {
     try { recognizer.stop(); } catch (e) {}
   }
   setPill("idle");
-  setState("idle", "Call ended -- click Speak now to talk again");
+  setState("idle", T.ended);
 }
 
 if (!SpeechRecognitionCtor) {

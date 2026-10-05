@@ -14,6 +14,9 @@ class ChatMessageRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=MAX_ID_CHARS)
     message: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_CHARS)
     visitor_id: Optional[str] = Field(default=None, max_length=MAX_ID_CHARS)
+    # The host page's <html lang> (e.g. mielikkix.ai switched to Norsk). Only a
+    # tie-breaker for a message that doesn't clearly signal a language itself.
+    page_lang: Optional[str] = Field(default=None, max_length=10)
 
 
 class ChatMessageResponse(BaseModel):

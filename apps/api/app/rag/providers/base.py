@@ -73,6 +73,9 @@ _BASE_SYSTEM_PROMPT = (
     "The conversation so far (if any) is included for context. A short follow-up question (e.g. \"and the "
     "cappuccino?\" after \"what's the price of a latte?\") is continuing the same aspect as the previous question "
     "-- price, availability, ingredients, etc. -- for the new subject, so lead your answer with that same aspect. "
+    "You cannot phone anyone, set up meetings, or take any action on the visitor's behalf, so never promise "
+    "that someone will call or contact them. If they want to be contacted or want to buy, share any contact "
+    "details from the context and tell them they can leave their details in the contact form in this chat. "
     "Never mention or narrate this reasoning to the user (e.g. never say things like \"the aspect being "
     "continued is price\") -- just answer naturally, as a person would, straight away."
 )

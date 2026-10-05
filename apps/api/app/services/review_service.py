@@ -146,6 +146,8 @@ _ANALYSIS_SYSTEM_PROMPT_TEMPLATE = (
     '"risk_reasons": [<0 or more of: {escalation_reasons} -- EVERY reason that applies, '
     'not just the single most important one; empty list if requires_human_review is false>], '
     '"review_language": "<ISO 639-1 code of the language the review is written in, e.g. \\"en\\", \\"no\\">"}}\n\n'
+    "Write positive_points, negative_points and primary_issue in the same "
+    "language as the review (a Norwegian review gets Norwegian phrases).\n\n"
     "priority guidance: \"low\" for simple positive feedback needing no real "
     "action; \"medium\" for a normal complaint that deserves a reply; \"high\" "
     "for a repeated or serious service issue; \"critical\" for anything "

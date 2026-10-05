@@ -132,10 +132,6 @@
           "AVAILABLE": false
         },
         {
-          "TEXT": "Gmail",
-          "AVAILABLE": true
-        },
-        {
           "TEXT": "Slack & Microsoft Teams — planned",
           "AVAILABLE": false
         }

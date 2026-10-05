@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { supportTriageNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import Tr from "../../components/Tr.astro";
 import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
@@ -34,10 +35,13 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
   title="Try Our Support Triage"
   description={`Try a live demo of Mielikkix's AI Support Triage — see it classify a question, answer when it's confident, and hand off to a human when it's not. ${fromPrice}`}
   path="/demo/support-triage/"
+  page="demos"
+  titleKey="SUPPORT.SEO.TITLE"
+  descriptionKey="SUPPORT.SEO.DESCRIPTION"
   structuredDataNodes={[supportTriageNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600" data-i18n="COMMON.BACK_LINK">
       &larr; Back to AI Agents
     </a>
   </div>
@@ -45,6 +49,9 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
     line1="Meet Mielikkix's"
     line2="Support Triage"
     subheading={`A live demo — every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing.`}
+    line1Key="COMMON.MEET"
+    line2Key="SUPPORT.HERO_LINE2"
+    subheadingKey="SUPPORT.SUBHEADING"
   >
     <FromPrice slot="extra" productId="support-triage" />
   </PageHero>
@@ -52,8 +59,8 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
   <section class="mx-auto max-w-lg px-6 py-16">
     <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
       <p role="note" class="rounded-t-3xl border-b border-slate-100 bg-slate-50 px-5 py-2 text-[11px] leading-snug text-slate-500">
-        You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.
-        <a href="/privacy/" class="underline">Privacy</a>
+        <span data-i18n="COMMON.AI_NOTICE">You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.</span>
+        <a href="/privacy/" class="underline" data-i18n="COMMON.PRIVACY">Privacy</a>
       </p>
       <div id="transcript" class="flex flex-1 flex-col gap-1.5 overflow-y-auto p-5"></div>
 
@@ -64,6 +71,8 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
           autocomplete="off"
           maxlength="2000"
           placeholder="Ask a question, or try something off-topic"
+          aria-label="Ask a question, or try something off-topic"
+          data-i18n-attr="placeholder:SUPPORT.PLACEHOLDER;aria-label:SUPPORT.PLACEHOLDER"
           class="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-violet-400"
         />
         <button
@@ -71,6 +80,7 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
           type="submit"
           class="brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Send"
+          data-i18n-attr="aria-label:COMMON.SEND"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" />
@@ -80,11 +90,12 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
     </div>
 
     <div class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
-      <p class="font-semibold text-slate-600">Try it both ways:</p>
+      <p class="font-semibold text-slate-600" data-i18n="SUPPORT.TRY_HEADING">Try it both ways:</p>
       <p class="mt-1">
-        Ask something Mielikkix's own docs actually cover (e.g. <em>"what does the chat widget do"</em>)
-        to see it answer confidently. Ask something vague or unrelated to see it escalate to a real
-        person instead of guessing — every reply below is tagged with which one happened, and why.
+        <Tr>
+          <Fragment slot="en">Ask something Mielikkix's own docs actually cover (e.g. <em>"what does the chat widget do"</em>) to see it answer confidently. Ask about a problem it can't solve on its own, such as a billing dispute, to see it hand over to a real person instead of guessing. Ask something unrelated to Mielikkix to see it politely decline. Every reply is tagged with which one happened.</Fragment>
+          <Fragment slot="no">Spør om noe Mielikkix sin egen dokumentasjon dekker (f.eks. <em>«hva gjør AI-chattevinduet?»</em>) for å se den svare med sikkerhet. Spør om et problem den ikke kan løse selv, som en fakturatvist, for å se den sende saken videre til et menneske i stedet for å gjette. Spør om noe som ikke har med Mielikkix å gjøre, for å se den avslå høflig. Hvert svar er merket med hva som skjedde.</Fragment>
+        </Tr>
       </p>
     </div>
   </section>

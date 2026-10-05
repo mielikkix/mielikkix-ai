@@ -26,7 +26,7 @@ const langs = [
 ] as const;
 ---
 
-<Layout title={titles.en} description={description} path={`/${doc}`} titleKey={`FOOTER.${titleKey}`}>
+<Layout title={titles.en} description={description} path={`/${doc}`} titleKey={`FOOTER.${titleKey}`} translated>
   <Fragment set:html="<!-- LEGAL REVIEW REQUIRED -->" />
   <section class="legal-page mx-auto max-w-3xl px-6 py-16">
     <!-- One <h1> for the page (QA 2026-10-01, B19: each language's article had its own, so the

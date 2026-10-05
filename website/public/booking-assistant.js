@@ -5,7 +5,51 @@
 // file's own comment on this. postJSON/formatSlot come from
 // widget-common.js, loaded before this file.
 const { apiUrl } = document.currentScript.dataset;
-const { postJSON, formatSlot } = window.MlxWidget;
+const { postJSON, formatSlot, lang } = window.MlxWidget;
+
+// Every visible string, per site language (QA 2026-10-05, BUG-05: the
+// Norwegian site's booking demo greeted and replied in English).
+const STRINGS = {
+  en: {
+    greeting: "Hi! What would you like to book?",
+    checking: "Let me check what's open…",
+    noAvailability: "No open times in that window — try a different day or date range.",
+    noAvailabilityPart: (part) => `No open ${part} times in that window. Try another day, or a different time of day.`,
+    parts: { morning: "morning", afternoon: "afternoon", evening: "evening" },
+    slotsIntro: (minutes, type) => `Here's what's open for a ${minutes}-minute ${type}:`,
+    askName: "Great — what's your name?",
+    namePlaceholder: "Your name",
+    askEmail: "And what's the best email for the calendar invite?",
+    booking: "Booking that in…",
+    conflict: "Sorry, that time was just taken. Let's find you another — what would you like to book?",
+    booked: (slot, email) =>
+      `You're booked! ${slot} — a calendar invite is on its way to ${email}. Want to book something else? Just tell me what and when.`,
+    pickSlot: "Pick one of the times above, or tell me a different day to check.",
+    closing: "Sounds good — thanks for stopping by! Come back anytime you'd like to book something.",
+    error: "Sorry, something went wrong reaching the server. Please try again.",
+    placeholder: "e.g. a 30 minute consultation next Tuesday afternoon",
+  },
+  no: {
+    greeting: "Hei! Hva vil du bestille?",
+    checking: "Jeg sjekker hva som er ledig …",
+    noAvailability: "Ingen ledige tider i den perioden — prøv en annen dag eller periode.",
+    noAvailabilityPart: (part) => `Ingen ledige tider på ${part} i den perioden. Prøv en annen dag eller en annen tid på dagen.`,
+    parts: { morning: "formiddagen", afternoon: "ettermiddagen", evening: "kvelden" },
+    slotsIntro: (minutes, type) => `Dette er ledig for ${type} på ${minutes} minutter:`,
+    askName: "Flott — hva heter du?",
+    namePlaceholder: "Navnet ditt",
+    askEmail: "Og hvilken e-postadresse skal kalenderinvitasjonen sendes til?",
+    booking: "Jeg bestiller …",
+    conflict: "Beklager, den tiden ble nettopp tatt. Vi finner en annen — hva vil du bestille?",
+    booked: (slot, email) =>
+      `Du er booket! ${slot} — en kalenderinvitasjon er på vei til ${email}. Vil du bestille noe mer? Bare si hva og når.`,
+    pickSlot: "Velg en av tidene over, eller si en annen dag jeg skal sjekke.",
+    closing: "Den er grei — takk for besøket! Kom gjerne tilbake når du vil bestille noe.",
+    error: "Beklager, noe gikk galt i kontakten med serveren. Prøv igjen.",
+    placeholder: "f.eks. en konsultasjon på 30 minutter neste tirsdag ettermiddag",
+  },
+};
+const T = STRINGS[lang()];
 
 const transcriptEl = document.getElementById("transcript");
 const slotsWrap = document.getElementById("slotsWrap");
@@ -71,6 +115,11 @@ const CLOSING_PATTERNS = [
   /\bgoodbye\b/,
   /\bsee you\b/,
   /\bcya\b/,
+  // Norwegian: "nei", "nei takk", "ha det", "det var alt", ...
+  /^nei\b/,
+  /\bha det\b/,
+  /\bdet var alt\b/,
+  /\bdet er greit\b/,
 ];
 
 function looksLikeClosing(text) {
@@ -102,14 +151,14 @@ function pickSlot(slot) {
   chosenSlot = slot;
   hideSlots();
   addBubble("visitor", formatSlot(slot.start));
-  addBubble("ai", "Great — what's your name?");
+  addBubble("ai", T.askName);
   stage = "awaiting_name";
-  composerInput.placeholder = "Your name";
+  composerInput.placeholder = T.namePlaceholder;
 }
 
 async function handleDescribe(text) {
-  addBubble("ai", "Let me check what's open…");
-  const result = await postJSON(apiUrl, "/api/agents/booking/request", { message: text, timezone });
+  addBubble("ai", T.checking);
+  const result = await postJSON(apiUrl, "/api/agents/booking/request", { message: text, timezone, lang: lang() });
   meetingType = result.meeting_type || "appointment";
 
   if (result.status === "clarification_needed") {
@@ -117,16 +166,18 @@ async function handleDescribe(text) {
     return;
   }
   if (result.status === "no_availability") {
-    addBubble("ai", "No open times in that window — try a different day or date range.");
+    // QA 2026-10-05 (BUG-06): say so when the asked-for part of the day is full.
+    const part = T.parts[result.time_of_day];
+    addBubble("ai", part ? T.noAvailabilityPart(part) : T.noAvailability);
     return;
   }
-  addBubble("ai", `Here's what's open for a ${result.duration_minutes}-minute ${meetingType}:`);
+  addBubble("ai", T.slotsIntro(result.duration_minutes, meetingType));
   showSlots(result.slots);
   stage = "awaiting_slot";
 }
 
 async function handleConfirm() {
-  addBubble("ai", "Booking that in…");
+  addBubble("ai", T.booking);
   const result = await postJSON(apiUrl, "/api/agents/booking/confirm", {
     name: visitorName,
     email: visitorEmail,
@@ -137,20 +188,16 @@ async function handleConfirm() {
   });
 
   if (result.status === "conflict") {
-    addBubble("ai", "Sorry, that time was just taken. Let's find you another — what would you like to book?");
+    addBubble("ai", T.conflict);
     stage = "describe";
-    composerInput.placeholder = "e.g. a 30 minute consultation next Tuesday afternoon";
+    composerInput.placeholder = T.placeholder;
     chosenSlot = null;
     return;
   }
 
-  addBubble(
-    "ai",
-    `You're booked! ${formatSlot(chosenSlot.start)} — a calendar invite is on its way to ${visitorEmail}. ` +
-      "Want to book something else? Just tell me what and when."
-  );
+  addBubble("ai", T.booked(formatSlot(chosenSlot.start), visitorEmail));
   stage = "describe";
-  composerInput.placeholder = "e.g. a 30 minute consultation next Tuesday afternoon";
+  composerInput.placeholder = T.placeholder;
   chosenSlot = null;
   visitorName = "";
   visitorEmail = "";
@@ -167,14 +214,14 @@ composerForm.addEventListener("submit", async (e) => {
   composerSend.disabled = true;
   try {
     if (stage === "describe" && looksLikeClosing(text)) {
-      addBubble("ai", "Sounds good — thanks for stopping by! Come back anytime you'd like to book something.");
+      addBubble("ai", T.closing);
     } else if (stage === "describe") {
       await handleDescribe(text);
     } else if (stage === "awaiting_slot") {
-      addBubble("ai", "Pick one of the times above, or tell me a different day to check.");
+      addBubble("ai", T.pickSlot);
     } else if (stage === "awaiting_name") {
       visitorName = text;
-      addBubble("ai", "And what's the best email for the calendar invite?");
+      addBubble("ai", T.askEmail);
       stage = "awaiting_email";
       composerInput.placeholder = "you@example.com";
     } else if (stage === "awaiting_email") {
@@ -183,7 +230,7 @@ composerForm.addEventListener("submit", async (e) => {
     }
   } catch (err) {
     console.error("Booking demo error:", err);
-    addBubble("ai", "Sorry, something went wrong reaching the server. Please try again.");
+    addBubble("ai", T.error);
   } finally {
     composerInput.disabled = false;
     composerSend.disabled = false;
@@ -191,4 +238,4 @@ composerForm.addEventListener("submit", async (e) => {
   }
 });
 
-addBubble("ai", "Hi! What would you like to book?");
+addBubble("ai", T.greeting);

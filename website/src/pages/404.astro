@@ -1,0 +1,47 @@
+---
+import Layout from "../layouts/Layout.astro";
+import en from "../assets/i18n/en/company.json";
+
+// Branded 404 (QA 2026-10-05, BUG-14: Hostinger's stock English page had no
+// header, footer or way home). Served for every missing URL by
+// `ErrorDocument 404 /404.html` in public/.htaccess; follows the visitor's
+// language like every other page (a /no/... miss counts as Norwegian, see
+// public/i18n-guard.js). Links are root-relative on purpose: this one file
+// answers for any depth of missing path.
+const n = en.NOT_FOUND;
+---
+
+<Layout
+  title={n.SEO.TITLE}
+  description={n.SEO.DESCRIPTION}
+  path="/404/"
+  page="company"
+  titleKey="NOT_FOUND.SEO.TITLE"
+  descriptionKey="NOT_FOUND.SEO.DESCRIPTION"
+  noindex
+>
+  <section class="mx-auto max-w-xl px-6 py-24 text-center">
+    <p class="brand-gradient-text font-display text-7xl font-extrabold" data-i18n="NOT_FOUND.CODE">{n.CODE}</p>
+    <h1 class="mt-4 font-display text-3xl font-bold text-slate-900" data-i18n="NOT_FOUND.HEADING">{n.HEADING}</h1>
+    <p class="mt-3 text-slate-500" data-i18n="NOT_FOUND.TEXT">{n.TEXT}</p>
+    <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href="/" data-i18n="NOT_FOUND.HOME" class="brand-gradient rounded-full px-6 py-2.5 text-sm font-semibold text-white">
+        {n.HOME}
+      </a>
+      <a
+        href="/agents/"
+        data-i18n="NOT_FOUND.AGENTS"
+        class="rounded-full border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-700 hover:border-violet-300"
+      >
+        {n.AGENTS}
+      </a>
+      <a
+        href="/contact/"
+        data-i18n="NOT_FOUND.CONTACT"
+        class="rounded-full border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-700 hover:border-violet-300"
+      >
+        {n.CONTACT}
+      </a>
+    </div>
+  </section>
+</Layout>

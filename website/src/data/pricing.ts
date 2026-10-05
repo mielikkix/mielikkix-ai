@@ -755,8 +755,8 @@ export const addons: Addon[] = [
     id: "whatsapp-concierge",
     name: t("WhatsApp Concierge", "WhatsApp Concierge"),
     description: t(
-      "Your chat assistant inside WhatsApp. Available on any Chat Widget plan.",
-      "Chat-assistenten din inne i WhatsApp. Tilgjengelig på alle planer for Chat Widget.",
+      "Your chat assistant inside WhatsApp, as an add-on to any Chat Widget plan once it launches.",
+      "Chat-assistenten din inne i WhatsApp, som tillegg til alle Chat Widget-planer når den lanseres.",
     ),
     priceNokMonthly: 490,
     // WhatsApp Business number is still pending Meta's approval (see /demo/whatsapp-concierge).

@@ -1,0 +1,54 @@
+{
+  "ABOUT": {
+    "SEO": {
+      "TITLE": "Om Mielikkix",
+      "DESCRIPTION": "Mielikkix er et norsk AI-programvareselskap som lager et AI-chattevindu og AI-agenter som hjelper bedrifter i vekst med å svare kunder, fange opp leads og automatisere repetitivt arbeid."
+    },
+    "HERO_LINE1": "Om",
+    "HERO_LINE2": "Mielikkix",
+    "SUBHEADING": "AI-agenter og et AI-chattevindu for bedrifter i vekst.",
+    "WHO_HEADING": "Hvem vi er",
+    "WHO_TEXT": "Mielikkix er et AI- og SaaS-selskap med base i Norge. Vi hjelper bedrifter å bruke kunstig intelligens til å jobbe smartere, automatisere raskere og gi kundene en bedre opplevelse. Vi lager praktiske AI-løsninger som går lenger enn enkle chatboter: AI-kundeservice, salgs- og leadautomatisering, AI-systemer med flere agenter, skreddersydd AI-programvare og integrasjoner med verktøyene bedriften allerede bruker. Målet er enkelt: gjøre AI nyttig, tilgjengelig og målbar for ekte bedrifter.",
+    "NAME_HEADING": "Hvorfor «Mielikki»?",
+    "NAME_TEXT": "I finsk mytologi er Mielikki skogens gudinne, en vokter som passer på sine egne og sørger for at ingenting går tapt. Det er den jobben vi ville at produktet skulle gjøre for bedriftene som bruker det: holde vakt, ta imot hver besøkende og sørge for at ingen går derfra uten svar.",
+    "PROBLEM_HEADING": "Problemet",
+    "PROBLEM_TEXT": "De fleste bedrifter mister tid og kunder til repetitivt, manuelt arbeid: tapte anrop, trege svar, manuell timebestilling, de samme kundeservicespørsmålene om og om igjen, og leads som forsvinner utenom åpningstiden. Skreddersydd AI-utvikling er for dyrt og tregt for de fleste små bedrifter, og generiske chatboter kjenner ikke din bedrift.",
+    "SOLUTION_HEADING": "Slik løser vi det",
+    "SOLUTION_TEXT": "AI som gjør ekte oppgaver, bygget rundt måten bedriften allerede jobber på. Start med Mielikkix Chat Widget, en chatbot med din profil som er trent på dine egne FAQ-er, dokumenter og produkter, og som du legger inn med én kodelinje. Legg til AI-agenter for telefon, timebestilling, kundeservice, anmeldelser og SEO etter hvert som du vokser, eller la oss lage en skreddersydd agent for din arbeidsflyt. AI tar det repetitive arbeidet; teamet ditt tar over når det trengs.",
+    "TRUST_HEADING": "Data, sikkerhet og tillit",
+    "TRUST_TEXT": "Vi holder til i Norge og bygger alle AI-systemer med personvern og GDPR i tankene. Bedriftens data er og blir dine. Integrasjonene er avgrenset slik at en AI-agent bare får tilgang til dataene og handlingene den trenger, og alle agenter kan overlate en samtale til en person i teamet ditt.",
+    "CONTACT_HEADING": "Ta kontakt",
+    "CONTACT_TEXT": "Vi er et lite team i tidlig fase og svarer personlig på hver eneste melding.",
+    "CONTACT_BUTTON": "Kontakt oss"
+  },
+  "CONTACT": {
+    "SEO": {
+      "TITLE": "Kontakt Mielikkix",
+      "DESCRIPTION": "Kontakt Mielikkix på e-post til post@mielikkix.no, book en gratis demo på 15 minutter, eller opprett en gratis Chat Widget-konto."
+    },
+    "HERO_LINE1": "Kontakt",
+    "HERO_LINE2": "Mielikkix",
+    "SUBHEADING": "Spørsmål, en demo eller en skreddersydd AI-agent: vi svarer personlig på hver melding.",
+    "EMAIL_HEADING": "Send oss en e-post",
+    "EMAIL_TEXT": "For spørsmål, samarbeid, personvernhenvendelser og kundestøtte.",
+    "DEMO_HEADING": "Book en gratis demo",
+    "DEMO_TEXT": "En gjennomgang på 15 minutter, tilpasset din bransje og helt uforpliktende.",
+    "DEMO_BUTTON": "Book en gratis demo",
+    "START_HEADING": "Kom i gang gratis",
+    "START_TEXT": "Opprett en gratis Chat Widget-konto. Ingen kredittkort nødvendig.",
+    "START_BUTTON": "Kom i gang gratis",
+    "LOCATION": "Mielikkix holder til i Norge og hjelper bedrifter i Norge og internasjonalt."
+  },
+  "NOT_FOUND": {
+    "SEO": {
+      "TITLE": "Fant ikke siden",
+      "DESCRIPTION": "Siden du lette etter finnes ikke."
+    },
+    "CODE": "404",
+    "HEADING": "Vi fant ikke den siden",
+    "TEXT": "Lenken kan være gammel, eller siden kan ha flyttet. Kanskje dette hjelper:",
+    "HOME": "Gå til forsiden",
+    "AGENTS": "Se AI-agentene våre",
+    "CONTACT": "Kontakt oss"
+  }
+}

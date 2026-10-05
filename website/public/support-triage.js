@@ -12,7 +12,38 @@
 // widget.js bubble does. postJSON comes from widget-common.js, loaded
 // before this file.
 const { apiUrl } = document.currentScript.dataset;
-const { postJSON } = window.MlxWidget;
+const { postJSON, lang } = window.MlxWidget;
+
+// Per site language (QA 2026-10-05, BUG-08: English tags and replies on the
+// Norwegian site). The replies themselves come from the server, which
+// answers in the visitor's language.
+const STRINGS = {
+  en: {
+    greeting: "Hi! Ask me anything about Mielikkix, or try something off-topic to see what happens.",
+    booking: "📅 Booking request detected -- handed off to Booking Assistant",
+    declined: "🛡️ Declined -- outside what this assistant will do",
+    offTopic: "🧭 Out of scope -- not about Mielikkix, so not answered or escalated",
+    escalated: "🚩 Not confident enough -- escalated to a real person",
+    confident: "✓ Answered confidently from Mielikkix's own docs",
+    emailLabel: "Your email address",
+    send: "Send",
+    emailInvalid: "Please check the email address and try again.",
+    error: "Sorry, something went wrong reaching the server. Please try again.",
+  },
+  no: {
+    greeting: "Hei! Spør meg om hva som helst om Mielikkix, eller prøv noe helt annet for å se hva som skjer.",
+    booking: "📅 Bestillingsforespørsel oppdaget -- sendt videre til Booking Assistant",
+    declined: "🛡️ Avslått -- utenfor det denne assistenten gjør",
+    offTopic: "🧭 Utenfor tema -- handler ikke om Mielikkix, så verken besvart eller sendt videre",
+    escalated: "🚩 Ikke sikker nok -- sendt videre til et menneske",
+    confident: "✓ Besvart med sikkerhet fra Mielikkix sin egen dokumentasjon",
+    emailLabel: "E-postadressen din",
+    send: "Send",
+    emailInvalid: "Sjekk e-postadressen og prøv igjen.",
+    error: "Beklager, noe gikk galt i kontakten med serveren. Prøv igjen.",
+  },
+};
+const T = STRINGS[lang()];
 
 const transcriptEl = document.getElementById("transcript");
 const composerForm = document.getElementById("composerForm");
@@ -57,15 +88,18 @@ function addBubble(who, text, tag) {
 // it checks them.
 function tagFor(result) {
   if (result.suggest_booking_flow) {
-    return { text: "📅 Booking request detected -- handed off to Booking Assistant", className: "text-violet-600" };
+    return { text: T.booking, className: "text-violet-600" };
   }
   if (result.declined) {
-    return { text: "🛡️ Declined -- outside what this assistant will do", className: "text-slate-500" };
+    return { text: T.declined, className: "text-slate-500" };
+  }
+  if (result.off_topic) {
+    return { text: T.offTopic, className: "text-slate-500" };
   }
   if (result.escalated) {
-    return { text: "🚩 Not confident enough -- escalated to a real person", className: "text-amber-600" };
+    return { text: T.escalated, className: "text-amber-600" };
   }
-  return { text: "✓ Answered confidently from Mielikkix's own docs", className: "text-emerald-600" };
+  return { text: T.confident, className: "text-emerald-600" };
 }
 
 // Escalated with no way to reach the visitor yet (needs_contact): ask for an
@@ -79,24 +113,24 @@ function addContactForm() {
   input.required = true;
   input.autocomplete = "email";
   input.placeholder = "you@example.com";
-  input.setAttribute("aria-label", "Your email address");
+  input.setAttribute("aria-label", T.emailLabel);
   input.className = "min-w-0 flex-1 rounded-full border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-violet-400";
   const button = document.createElement("button");
   button.type = "submit";
-  button.textContent = "Send";
+  button.textContent = T.send;
   button.className = "brand-gradient rounded-full px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50";
   form.append(input, button);
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     button.disabled = true;
     try {
-      const result = await postJSON(apiUrl, "/api/agents/support/chat/contact", { session_id: sessionId, email: input.value.trim() });
+      const result = await postJSON(apiUrl, "/api/agents/support/chat/contact", { session_id: sessionId, email: input.value.trim(), lang: lang() });
       form.remove();
       addBubble("ai", result.reply);
     } catch (err) {
       console.error("Support Triage contact error:", err);
       button.disabled = false;
-      input.setCustomValidity("Please check the email address and try again.");
+      input.setCustomValidity(T.emailInvalid);
       input.reportValidity();
       input.addEventListener("input", () => input.setCustomValidity(""), { once: true });
     }
@@ -116,12 +150,12 @@ composerForm.addEventListener("submit", async (e) => {
   composerInput.disabled = true;
   composerSend.disabled = true;
   try {
-    const result = await postJSON(apiUrl, "/api/agents/support/chat/message", { session_id: sessionId, message: text });
+    const result = await postJSON(apiUrl, "/api/agents/support/chat/message", { session_id: sessionId, message: text, lang: lang() });
     addBubble("ai", result.reply, tagFor(result));
     if (result.needs_contact && !transcriptEl.querySelector("form")) addContactForm();
   } catch (err) {
     console.error("Support Triage demo error:", err);
-    addBubble("ai", "Sorry, something went wrong reaching the server. Please try again.");
+    addBubble("ai", T.error);
   } finally {
     composerInput.disabled = false;
     composerSend.disabled = false;
@@ -129,4 +163,4 @@ composerForm.addEventListener("submit", async (e) => {
   }
 });
 
-addBubble("ai", "Hi! Ask me anything about Mielikkix, or try something off-topic to see what happens.");
+addBubble("ai", T.greeting);

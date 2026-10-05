@@ -3,6 +3,75 @@
 // website/public/*.js file is -- see voice-receptionist.js's own comment
 // on this.
 const { apiUrl } = document.currentScript.dataset;
+const { lang } = window.MlxWidget;
+
+// Result labels per site language (QA 2026-10-05, BUG-09: SENTIMENT,
+// CUSTOMER INTENT, ... were English on the Norwegian site).
+const STRINGS = {
+  en: {
+    sentiment: "Sentiment",
+    sentiments: { positive: "Positive", neutral: "Neutral", negative: "Negative", mixed: "Mixed" },
+    intent: "Customer intent",
+    intents: { Praise: "Praise", Complaint: "Complaint", Question: "Question", Suggestion: "Suggestion" },
+    insights: "AI Review Insights",
+    liked: "What they liked",
+    attention: "What needs attention",
+    noInsights: "No specific issues or highlights were called out in this review.",
+    drafted: "AI-drafted response",
+    toneSuffix: (tone) => `(${tone} tone)`,
+    tones: { professional: "professional", friendly: "friendly", empathetic: "empathetic", warm: "warm", concise: "concise" },
+    edit: "Edit Response",
+    doneEditing: "Done Editing",
+    copy: "Copy Response",
+    copied: "Copied!",
+    personalized: "Personalized to this review's sentiment and the specific details detected above -- not a generic template.",
+    recommended: "Recommended action",
+    flaggedAs: (reason) => ` (flagged as: ${reason})`,
+    actions: {
+      investigate: ["Investigate before responding", (reason) => `Don't rely on an automated reply here -- have a team member look into this directly${reason}.`],
+      thank: ["Thank the customer", "Post the response publicly and thank them -- great feedback like this is worth sharing with the team."],
+      resolvePrivately: ["Follow up privately & resolve", "Reach out to the customer directly to make it right, then post the response publicly."],
+      resolve: ["Offer to resolve the issue", "Post the response, and follow up directly if the customer replies."],
+      acknowledge: ["Acknowledge the feedback", "Post the response, and note this as a small opportunity to improve."],
+    },
+    steps: ["Reading the review…", "Detecting sentiment & intent…", "Identifying key issues…", "Drafting your response…"],
+    analyzing: "Analyzing...",
+    analyze: "Analyze Review & Draft Response",
+    error: "Sorry, something went wrong reaching the server. Please try again.",
+  },
+  no: {
+    sentiment: "Stemning",
+    sentiments: { positive: "Positiv", neutral: "Nøytral", negative: "Negativ", mixed: "Blandet" },
+    intent: "Kundens hensikt",
+    intents: { Praise: "Ros", Complaint: "Klage", Question: "Spørsmål", Suggestion: "Forslag" },
+    insights: "AI-innsikt fra anmeldelsen",
+    liked: "Dette likte kunden",
+    attention: "Dette må følges opp",
+    noInsights: "Anmeldelsen nevner ingen konkrete problemer eller høydepunkter.",
+    drafted: "AI-skrevet svar",
+    toneSuffix: (tone) => `(${tone} tone)`,
+    tones: { professional: "profesjonell", friendly: "vennlig", empathetic: "empatisk", warm: "varm", concise: "kortfattet" },
+    edit: "Rediger svaret",
+    doneEditing: "Ferdig",
+    copy: "Kopier svaret",
+    copied: "Kopiert!",
+    personalized: "Tilpasset stemningen og detaljene i denne anmeldelsen -- ikke en standardmal.",
+    recommended: "Anbefalt tiltak",
+    flaggedAs: (reason) => ` (merket som: ${reason})`,
+    actions: {
+      investigate: ["Undersøk før du svarer", (reason) => `Ikke stol på et automatisk svar her -- la noen i teamet se direkte på saken${reason}.`],
+      thank: ["Takk kunden", "Publiser svaret og takk kunden -- så god tilbakemelding er verdt å dele med teamet."],
+      resolvePrivately: ["Følg opp privat og løs saken", "Ta direkte kontakt med kunden for å rette opp i det, og publiser deretter svaret."],
+      resolve: ["Tilby å løse problemet", "Publiser svaret, og følg opp direkte hvis kunden svarer."],
+      acknowledge: ["Bekreft tilbakemeldingen", "Publiser svaret, og noter dette som en liten mulighet til forbedring."],
+    },
+    steps: ["Leser anmeldelsen …", "Finner stemning og hensikt …", "Finner hovedproblemene …", "Skriver svaret …"],
+    analyzing: "Analyserer ...",
+    analyze: "Analyser anmeldelsen og skriv et svar",
+    error: "Beklager, noe gikk galt i kontakten med serveren. Prøv igjen.",
+  },
+};
+const T = STRINGS[lang()];
 
 const reviewInput = document.getElementById("reviewInput");
 const reviewError = document.getElementById("reviewError");
@@ -30,7 +99,7 @@ document.querySelectorAll(".example-btn").forEach((btn) => {
   });
 });
 
-const SENTIMENT_LABELS = { positive: "Positive", neutral: "Neutral", negative: "Negative", mixed: "Mixed" };
+const SENTIMENT_LABELS = T.sentiments;
 const SENTIMENT_CLASSES = {
   positive: "bg-emerald-50 text-emerald-700",
   neutral: "bg-slate-100 text-slate-600",
@@ -52,7 +121,8 @@ const INTENT_CLASSES = {
 
 function detectIntent(reviewText, analysis) {
   const looksLikeQuestion =
-    /\?/.test(reviewText) && /\b(what|how|why|when|where|is|are|do|does|can|could|would|will|should)\b/i.test(reviewText);
+    /\?/.test(reviewText) &&
+    /\b(what|how|why|when|where|is|are|do|does|can|could|would|will|should|hva|hvordan|hvorfor|når|hvor|er|kan|vil|skal)\b/i.test(reviewText);
   if (looksLikeQuestion) return "Question";
   if (analysis.sentiment === "positive" && analysis.negative_points.length === 0) return "Praise";
   if (analysis.negative_points.length > 0 || analysis.primary_issue) return "Complaint";
@@ -76,40 +146,25 @@ const ACTION_CLASSES = {
 function recommendedAction(analysis) {
   if (analysis.requires_human_review) {
     const reason = analysis.escalation_reason && analysis.escalation_reason !== "unknown"
-      ? ` (flagged as: ${analysis.escalation_reason.replace(/_/g, " ")})`
+      ? T.flaggedAs(analysis.escalation_reason.replace(/_/g, " "))
       : "";
-    return {
-      label: "Investigate before responding",
-      text: `Don't rely on an automated reply here -- have a team member look into this directly${reason}.`,
-      tone: "red",
-    };
+    const [label, text] = T.actions.investigate;
+    return { label, text: text(reason), tone: "red" };
   }
   if (analysis.sentiment === "positive") {
-    return {
-      label: "Thank the customer",
-      text: "Post the response publicly and thank them -- great feedback like this is worth sharing with the team.",
-      tone: "emerald",
-    };
+    const [label, text] = T.actions.thank;
+    return { label, text, tone: "emerald" };
   }
   if (analysis.sentiment === "negative" || analysis.sentiment === "mixed") {
     if (analysis.priority === "high" || analysis.priority === "critical") {
-      return {
-        label: "Follow up privately & resolve",
-        text: "Reach out to the customer directly to make it right, then post the response publicly.",
-        tone: "amber",
-      };
+      const [label, text] = T.actions.resolvePrivately;
+      return { label, text, tone: "amber" };
     }
-    return {
-      label: "Offer to resolve the issue",
-      text: "Post the response, and follow up directly if the customer replies.",
-      tone: "amber",
-    };
+    const [label, text] = T.actions.resolve;
+    return { label, text, tone: "amber" };
   }
-  return {
-    label: "Acknowledge the feedback",
-    text: "Post the response, and note this as a small opportunity to improve.",
-    tone: "slate",
-  };
+  const [label, text] = T.actions.acknowledge;
+  return { label, text, tone: "slate" };
 }
 
 function badge(text, className) {
@@ -142,14 +197,14 @@ function renderResult(reviewText, analysis, responseText, responseTone) {
   // presentation only, no new analysis.
   const highlightsSubBlock = hasHighlights
     ? `<div class="mt-2.5">
-         <p class="text-xs font-semibold text-emerald-600">What they liked</p>
+         <p class="text-xs font-semibold text-emerald-600">${T.liked}</p>
          ${bulletList(analysis.positive_points, "text-emerald-500")}
        </div>`
     : "";
 
   const issuesSubBlock = hasIssues
     ? `<div class="mt-3">
-         <p class="text-xs font-semibold text-red-600">What needs attention</p>
+         <p class="text-xs font-semibold text-red-600">${T.attention}</p>
          ${analysis.primary_issue ? `<p class="mt-1.5 text-sm font-medium text-slate-800">${escapeHtml(analysis.primary_issue)}</p>` : ""}
          ${analysis.negative_points.length ? bulletList(analysis.negative_points, "text-red-500") : ""}
        </div>`
@@ -157,22 +212,22 @@ function renderResult(reviewText, analysis, responseText, responseTone) {
 
   const insightsBlock = `
     <div class="mt-4">
-      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">AI Review Insights</p>
+      <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${T.insights}</p>
       ${highlightsSubBlock}
       ${issuesSubBlock}
-      ${!hasIssues && !hasHighlights ? `<p class="mt-1.5 text-sm text-slate-500">No specific issues or highlights were called out in this review.</p>` : ""}
+      ${!hasIssues && !hasHighlights ? `<p class="mt-1.5 text-sm text-slate-500">${T.noInsights}</p>` : ""}
     </div>`;
 
   resultWrap.innerHTML = `
     <div class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
       <div class="flex flex-wrap gap-4">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Sentiment</p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${T.sentiment}</p>
           <div class="mt-1.5">${badge(SENTIMENT_LABELS[analysis.sentiment] || analysis.sentiment, SENTIMENT_CLASSES[analysis.sentiment] || "bg-slate-100 text-slate-600")}</div>
         </div>
         <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Customer intent</p>
-          <div class="mt-1.5">${badge(intent, INTENT_CLASSES[intent])}</div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${T.intent}</p>
+          <div class="mt-1.5">${badge(T.intents[intent], INTENT_CLASSES[intent])}</div>
         </div>
       </div>
 
@@ -180,24 +235,26 @@ function renderResult(reviewText, analysis, responseText, responseTone) {
 
       <div class="mt-5 border-t border-slate-100 pt-5">
         <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">AI-drafted response <span class="normal-case text-slate-400">(${escapeHtml(responseTone)} tone)</span></p>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">${T.drafted} <span class="normal-case text-slate-400">${escapeHtml(T.toneSuffix(T.tones[responseTone] || responseTone))}</span></p>
           <div class="flex shrink-0 gap-2">
-            <button id="editResponseBtn" type="button" class="text-xs font-semibold text-violet-600 hover:text-violet-700">Edit Response</button>
-            <button id="copyResponseBtn" type="button" class="text-xs font-semibold text-violet-600 hover:text-violet-700">Copy Response</button>
+            <button id="editResponseBtn" type="button" class="text-xs font-semibold text-violet-600 hover:text-violet-700">${T.edit}</button>
+            <button id="copyResponseBtn" type="button" class="text-xs font-semibold text-violet-600 hover:text-violet-700">${T.copy}</button>
           </div>
         </div>
-        <p class="mt-1 text-xs italic text-slate-400">Personalized to this review's sentiment and the specific details detected above -- not a generic template.</p>
+        <p class="mt-1 text-xs italic text-slate-400">${T.personalized}</p>
         <p id="responseText" class="mt-2 rounded-2xl bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-800">${escapeHtml(responseText)}</p>
         <textarea id="responseEditArea" class="mt-2 hidden w-full rounded-2xl border border-violet-200 p-3.5 text-sm leading-relaxed text-slate-800 outline-none" rows="3"></textarea>
       </div>
 
       <div class="mt-5 rounded-2xl border p-4 ${ACTION_CLASSES[action.tone]}">
-        <p class="text-xs font-semibold uppercase tracking-wide opacity-80">Recommended action &middot; ${escapeHtml(action.label)}</p>
+        <p class="text-xs font-semibold uppercase tracking-wide opacity-80">${T.recommended} &middot; ${escapeHtml(action.label)}</p>
         <p class="mt-1 text-sm leading-relaxed">${escapeHtml(action.text)}</p>
       </div>
     </div>
   `;
   resultWrap.classList.remove("hidden");
+  // The result renders below the form, out of view on most screens (QA 2026-10-05).
+  resultWrap.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const responseTextEl = document.getElementById("responseText");
   const responseEditArea = document.getElementById("responseEditArea");
@@ -210,13 +267,13 @@ function renderResult(reviewText, analysis, responseText, responseTone) {
       responseTextEl.textContent = responseEditArea.value.trim() || responseTextEl.textContent;
       responseEditArea.classList.add("hidden");
       responseTextEl.classList.remove("hidden");
-      editBtn.textContent = "Edit Response";
+      editBtn.textContent = T.edit;
     } else {
       responseEditArea.value = responseTextEl.textContent;
       responseTextEl.classList.add("hidden");
       responseEditArea.classList.remove("hidden");
       responseEditArea.focus();
-      editBtn.textContent = "Done Editing";
+      editBtn.textContent = T.doneEditing;
     }
   });
 
@@ -225,7 +282,7 @@ function renderResult(reviewText, analysis, responseText, responseTone) {
     try {
       await navigator.clipboard.writeText(text);
       const original = copyBtn.textContent;
-      copyBtn.textContent = "Copied!";
+      copyBtn.textContent = T.copied;
       setTimeout(() => (copyBtn.textContent = original), 1500);
     } catch (err) {
       console.error("Copy failed:", err);
@@ -233,12 +290,7 @@ function renderResult(reviewText, analysis, responseText, responseTone) {
   });
 }
 
-const ANALYSIS_STEPS = [
-  "Reading the review…",
-  "Detecting sentiment & intent…",
-  "Identifying key issues…",
-  "Drafting your response…",
-];
+const ANALYSIS_STEPS = T.steps;
 
 let statusInterval = null;
 
@@ -269,7 +321,7 @@ analyzeBtn.addEventListener("click", async () => {
   reviewError.classList.add("hidden");
 
   analyzeBtn.disabled = true;
-  analyzeBtn.textContent = "Analyzing...";
+  analyzeBtn.textContent = T.analyzing;
   clearResult();
   startAnalyzingStatus();
 
@@ -284,11 +336,11 @@ analyzeBtn.addEventListener("click", async () => {
     renderResult(text, data, data.response_text, data.response_tone);
   } catch (err) {
     console.error("Review demo error:", err);
-    resultWrap.innerHTML = `<div class="rounded-3xl border border-red-100 bg-red-50 p-6 text-sm text-red-700">Sorry, something went wrong reaching the server. Please try again.</div>`;
+    resultWrap.innerHTML = `<div class="rounded-3xl border border-red-100 bg-red-50 p-6 text-sm text-red-700">${T.error}</div>`;
     resultWrap.classList.remove("hidden");
   } finally {
     stopAnalyzingStatus();
     analyzeBtn.disabled = false;
-    analyzeBtn.textContent = "Analyze Review & Draft Response";
+    analyzeBtn.textContent = T.analyze;
   }
 });

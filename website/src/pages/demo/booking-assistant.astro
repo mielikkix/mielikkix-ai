@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { bookingAssistantNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
+import Tr from "../../components/Tr.astro";
 import FromPrice from "../../components/pricing/FromPrice.astro";
 import ProductPricing from "../../components/pricing/ProductPricing.astro";
 import { formatNok, getProduct, lowestPaidTier } from "../../data/pricing";
@@ -31,10 +32,13 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
   title="Try Our Booking Assistant"
   description={`Try a live demo of Mielikkix's AI Booking Assistant — describe what you want to book, right in a chat, and get a real calendar invite. ${fromPrice}`}
   path="/demo/booking-assistant/"
+  page="demos"
+  titleKey="BOOKING.SEO.TITLE"
+  descriptionKey="BOOKING.SEO.DESCRIPTION"
   structuredDataNodes={[bookingAssistantNode]}
 >
   <div class="mx-auto max-w-[1440px] px-6 pt-8">
-    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600">
+    <a href="/agents/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-violet-600" data-i18n="COMMON.BACK_LINK">
       &larr; Back to AI Agents
     </a>
   </div>
@@ -42,6 +46,9 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
     line1="Meet Mielikkix's"
     line2="Booking Assistant"
     subheading={`A live demo — tell it what you'd like to book, right in the chat.`}
+    line1Key="COMMON.MEET"
+    line2Key="BOOKING.HERO_LINE2"
+    subheadingKey="BOOKING.SUBHEADING"
   >
     <FromPrice slot="extra" productId="booking-assistant" />
   </PageHero>
@@ -49,8 +56,8 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
   <section class="mx-auto max-w-lg px-6 py-16">
     <div class="flex h-[520px] flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
       <p role="note" class="rounded-t-3xl border-b border-slate-100 bg-slate-50 px-5 py-2 text-[11px] leading-snug text-slate-500">
-        You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.
-        <a href="/privacy/" class="underline">Privacy</a>
+        <span data-i18n="COMMON.AI_NOTICE">You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.</span>
+        <a href="/privacy/" class="underline" data-i18n="COMMON.PRIVACY">Privacy</a>
       </p>
       <div id="transcript" class="flex flex-1 flex-col gap-2 overflow-y-auto p-5"></div>
 
@@ -63,6 +70,8 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
           autocomplete="off"
           maxlength="1000"
           placeholder="e.g. a 30 minute consultation next Tuesday afternoon"
+          data-i18n-attr="placeholder:BOOKING.PLACEHOLDER;aria-label:BOOKING.PLACEHOLDER"
+          aria-label="e.g. a 30 minute consultation next Tuesday afternoon"
           class="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-violet-400"
         />
         <button
@@ -70,6 +79,7 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
           type="submit"
           class="brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Send"
+          data-i18n-attr="aria-label:COMMON.SEND"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.4 20.6 21 12 3.4 3.4 3 10l12 2-12 2z" />
@@ -79,10 +89,10 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
     </div>
 
     <p class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left text-xs leading-relaxed text-slate-500">
-      Real calendar availability and a real Google Calendar invite — but every booking made here
-      lands on our one shared test calendar, not a real business's own calendar (see the
-      <a href="#booking-assistant" class="underline">plans and features below</a> for how the real per-business product
-      works). A confirmed booking really does create a calendar event and emails you an invite.
+      <Tr>
+        <Fragment slot="en">Real calendar availability and a real Google Calendar invite — but every booking made here lands on our one shared test calendar, not a real business's own calendar (see the <a href="#booking-assistant" class="underline">plans and features below</a> for how the real per-business product works). A confirmed booking really does create a calendar event and emails you an invite.</Fragment>
+        <Fragment slot="no">Ekte ledige tider og en ekte Google Kalender-invitasjon — men alle bestillinger her havner i én felles testkalender, ikke i en ekte bedrifts egen kalender (se <a href="#booking-assistant" class="underline">planene og funksjonene nedenfor</a> for hvordan produktet fungerer for din bedrift). En bekreftet bestilling oppretter faktisk en kalenderhendelse og sender deg en invitasjon på e-post.</Fragment>
+      </Tr>
     </p>
   </section>
 

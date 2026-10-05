@@ -1,0 +1,76 @@
+{
+  "COMMON": {
+    "BACK_LINK": "← Back to AI Agents",
+    "MEET": "Meet Mielikkix's",
+    "AI_NOTICE": "You're chatting with an AI assistant, not a person. It can make mistakes. Please don't share sensitive personal information.",
+    "PRIVACY": "Privacy",
+    "SEND": "Send"
+  },
+  "VOICE": {
+    "SEO": {
+      "TITLE": "Talk to Our Voice Receptionist",
+      "DESCRIPTION": "Try a live demo of Mielikkix's AI Voice Receptionist — talk to it right in your browser."
+    },
+    "HERO_LINE2": "Voice Receptionist",
+    "SUBHEADING": "A live demo — talk to it right now, using your own microphone.",
+    "UNSUPPORTED": "This browser doesn't support live speech recognition. Please try a recent Chrome or Edge.",
+    "SPEAK_NOW": "Speak now",
+    "END_CALL": "End call"
+  },
+  "BOOKING": {
+    "SEO": {
+      "TITLE": "Try Our Booking Assistant",
+      "DESCRIPTION": "Try a live demo of Mielikkix's AI Booking Assistant — describe what you want to book, right in a chat, and get a real calendar invite."
+    },
+    "HERO_LINE2": "Booking Assistant",
+    "SUBHEADING": "A live demo — tell it what you'd like to book, right in the chat.",
+    "PLACEHOLDER": "e.g. a 30 minute consultation next Tuesday afternoon"
+  },
+  "SUPPORT": {
+    "SEO": {
+      "TITLE": "Try Our Support Triage",
+      "DESCRIPTION": "Try a live demo of Mielikkix's AI Support Triage — see it classify a question, answer when it's confident, and hand off to a human when it's not."
+    },
+    "HERO_LINE2": "Support Triage",
+    "SUBHEADING": "A live demo — every message gets classified first. Confident enough, it answers directly. Not confident, it loops in a real person instead of guessing.",
+    "PLACEHOLDER": "Ask a question, or try something off-topic",
+    "TRY_HEADING": "Try it both ways:"
+  },
+  "REVIEW": {
+    "SEO": {
+      "TITLE": "Try Our Review & Reputation Agent",
+      "DESCRIPTION": "Try a live demo of Mielikkix's AI Review & Reputation agent — paste a review and see it analyzed, prioritized, and answered."
+    },
+    "HERO_LINE2": "Review & Reputation Agent",
+    "SUBHEADING": "Turn customer reviews into stronger relationships and a better reputation.",
+    "INTRO": "Paste a customer review below and let your AI reputation assistant analyze the feedback, detect sentiment, identify the key issue, and draft a professional response in seconds.",
+    "REVIEW_LABEL": "Customer review",
+    "REVIEW_PLACEHOLDER": "Paste a real or sample review here…",
+    "REVIEW_ERROR": "Please paste a review to analyze.",
+    "TRY_EXAMPLE": "Try an example",
+    "TONE_LABEL": "Response tone:",
+    "TONES": {
+      "PROFESSIONAL": "Professional",
+      "FRIENDLY": "Friendly",
+      "EMPATHETIC": "Empathetic",
+      "WARM": "Warm",
+      "CONCISE": "Concise"
+    },
+    "ANALYZE": "Analyze Review & Draft Response",
+    "CTA_HEADING": "Ready to manage your reputation with AI?",
+    "CTA_TEXT": "Connect your business to monitor reviews, understand customer sentiment, draft personalized responses, and build a stronger reputation over time.",
+    "CTA_BUTTON": "Get Started",
+    "DEMO_ONLY": "Demo only — responses are never published automatically."
+  },
+  "WHATSAPP": {
+    "SEO": {
+      "TITLE": "Try Our WhatsApp Concierge",
+      "DESCRIPTION": "An early preview of Mielikkix's AI WhatsApp Concierge — see how Mieli would answer your customers, right inside WhatsApp."
+    },
+    "HERO_LINE2": "WhatsApp Concierge",
+    "SUBHEADING": "An early preview — see how Mieli would answer your customers, right inside WhatsApp.",
+    "TODAY": "Today",
+    "ONLINE": "online",
+    "MESSAGE_PLACEHOLDER": "Message"
+  }
+}

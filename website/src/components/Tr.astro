@@ -1,0 +1,9 @@
+---
+// Inline text in both languages, for copy that contains markup (a link, <em>)
+// which the data-i18n JSON mechanism can't carry: data-i18n replaces
+// textContent and would drop the link. global.css shows the span matching
+// <html lang>, same as pricing/Bi.astro. Usage:
+//   <Tr><Fragment slot="en">See <a href="/x/">this</a></Fragment><Fragment slot="no">Se <a href="/x/">dette</a></Fragment></Tr>
+---
+
+<span class="i18n-en"><slot name="en" /></span><span class="i18n-no" lang="nb"><slot name="no" /></span>

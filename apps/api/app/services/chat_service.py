@@ -44,6 +44,25 @@ async def _fallback_for(db: Session, biz_settings: BusinessSettings | None, lang
     return translated
 
 
+def _contact_details(biz_settings: BusinessSettings | None) -> str | None:
+    """Settings -> Advanced -> Contact info, as a reference fact for contact
+    questions -- QA 2026-10-05 (BUG-01): "Hvordan kan jeg kontakte dere?" got
+    "we have no contact details" although the address is in the site footer."""
+    if biz_settings is None:
+        return None
+    parts = []
+    # contact_email may be a comma-separated list of lead-notification
+    # recipients (see notify_new_lead) -- only the first is the public one.
+    email = (biz_settings.contact_email or "").split(",")[0].strip()
+    if email:
+        parts.append(f"Email: {email}")
+    if biz_settings.contact_phone:
+        parts.append(f"Phone: {biz_settings.contact_phone}")
+    if not parts:
+        return None
+    return "How to contact this business -- " + ", ".join(parts) + "."
+
+
 TEST_CHANNEL = "dashboard_test"
 
 
@@ -133,7 +152,20 @@ async def handle_message(
     # for a message that isn't clearly in any supported language, and is used
     # directly to pick the fallback_messages translation below, since that reply
     # never reaches the LLM to detect anything from.
-    detected_lang = detect_message_language(req.message, languages, default=languages[0])
+    # When the message itself is ambiguous (a short question with no telltale
+    # words), stay in the conversation's language, else the host page's --
+    # QA 2026-10-05 (BUG-02): a short Norwegian question mid-conversation on
+    # the Norwegian site was answered in English and flipped the widget UI.
+    page_lang = (req.page_lang or "").split("-")[0].lower()
+    if page_lang == "nb" or page_lang == "nn":
+        page_lang = "no"
+    if conversation.language in languages:
+        ambiguous_default = conversation.language
+    elif page_lang in languages:
+        ambiguous_default = page_lang
+    else:
+        ambiguous_default = languages[0]
+    detected_lang = detect_message_language(req.message, languages, default=ambiguous_default)
     effective_languages = [detected_lang] + [lang for lang in languages if lang != detected_lang]
     resolved_fallback = await _fallback_for(db, biz_settings, detected_lang, languages[0])
     conversation.language = detected_lang
@@ -148,6 +180,7 @@ async def handle_message(
         tone=tone,
         history=history,
         languages=effective_languages,
+        contact_details=_contact_details(biz_settings),
     )
 
     ai_msg = Message(

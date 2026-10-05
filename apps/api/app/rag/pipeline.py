@@ -102,6 +102,7 @@ async def run_rag(
     tone: str = "friendly",
     history: Optional[List[Dict[str, str]]] = None,
     languages: Optional[List[str]] = None,
+    contact_details: Optional[str] = None,
 ) -> Tuple[str, str, float]:
     history = history or []
     search_query = _build_contextual_query(history, message)
@@ -120,6 +121,10 @@ async def run_rag(
     intent = _detect_intent(message)
 
     context_parts = [c for c, s in all_matches if s >= confidence_threshold]
+    # A contact/buying question always gets the business's own contact
+    # details, whatever retrieval found (QA 2026-10-05, BUG-01).
+    if intent == "lead" and contact_details:
+        context_parts.append(contact_details)
     context = "\n\n".join(context_parts)
 
     if not context.strip():
@@ -176,7 +181,11 @@ def _matches_any(msg: str, keywords: List[str]) -> bool:
 
 def _detect_intent(message: str) -> str:
     msg = message.lower()
-    if _matches_any(msg, ["price", "cost", "how much", "fee", "rate"]):
+    # Norwegian keywords alongside the English ones -- QA 2026-10-05 (BUG-04):
+    # "Jeg vil kjøpe Voice Receptionist ... kan noen ringe meg?" never
+    # matched anything and no lead form appeared.
+    if _matches_any(msg, ["price", "cost", "how much", "fee", "rate",
+                          "pris", "priser", "prisen", "koster", "kostnad", "hvor mye"]):
         return "product_inquiry"
     # Checked before "lead" below on purpose: "schedule"/"demo"/"call" are
     # already lead keywords (a generic "let's set up a call" is a lead, not
@@ -189,7 +198,8 @@ def _detect_intent(message: str) -> str:
     # flagged as a lead. Deliberately narrow and unchanged from "lead"'s own
     # keyword list otherwise -- this must not change how existing tenants'
     # messages already classify.
-    if _matches_any(msg, ["book", "booking", "appointment", "reschedule", "rescheduling"]):
+    if _matches_any(msg, ["book", "booking", "appointment", "reschedule", "rescheduling",
+                          "booke", "bestille time", "bestille en time", "timebestilling"]):
         return "booking"
     # "contact"/"call"/"email"/"reach"/"phone" alone missed plenty of obvious
     # buying/contact intent -- "I'd like to connect with your team", "can you
@@ -199,9 +209,13 @@ def _detect_intent(message: str) -> str:
         "contact", "call", "email", "reach", "phone",
         "connect", "talk to", "speak to", "speak with",
         "get in touch", "reach out", "demo", "meeting", "proposal",
-        "quote", "schedule",
+        "quote", "schedule", "buy", "purchase",
+        "kontakt", "kontakte", "kontakter", "ring", "ringe", "ringer", "telefon",
+        "telefonnummer", "e-post", "epost", "e-postadresse", "e-postadressen",
+        "epostadresse", "snakke med", "møte", "tilbud", "kjøpe", "kjøp",
     ]):
         return "lead"
-    if _matches_any(msg, ["problem", "issue", "broken", "not working", "help"]):
+    if _matches_any(msg, ["problem", "issue", "broken", "not working", "help",
+                          "feil", "fungerer ikke", "virker ikke", "hjelp"]):
         return "support"
     return "faq"

@@ -24,6 +24,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -61,6 +62,13 @@ _GREETING = (
     "Hello, thanks for calling Mielikkix. You're speaking with an AI assistant. "
     "This call is transcribed in real time so I can help you, but it isn't recorded. "
     "How can I help you today? You can also speak with me in Norwegian."
+)
+# The browser demo on the Norwegian site starts the call in Norwegian (QA
+# 2026-10-05, BUG-07). Same transparency content as _GREETING.
+_GREETING_NO = (
+    "Hei, takk for at du ringer Mielikkix. Du snakker med en AI-assistent. "
+    "Samtalen transkriberes fortløpende så jeg kan hjelpe deg, men den blir ikke tatt opp. "
+    "Hva kan jeg hjelpe deg med i dag?"
 )
 _CLOSING_LINE = "Thanks for calling Mielikkix. Have a great day, goodbye!"
 _CLOSING_LINE_NO = "Takk for at du ringte Mielikkix. Ha en fin dag, ha det bra!"
@@ -984,7 +992,7 @@ async def _handle_turn(db: Session, call_sid: str, speech: str) -> tuple[str, bo
     return result.text, False
 
 
-def _start_call(call_sid: str) -> str:
+def _start_call(call_sid: str, language: str = "en") -> str:
     """Resets this call's history and returns the greeting -- shared by
     /incoming (Twilio) and /dev/start (browser mic test page). Does NOT
     clear _call_caller_number -- voice_incoming sets that from the same
@@ -1000,6 +1008,9 @@ def _start_call(call_sid: str) -> str:
     _call_pending_slots.pop(call_sid, None)
     _call_pending_meeting_type.pop(call_sid, None)
     _call_pending_confirmation.pop(call_sid, None)
+    if language == "no":
+        _call_language[call_sid] = "no"
+        return _GREETING_NO
     return _GREETING
 
 
@@ -1151,6 +1162,8 @@ def _reject_twilio_shaped_call_sid(call_sid: str) -> None:
 
 class _DevStartRequest(BaseModel):
     call_sid: str = Field(min_length=1, max_length=100)
+    # The demo page's site language -- "no" starts the call in Norwegian.
+    language: Literal["en", "no"] = "en"
 
 
 class _DevTurnRequest(BaseModel):
@@ -1180,7 +1193,7 @@ class _DevReply(BaseModel):
 @limiter.limit("20/minute")
 async def dev_voice_start(request: Request, body: _DevStartRequest):
     _reject_twilio_shaped_call_sid(body.call_sid)
-    return _DevReply(reply=_start_call(body.call_sid))
+    return _DevReply(reply=_start_call(body.call_sid, body.language), language=body.language)
 
 
 @router.post("/dev/gather", response_model=_DevReply, dependencies=[Depends(_require_demo_access)])

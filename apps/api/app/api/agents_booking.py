@@ -112,6 +112,10 @@ class _RequestBookingBody(BaseModel):
     # real tenant's booking must resolve to THAT business's own connected
     # calendar, never Mielikkix's.
     business_id: str | None = None
+    # The page/widget language ("no" on the Norwegian site) -- only picks the
+    # language of the canned clarifying question; the LLM-written one follows
+    # the visitor's own message.
+    lang: str | None = Field(default=None, max_length=10)
 
 
 class _RequestBookingResponse(BaseModel):
@@ -120,6 +124,7 @@ class _RequestBookingResponse(BaseModel):
     clarification_question: str | None = None
     meeting_type: str | None = None
     duration_minutes: int | None = None
+    time_of_day: str = "any"
 
 
 @router.post("/request", response_model=_RequestBookingResponse)
@@ -148,7 +153,9 @@ async def request_booking(request: Request, body: _RequestBookingBody, db: Sessi
     plain result onto the HTTP response shape.
     """
     try:
-        result = await booking_service.resolve_booking_request(db, body.message, body.timezone, body.business_id)
+        result = await booking_service.resolve_booking_request(
+            db, body.message, body.timezone, body.business_id, body.lang
+        )
     except GoogleCalendarError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -158,6 +165,7 @@ async def request_booking(request: Request, body: _RequestBookingBody, db: Sessi
         clarification_question=result.clarification_question,
         meeting_type=result.meeting_type,
         duration_minutes=result.duration_minutes,
+        time_of_day=result.time_of_day,
     )
 
 

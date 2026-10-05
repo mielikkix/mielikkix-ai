@@ -12,6 +12,11 @@ const productLinks = [
 ];
 
 const f = enFooter.FOOTER;
+// QA 2026-10-05 (BUG-14): the footer had no About or Contact link.
+const companyLinks = [
+  { href: "/about/", label: f.ABOUT, key: "FOOTER.ABOUT" },
+  { href: "/contact/", label: f.CONTACT, key: "FOOTER.CONTACT" },
+];
 const legalLinks = [
   { href: "/privacy/", label: f.PRIVACY, key: "FOOTER.PRIVACY" },
   { href: "/terms/", label: f.TERMS, key: "FOOTER.TERMS" },
@@ -24,7 +29,7 @@ const legalLinks = [
 
 <footer class="border-t border-slate-100 bg-slate-50">
   <div class="mx-auto max-w-[1440px] px-6 py-12">
-    <div class="grid gap-10 md:grid-cols-3">
+    <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
       <div>
         <a href="/" class="font-display text-xl font-bold tracking-tight">
           Mielikki<span class="brand-gradient-text">x</span>
@@ -49,6 +54,23 @@ const legalLinks = [
         <ul class="mt-4 space-y-2">
           {
             productLinks.map((link) => (
+              <li>
+                <a href={link.href} data-i18n={link.key} class="text-sm text-slate-500 hover:text-violet-600">
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="font-display text-sm font-semibold text-slate-900" data-i18n="FOOTER.COMPANY_HEADING">
+          {f.COMPANY_HEADING}
+        </h3>
+        <ul class="mt-4 space-y-2">
+          {
+            companyLinks.map((link) => (
               <li>
                 <a href={link.href} data-i18n={link.key} class="text-sm text-slate-500 hover:text-violet-600">
                   {link.label}

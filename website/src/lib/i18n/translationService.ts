@@ -51,15 +51,42 @@ function isSupportedLanguage(value: string | null): value is LanguageCode {
   return !!value && SUPPORTED_LANGUAGES.some((lang) => lang.code === value);
 }
 
+/** A /no/... page is Norwegian whatever is stored (see public/i18n-guard.js). */
+function languageFromPath(): LanguageCode | null {
+  if (typeof location === "undefined") return null;
+  return location.pathname === "/no" || location.pathname.startsWith("/no/") ? "no" : null;
+}
+
 export function getStoredLanguage(): LanguageCode {
-  if (typeof localStorage === "undefined") return DEFAULT_LANGUAGE;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return isSupportedLanguage(stored) ? stored : DEFAULT_LANGUAGE;
+  const fromPath = languageFromPath();
+  if (fromPath) return fromPath;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return isSupportedLanguage(stored) ? stored : DEFAULT_LANGUAGE;
+  } catch {
+    return DEFAULT_LANGUAGE;
+  }
+}
+
+/**
+ * The URL of this page in `lang`, when it has its own copy (the hreflang
+ * alternates Layout.astro renders), else null -- pages without one (blog
+ * posts) switch language in place.
+ */
+export function languageUrl(lang: LanguageCode): string | null {
+  const hreflang = lang === "no" ? "nb" : lang;
+  const link = document.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${hreflang}"]`);
+  if (!link) return null;
+  const target = new URL(link.href).pathname;
+  return target === location.pathname ? null : target + location.search + location.hash;
 }
 
 export function setStoredLanguage(lang: LanguageCode): void {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, lang);
+  try {
+    localStorage.setItem(STORAGE_KEY, lang);
+  } catch {
+    /* storage blocked: the URL still carries the language */
+  }
 }
 
 async function loadNamespace(lang: LanguageCode, namespace: string): Promise<TranslationDict> {

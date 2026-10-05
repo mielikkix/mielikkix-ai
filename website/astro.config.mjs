@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 
 import sitemap from '@astrojs/sitemap';
 
+import norwegianPages from './integrations/norwegian-pages.mjs';
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://mielikkix.ai',
@@ -19,5 +21,7 @@ export default defineConfig({
     }
   },
 
-  integrations: [sitemap()]
+  // norwegianPages runs after sitemap on purpose: it adds the /no/ URLs to the
+  // sitemap that sitemap() has just written.
+  integrations: [sitemap({ filter: (page) => !page.includes('/404') }), norwegianPages()]
 });

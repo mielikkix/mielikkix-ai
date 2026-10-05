@@ -127,6 +127,9 @@ class _ParsedRequest(BaseModel):
     meeting_type: str
     clarification_needed: bool
     clarification_question: str = ""
+    # "morning" | "afternoon" | "evening" | "any" -- QA 2026-10-05 (BUG-06):
+    # "tirsdag ettermiddag" got eight 9:00-12:30 slots, none in the afternoon.
+    time_of_day: str = "any"
 
 
 class _ParseError(Exception):
@@ -143,7 +146,12 @@ _PARSE_SYSTEM_PROMPT_TEMPLATE = (
     "language. Turn it into a structured JSON query for checking calendar "
     "availability.\n\n"
     "Today's date is {today} ({weekday}). Resolve any relative date "
-    "(\"next Tuesday\", \"tomorrow\", \"this week\") against that.\n\n"
+    "(\"next Tuesday\", \"tomorrow\", \"this week\") against that. The "
+    "message may be in any language (e.g. Norwegian \"neste tirsdag "
+    "ettermiddag\" = next Tuesday afternoon). \"Next <weekday>\" is "
+    "ambiguous when that weekday is within the coming 7 days: then set "
+    "earliest_date to the coming one and latest_date to the one a week "
+    "later, so both are offered.\n\n"
     'Respond with ONLY a JSON object (no other text), in exactly this '
     'shape:\n'
     '{{"duration_minutes": <integer, your best guess if not stated -- 30 '
@@ -154,12 +162,15 @@ _PARSE_SYSTEM_PROMPT_TEMPLATE = (
     'like a week out>", '
     '"meeting_type": "<a short label for what they want, e.g. '
     '\'consultation\', \'haircut\', \'call\'>", '
+    '"time_of_day": "<\'morning\', \'afternoon\', \'evening\' or \'any\' -- '
+    'only a part of the day the visitor actually asked for>", '
     '"clarification_needed": <true only if there is truly no way to infer '
     'even a reasonable date range -- e.g. \'I want to book something\' '
     'with no timeframe at all -- false otherwise, including for '
     'resolvable relative dates like \'next Tuesday\'>, '
     '"clarification_question": "<a short question to ask back, ONLY if '
-    'clarification_needed is true, otherwise empty string -- ALWAYS end it '
+    'clarification_needed is true, otherwise empty string -- written in the '
+    'same language as the visitor\'s message -- ALWAYS end it '
     "with a quick example of an acceptable answer in parentheses, e.g. "
     "'Which date would you like to come in? (e.g. tomorrow afternoon, or "
     "next Tuesday)', so the visitor knows exactly what kind of reply to "
@@ -186,6 +197,24 @@ GENERIC_CLARIFICATION = (
     "Sorry, I didn't quite catch when you'd like to come in. Could you say "
     "roughly what day (or day range) works, and what you'd like to book?"
 )
+_GENERIC_CLARIFICATION_BY_LANG = {
+    "no": (
+        "Beklager, jeg fikk ikke helt med meg når du vil komme. Kan du si "
+        "omtrent hvilken dag (eller hvilke dager) som passer, og hva du vil bestille?"
+    ),
+}
+
+
+def _generic_clarification(lang: str | None) -> str:
+    return _GENERIC_CLARIFICATION_BY_LANG.get(lang or "", GENERIC_CLARIFICATION)
+
+
+# Slot start-hour windows for _ParsedRequest.time_of_day.
+_TIME_OF_DAY_HOURS = {
+    "morning": (0, 12),
+    "afternoon": (12, 17),
+    "evening": (17, 24),
+}
 
 
 async def _parse_request(message: str) -> _ParsedRequest:
@@ -338,25 +367,43 @@ def _available_slots_for_range(
     duration_minutes: int,
     tz_name: str,
     business_hours: dict | None = None,
+    time_of_day: str = "any",
 ) -> list[tuple[datetime, datetime]]:
     """Business hours minus busy blocks, sliced into duration_minutes slots,
-    across every day from earliest to latest (inclusive). Pure function of
-    its inputs (no I/O) so it's cheap to unit test directly against
-    hand-built busy_blocks.
+    across every day from earliest to latest (inclusive), limited to the
+    requested part of the day. Pure function of its inputs (no I/O) so it's
+    cheap to unit test directly against hand-built busy_blocks.
+
+    The _MAX_SLOTS_RETURNED picks are spread across the open days (taken
+    round-robin, then put back in time order) rather than all coming from
+    the first one -- otherwise a two-day range ("next Tuesday", ambiguous
+    between this week and next) only ever showed the first day.
     """
     tz = ZoneInfo(tz_name)
     duration = timedelta(minutes=duration_minutes)
-    slots: list[tuple[datetime, datetime]] = []
+    hours = _TIME_OF_DAY_HOURS.get(time_of_day)
+    per_day: list[list[tuple[datetime, datetime]]] = []
 
     day = earliest
     while day <= latest:
         window = _business_hours_window(day, tz, business_hours)
         if window is not None:
             free_ranges = _subtract_busy(window, busy_blocks)
-            slots.extend(_slots_within(free_ranges, duration))
+            day_slots = _slots_within(free_ranges, duration)
+            if hours is not None:
+                day_slots = [s for s in day_slots if hours[0] <= s[0].hour < hours[1]]
+            if day_slots:
+                per_day.append(day_slots)
         day += timedelta(days=1)
 
-    return slots[:_MAX_SLOTS_RETURNED]
+    picked: list[tuple[datetime, datetime]] = []
+    index = 0
+    while len(picked) < _MAX_SLOTS_RETURNED and any(index < len(d) for d in per_day):
+        for day_slots in per_day:
+            if index < len(day_slots) and len(picked) < _MAX_SLOTS_RETURNED:
+                picked.append(day_slots[index])
+        index += 1
+    return sorted(picked)
 
 
 @dataclass
@@ -372,10 +419,11 @@ class ResolveBookingResult:
     meeting_type: str | None = None
     duration_minutes: int | None = None
     clarification_question: str | None = None
+    time_of_day: str = "any"
 
 
 async def resolve_booking_request(
-    db: Session, message: str, timezone: str, business_id: str | None
+    db: Session, message: str, timezone: str, business_id: str | None, lang: str | None = None
 ) -> ResolveBookingResult:
     """Turns a free-text request into real open slots -- the shared core of
     what used to be agents_booking.py's request_booking() route body.
@@ -398,28 +446,34 @@ async def resolve_booking_request(
     try:
         parsed = await _parse_request(message)
     except _ParseError:
-        return ResolveBookingResult(status="clarification_needed", clarification_question=GENERIC_CLARIFICATION)
+        return ResolveBookingResult(status="clarification_needed", clarification_question=_generic_clarification(lang))
 
     if parsed.clarification_needed:
         return ResolveBookingResult(
             status="clarification_needed",
-            clarification_question=parsed.clarification_question or GENERIC_CLARIFICATION,
+            clarification_question=parsed.clarification_question or _generic_clarification(lang),
         )
 
     try:
         earliest, latest = _resolve_date_range(parsed)
     except _ParseError:
-        return ResolveBookingResult(status="clarification_needed", clarification_question=GENERIC_CLARIFICATION)
+        return ResolveBookingResult(status="clarification_needed", clarification_question=_generic_clarification(lang))
 
     duration_minutes = max(_MIN_DURATION_MINUTES, min(_MAX_DURATION_MINUTES, parsed.duration_minutes))
 
     busy_blocks = await provider.get_busy_blocks(earliest, latest, timezone)
 
-    slots = _available_slots_for_range(busy_blocks, earliest, latest, duration_minutes, timezone, business_hours)
+    time_of_day = parsed.time_of_day if parsed.time_of_day in _TIME_OF_DAY_HOURS else "any"
+    slots = _available_slots_for_range(
+        busy_blocks, earliest, latest, duration_minutes, timezone, business_hours, time_of_day
+    )
 
     if not slots:
         return ResolveBookingResult(
-            status="no_availability", meeting_type=parsed.meeting_type, duration_minutes=duration_minutes
+            status="no_availability",
+            meeting_type=parsed.meeting_type,
+            duration_minutes=duration_minutes,
+            time_of_day=time_of_day,
         )
 
     return ResolveBookingResult(
@@ -427,6 +481,7 @@ async def resolve_booking_request(
         slots=[SlotOption(start=s, end=e) for s, e in slots],
         meeting_type=parsed.meeting_type,
         duration_minutes=duration_minutes,
+        time_of_day=time_of_day,
     )
 
 

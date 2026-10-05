@@ -20,11 +20,12 @@ const composerForm = document.getElementById("composerForm");
 const composerInput = document.getElementById("composerInput");
 const micIcon = document.getElementById("micIcon");
 const sendIcon = document.getElementById("sendIcon");
+const isNorwegian = window.MlxWidget.lang() === "no";
 
 // Keyword -> canned reply. Checked in order, first match wins -- same
 // "confident answer, otherwise fall back" shape support-triage.js uses,
 // just without a real classifier behind it.
-const CANNED_REPLIES = [
+const CANNED_REPLIES_EN = [
   { keywords: ["hour", "open", "close", "time"], reply: "We're open Mon-Sat, 9:00-18:00, and closed Sundays! 😊" },
   { keywords: ["book", "appointment", "schedule", "reserve", "slot"], reply: "I can help with that! What day works best for you, and what service are you after?" },
   { keywords: ["price", "pricing", "cost", "how much", "fee", "rate"], reply: "Our starting rate is 450 kr -- happy to send over the full price list if you'd like!" },
@@ -42,13 +43,36 @@ const CANNED_REPLIES = [
   { keywords: ["ok", "okay", "alright", "sounds good", "got it", "sure thing", "perfect", "cool"], reply: "Great, glad that helps! Let me know if there's anything else I can help with. 😊" },
   { keywords: ["bye", "goodbye", "see you", "have a good", "cya"], reply: "Bye for now! 👋 Reach out anytime -- we're just a message away." },
 ];
-const FALLBACK_REPLY =
-  "Got it -- I've passed that along to the team and someone will follow up here shortly. In the meantime, I can help with our hours, pricing, location, or booking an appointment.";
+// Norwegian version for the Norwegian site (QA 2026-10-05, BUG-10). Same
+// order rule as above: the acknowledgement entry stays after booking ("ok"
+// is inside "booke").
+const CANNED_REPLIES_NO = [
+  { keywords: ["åpningstid", "åpent", "åpen", "stenger"], reply: "Vi har åpent man–lør kl. 9–18, og holder stengt på søndager! 😊" },
+  { keywords: ["bestill", "booke", "time", "avtale", "reserver"], reply: "Det hjelper jeg gjerne med! Hvilken dag passer best, og hvilken tjeneste ønsker du?" },
+  { keywords: ["pris", "koster", "kostnad", "hvor mye"], reply: "Prisene våre starter på 450 kr -- jeg sender gjerne hele prislisten hvis du vil!" },
+  { keywords: ["adresse", "hvor", "ligger"], reply: "Vi holder til i Storgata 12 i Oslo -- rett ved trikkestoppet! 📍" },
+  { keywords: ["menneske", "person", "ansatt", "leder"], reply: "Selvfølgelig -- jeg kobler deg til en i teamet nå. Noen svarer deg her straks!" },
+  { keywords: ["takk"], reply: "Bare hyggelig! Si fra hvis det er noe mer jeg kan hjelpe med." },
+  { keywords: ["ok", "greit", "flott", "supert", "skjønner"], reply: "Så bra! Si fra hvis det er noe mer jeg kan hjelpe med. 😊" },
+  { keywords: ["ha det", "hade", "snakkes"], reply: "Ha det så lenge! 👋 Ta kontakt når som helst -- vi er bare en melding unna." },
+];
 
-const QUICK_REPLIES = ["What are your hours?", "Can I book an appointment?", "What's the pricing?", "I'd like to talk to a person"];
+const CANNED_REPLIES = isNorwegian ? CANNED_REPLIES_NO : CANNED_REPLIES_EN;
+const FALLBACK_REPLY = isNorwegian
+  ? "Skjønner -- jeg har sendt det videre til teamet, og noen følger deg opp her snart. I mellomtiden kan jeg hjelpe med åpningstider, priser, adresse eller timebestilling."
+  : "Got it -- I've passed that along to the team and someone will follow up here shortly. In the meantime, I can help with our hours, pricing, location, or booking an appointment.";
+
+const QUICK_REPLIES = isNorwegian
+  ? ["Når har dere åpent?", "Kan jeg bestille time?", "Hva koster det?", "Jeg vil snakke med en person"]
+  : ["What are your hours?", "Can I book an appointment?", "What's the pricing?", "I'd like to talk to a person"];
+const STATUS_TYPING = isNorwegian ? "skriver ..." : "typing...";
+const STATUS_ONLINE = isNorwegian ? "pålogget" : "online";
+const OPENER = isNorwegian
+  ? "Hei! 👋 Takk for at du sender melding til Mielikkix. Jeg er Mieli, din AI-assistent -- jeg kan hjelpe med åpningstider, timebestilling, priser eller noe annet. Hva kan jeg gjøre for deg?"
+  : "Hi there! 👋 Thanks for messaging Mielikkix. I'm Mieli, your AI concierge -- I can help with hours, bookings, pricing, or anything else. What can I do for you?";
 
 function timeNow() {
-  return new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return new Date().toLocaleTimeString(isNorwegian ? "nb-NO" : undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 // Auto-scrolls only the phone's own chat viewport (#chatArea, which has its
@@ -203,14 +227,14 @@ function sendMessage(text) {
 
   setTimeout(() => setTicksStatus(visitorBubble, "delivered"), 400);
 
-  statusLineEl.textContent = "typing...";
+  statusLineEl.textContent = STATUS_TYPING;
   showTyping();
   const delay = 900 + Math.random() * 700;
   setTimeout(() => {
     hideTyping();
     setTicksStatus(visitorBubble, "read");
     addMessage("ai", matchReply(text));
-    statusLineEl.textContent = "online";
+    statusLineEl.textContent = STATUS_ONLINE;
   }, delay);
 }
 
@@ -226,12 +250,12 @@ composerForm.addEventListener("submit", (e) => {
 // Scripted opener, played once on load -- gives the phone something to
 // show immediately instead of an empty chat.
 setTimeout(() => {
-  statusLineEl.textContent = "typing...";
+  statusLineEl.textContent = STATUS_TYPING;
   showTyping();
   setTimeout(() => {
     hideTyping();
-    addMessage("ai", "Hi there! 👋 Thanks for messaging Mielikkix. I'm Mieli, your AI concierge -- I can help with hours, bookings, pricing, or anything else. What can I do for you?");
-    statusLineEl.textContent = "online";
+    addMessage("ai", OPENER);
+    statusLineEl.textContent = STATUS_ONLINE;
     renderQuickReplies();
   }, 1100);
 }, 500);

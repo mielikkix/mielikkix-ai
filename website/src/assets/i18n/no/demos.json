@@ -1,0 +1,76 @@
+{
+  "COMMON": {
+    "BACK_LINK": "← Tilbake til AI-agenter",
+    "MEET": "Møt Mielikkix",
+    "AI_NOTICE": "Du chatter med en AI-assistent, ikke et menneske. Den kan ta feil. Ikke del sensitive personopplysninger.",
+    "PRIVACY": "Personvern",
+    "SEND": "Send"
+  },
+  "VOICE": {
+    "SEO": {
+      "TITLE": "Snakk med vår Voice Receptionist",
+      "DESCRIPTION": "Prøv en live demo av Mielikkix sin AI-telefonsvarer (Voice Receptionist) — snakk med den rett i nettleseren."
+    },
+    "HERO_LINE2": "Voice Receptionist",
+    "SUBHEADING": "En live demo — snakk med den nå, med din egen mikrofon.",
+    "UNSUPPORTED": "Denne nettleseren støtter ikke talegjenkjenning. Prøv en nyere versjon av Chrome eller Edge.",
+    "SPEAK_NOW": "Snakk nå",
+    "END_CALL": "Avslutt samtalen"
+  },
+  "BOOKING": {
+    "SEO": {
+      "TITLE": "Prøv vår Booking Assistant",
+      "DESCRIPTION": "Prøv en live demo av Mielikkix sin AI-timebestilling (Booking Assistant) — skriv hva du vil bestille i chatten, og få en ekte kalenderinvitasjon."
+    },
+    "HERO_LINE2": "Booking Assistant",
+    "SUBHEADING": "En live demo — skriv hva du vil bestille, rett i chatten.",
+    "PLACEHOLDER": "f.eks. en konsultasjon på 30 minutter neste tirsdag ettermiddag"
+  },
+  "SUPPORT": {
+    "SEO": {
+      "TITLE": "Prøv vår Support Triage",
+      "DESCRIPTION": "Prøv en live demo av Mielikkix sin AI-kundeservice (Support Triage) — se den klassifisere et spørsmål, svare når den er sikker, og sende videre til et menneske når den ikke er det."
+    },
+    "HERO_LINE2": "Support Triage",
+    "SUBHEADING": "En live demo — hver melding blir klassifisert først. Er den sikker nok, svarer den direkte. Er den usikker, kobler den inn et menneske i stedet for å gjette.",
+    "PLACEHOLDER": "Still et spørsmål, eller prøv noe helt annet",
+    "TRY_HEADING": "Prøv begge deler:"
+  },
+  "REVIEW": {
+    "SEO": {
+      "TITLE": "Prøv vår Review & Reputation-agent",
+      "DESCRIPTION": "Prøv en live demo av Mielikkix sin AI-agent for anmeldelser (Review & Reputation) — lim inn en anmeldelse og se den analysert, prioritert og besvart."
+    },
+    "HERO_LINE2": "Review & Reputation-agent",
+    "SUBHEADING": "Gjør kundeanmeldelser om til sterkere kunderelasjoner og et bedre omdømme.",
+    "INTRO": "Lim inn en kundeanmeldelse nedenfor, så analyserer AI-assistenten tilbakemeldingen, finner stemningen og hovedproblemet, og skriver et profesjonelt svar på sekunder.",
+    "REVIEW_LABEL": "Kundeanmeldelse",
+    "REVIEW_PLACEHOLDER": "Lim inn en ekte anmeldelse eller et eksempel her …",
+    "REVIEW_ERROR": "Lim inn en anmeldelse som skal analyseres.",
+    "TRY_EXAMPLE": "Prøv et eksempel",
+    "TONE_LABEL": "Tone i svaret:",
+    "TONES": {
+      "PROFESSIONAL": "Profesjonell",
+      "FRIENDLY": "Vennlig",
+      "EMPATHETIC": "Empatisk",
+      "WARM": "Varm",
+      "CONCISE": "Kortfattet"
+    },
+    "ANALYZE": "Analyser anmeldelsen og skriv et svar",
+    "CTA_HEADING": "Klar til å styre omdømmet ditt med AI?",
+    "CTA_TEXT": "Koble til bedriften din for å følge med på anmeldelser, forstå hva kundene mener, skrive personlige svar og bygge et sterkere omdømme over tid.",
+    "CTA_BUTTON": "Kom i gang",
+    "DEMO_ONLY": "Kun en demo — svarene blir aldri publisert automatisk."
+  },
+  "WHATSAPP": {
+    "SEO": {
+      "TITLE": "Prøv vår WhatsApp Concierge",
+      "DESCRIPTION": "En tidlig forhåndsvisning av Mielikkix sin AI-assistent for WhatsApp — se hvordan Mieli ville svart kundene dine, rett i WhatsApp."
+    },
+    "HERO_LINE2": "WhatsApp Concierge",
+    "SUBHEADING": "En tidlig forhåndsvisning — se hvordan Mieli ville svart kundene dine, rett i WhatsApp.",
+    "TODAY": "I dag",
+    "ONLINE": "pålogget",
+    "MESSAGE_PLACEHOLDER": "Melding"
+  }
+}

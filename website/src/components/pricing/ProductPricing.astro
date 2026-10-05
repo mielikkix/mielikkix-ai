@@ -14,6 +14,7 @@ import {
   getProduct,
   effectiveFeatures,
   planCta,
+  yearlyPrice,
   type Lang,
   type ProductId,
   type Tier,
@@ -375,9 +376,18 @@ const hasTerm = tiers.some((t) => t.minTermMonths);
                   ? "—"
                   : langs.map((lang) => (
                       <span class={lang === "no" ? "i18n-no" : "i18n-en"}>
-                        {tier.priceFrom ? (lang === "no" ? "fra " : "from ") : ""}
-                        <Price nok={tier.priceNokMonthly as number} lang={lang} vat />
-                        {lang === "no" ? "/mnd" : "/month"}
+                        {/* Follows the billing toggle like the price row above (QA 2026-10-05, BUG-16). */}
+                        {(["month", "year"] as const).map((period) => (
+                          <span class={period === "year" ? "billing-yearly" : "billing-monthly"}>
+                            {tier.priceFrom ? (lang === "no" ? "fra " : "from ") : ""}
+                            <Price
+                              nok={period === "year" ? yearlyPrice(tier.priceNokMonthly as number) : (tier.priceNokMonthly as number)}
+                              lang={lang}
+                              vat
+                            />
+                            {period === "year" ? (lang === "no" ? "/år" : "/year") : lang === "no" ? "/mnd" : "/month"}
+                          </span>
+                        ))}
                       </span>
                     ))}
               </td>

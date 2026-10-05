@@ -28,6 +28,8 @@ class _ChatMessageRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=MAX_ID_CHARS)
     message: str = Field(min_length=1, max_length=MAX_CHAT_MESSAGE_CHARS)
     customer_email: str | None = Field(default=None, max_length=254)
+    # The demo page's site language: the tie-breaker for canned replies.
+    lang: str | None = Field(default=None, max_length=10)
 
 
 class _ChatMessageResponse(BaseModel):
@@ -37,6 +39,7 @@ class _ChatMessageResponse(BaseModel):
     suggest_booking_flow: bool = False
     declined: bool = False
     needs_contact: bool = False
+    off_topic: bool = False
 
 
 @router.post("/chat/message", response_model=_ChatMessageResponse)
@@ -50,7 +53,9 @@ async def chat_message(request: Request, body: _ChatMessageRequest, db: Session 
     own marketing site), so it should stay locked to the origins in
     settings.cors_origins_list, same as every other non-public route.
     """
-    result = await support_service.handle_chat_message(db, body.session_id, body.message, body.customer_email)
+    result = await support_service.handle_chat_message(
+        db, body.session_id, body.message, body.customer_email, body.lang
+    )
     return _ChatMessageResponse(
         reply=result.reply,
         escalated=result.escalated,
@@ -58,6 +63,7 @@ async def chat_message(request: Request, body: _ChatMessageRequest, db: Session 
         suggest_booking_flow=result.suggest_booking_flow,
         declined=result.declined,
         needs_contact=result.needs_contact,
+        off_topic=result.off_topic,
     )
 
 
@@ -65,6 +71,7 @@ class _ContactRequest(BaseModel):
     session_id: str = Field(min_length=1, max_length=MAX_ID_CHARS)
     email: EmailStr
     name: str | None = Field(default=None, max_length=200)
+    lang: str | None = Field(default=None, max_length=10)
 
 
 class _ContactResponse(BaseModel):
@@ -77,7 +84,9 @@ class _ContactResponse(BaseModel):
 async def chat_contact(request: Request, body: _ContactRequest, db: Session = Depends(get_db)):
     """The email field the widget shows after an escalated reply
     (needs_contact) -- same origin-restricted CORS as /chat/message above."""
-    result = await support_service.add_contact(db, body.session_id, str(body.email), body.name)
+    result = await support_service.add_contact(
+        db, body.session_id, str(body.email), body.name, body.lang
+    )
     if result is None:
         raise HTTPException(status_code=404, detail="No conversation found for this session")
     return _ContactResponse(reply=result.reply, ticket_id=result.ticket_id)

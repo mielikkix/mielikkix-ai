@@ -1,0 +1,63 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PageHero from "../components/PageHero.astro";
+import en from "../assets/i18n/en/company.json";
+import { SIGN_UP_URL } from "../data/pricing";
+
+// QA 2026-10-05 (BUG-14): /contact returned a stock 404. Only contact routes
+// that really exist: the public email (also in the footer), the demo form,
+// and the free sign-up -- no phone number or street address until the company
+// registration completes (see src/config/legal.ts).
+const c = en.CONTACT;
+---
+
+<Layout
+  title={c.SEO.TITLE}
+  description={c.SEO.DESCRIPTION}
+  path="/contact/"
+  page="company"
+  titleKey="CONTACT.SEO.TITLE"
+  descriptionKey="CONTACT.SEO.DESCRIPTION"
+>
+  <PageHero
+    line1={c.HERO_LINE1}
+    line2={c.HERO_LINE2}
+    subheading={c.SUBHEADING}
+    line1Key="CONTACT.HERO_LINE1"
+    line2Key="CONTACT.HERO_LINE2"
+    subheadingKey="CONTACT.SUBHEADING"
+  />
+
+  <section class="mx-auto max-w-5xl px-6 py-16">
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="flex flex-col rounded-3xl border border-slate-100 bg-white p-7 shadow-sm">
+        <h2 class="font-display text-lg font-bold text-slate-900" data-i18n="CONTACT.EMAIL_HEADING">{c.EMAIL_HEADING}</h2>
+        <p class="mt-2 flex-1 text-sm text-slate-500" data-i18n="CONTACT.EMAIL_TEXT">{c.EMAIL_TEXT}</p>
+        <a href="mailto:post@mielikkix.no" class="mt-5 font-semibold text-violet-600 hover:text-violet-700">post@mielikkix.no</a>
+      </div>
+      <div class="flex flex-col rounded-3xl border border-slate-100 bg-white p-7 shadow-sm">
+        <h2 class="font-display text-lg font-bold text-slate-900" data-i18n="CONTACT.DEMO_HEADING">{c.DEMO_HEADING}</h2>
+        <p class="mt-2 flex-1 text-sm text-slate-500" data-i18n="CONTACT.DEMO_TEXT">{c.DEMO_TEXT}</p>
+        <a
+          href="/demo/"
+          data-i18n="CONTACT.DEMO_BUTTON"
+          class="brand-gradient mt-5 self-start whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+        >
+          {c.DEMO_BUTTON}
+        </a>
+      </div>
+      <div class="flex flex-col rounded-3xl border border-slate-100 bg-white p-7 shadow-sm">
+        <h2 class="font-display text-lg font-bold text-slate-900" data-i18n="CONTACT.START_HEADING">{c.START_HEADING}</h2>
+        <p class="mt-2 flex-1 text-sm text-slate-500" data-i18n="CONTACT.START_TEXT">{c.START_TEXT}</p>
+        <a
+          href={SIGN_UP_URL}
+          data-i18n="CONTACT.START_BUTTON"
+          class="mt-5 self-start whitespace-nowrap rounded-full border border-violet-200 px-5 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-50"
+        >
+          {c.START_BUTTON}
+        </a>
+      </div>
+    </div>
+    <p class="mt-10 text-center text-sm text-slate-500" data-i18n="CONTACT.LOCATION">{c.LOCATION}</p>
+  </section>
+</Layout>

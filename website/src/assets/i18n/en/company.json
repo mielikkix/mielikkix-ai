@@ -1,0 +1,54 @@
+{
+  "ABOUT": {
+    "SEO": {
+      "TITLE": "About Mielikkix",
+      "DESCRIPTION": "Mielikkix is a Norway-based AI software company building an AI chat widget and AI agents that help growing businesses answer customers, capture leads and automate repetitive work."
+    },
+    "HERO_LINE1": "About",
+    "HERO_LINE2": "Mielikkix",
+    "SUBHEADING": "AI agents and an AI chat widget for growing businesses.",
+    "WHO_HEADING": "Who we are",
+    "WHO_TEXT": "Mielikkix is an AI software and SaaS company based in Norway. We help businesses use artificial intelligence to work smarter, automate faster and create better customer experiences. We build practical AI solutions that go beyond simple chatbots: AI customer service, sales and lead automation, multi-agent AI systems, custom AI software and integrations with the tools a business already uses. Our goal is simple: make AI useful, accessible and measurable for real businesses.",
+    "NAME_HEADING": "Why \"Mielikki\"?",
+    "NAME_TEXT": "In Finnish mythology, Mielikki is the goddess of the forest, a guardian who watches over what is hers and makes sure nothing gets lost under her care. That is the job we wanted our product to do for the businesses that use it: stand watch, catch every visitor who shows up, and make sure no one wanders off unanswered.",
+    "PROBLEM_HEADING": "The problem",
+    "PROBLEM_TEXT": "Most businesses lose time and leads to repetitive, manual work: missed calls, slow replies, manual appointment booking, repetitive support requests and leads that slip away outside office hours. Custom AI development is too expensive and slow for most small businesses, and generic chatbots don't know the specific business.",
+    "SOLUTION_HEADING": "Our approach",
+    "SOLUTION_TEXT": "AI that performs real tasks, built around the way a business already works. Start with the Mielikkix Chat Widget, a branded chatbot trained on your own FAQs, documents and catalog that you embed with a single line of code. Add AI agents for phone calls, bookings, support, reviews and SEO as you grow, or have us build a custom agent for your own workflow. AI handles the repetitive work; your team steps in when it matters.",
+    "TRUST_HEADING": "Data, security and trust",
+    "TRUST_TEXT": "We are based in Norway and build every AI system with data protection and GDPR principles in mind. Your business data stays yours. Integrations are scoped so an AI agent can only access the data and actions it needs, and every agent can hand a conversation over to a person on your team.",
+    "CONTACT_HEADING": "Get in touch",
+    "CONTACT_TEXT": "We are a small, early-stage team and reply to every message personally.",
+    "CONTACT_BUTTON": "Contact us"
+  },
+  "CONTACT": {
+    "SEO": {
+      "TITLE": "Contact Mielikkix",
+      "DESCRIPTION": "Contact Mielikkix by email at post@mielikkix.no, book a free 15-minute demo, or create a free Chat Widget account."
+    },
+    "HERO_LINE1": "Contact",
+    "HERO_LINE2": "Mielikkix",
+    "SUBHEADING": "Questions, a demo, or a custom AI agent: we reply to every message personally.",
+    "EMAIL_HEADING": "Email us",
+    "EMAIL_TEXT": "For questions, partnerships, privacy requests and support.",
+    "DEMO_HEADING": "Book a free demo",
+    "DEMO_TEXT": "A 15-minute walkthrough tailored to your type of business, with no obligation.",
+    "DEMO_BUTTON": "Book a free demo",
+    "START_HEADING": "Start for free",
+    "START_TEXT": "Create a free Chat Widget account. No credit card needed.",
+    "START_BUTTON": "Get started free",
+    "LOCATION": "Mielikkix is based in Norway and serves businesses in Norway and internationally."
+  },
+  "NOT_FOUND": {
+    "SEO": {
+      "TITLE": "Page not found",
+      "DESCRIPTION": "The page you were looking for doesn't exist."
+    },
+    "CODE": "404",
+    "HEADING": "We couldn't find that page",
+    "TEXT": "The link may be old, or the page may have moved. These might help:",
+    "HOME": "Go to the homepage",
+    "AGENTS": "See our AI agents",
+    "CONTACT": "Contact us"
+  }
+}

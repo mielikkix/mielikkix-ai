@@ -15,6 +15,14 @@ _SIGNALS = {
     "no": {"chars": "æøå", "words": {
         "jeg", "du", "er", "og", "ikke", "hva", "hvor", "kan", "deres", "dere",
         "reservere", "bord", "gruppe", "stor", "takk", "hei", "vil", "har", "til",
+        # Short questions carry no æøå and few of the words above -- QA
+        # 2026-10-05 (BUG-02): "Hvem eier dataene mine?" scored 0 and fell
+        # back to English.
+        "hvem", "hvilke", "hvilken", "hvilket", "hvordan", "hvorfor", "når",
+        "eier", "mine", "min", "mitt", "dataene", "meg", "deg", "oss", "vi",
+        "det", "noen", "koster", "gratis", "finnes", "skal", "må", "får",
+        "gjerne", "også", "eller", "bare", "nei", "ja", "tusen", "kontakte",
+        "bestille", "kjøpe", "ringe", "planen", "prisen", "dataen",
     }},
     "de": {"chars": "äöüß", "words": {
         "ich", "und", "ist", "sie", "wie", "wo", "kann", "nicht", "der", "die",
@@ -47,7 +55,8 @@ _SIGNALS = {
     }},
     "en": {"chars": "", "words": {
         "the", "is", "are", "you", "and", "what", "where", "how", "can", "do",
-        "please", "thanks", "hello", "have", "want",
+        "please", "thanks", "hello", "have", "want", "who", "which", "why",
+        "when", "my", "does", "your", "much",
     }},
 }
 

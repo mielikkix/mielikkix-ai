@@ -132,10 +132,6 @@
           "AVAILABLE": false
         },
         {
-          "TEXT": "Gmail",
-          "AVAILABLE": true
-        },
-        {
           "TEXT": "Slack og Microsoft Teams — planlagt",
           "AVAILABLE": false
         }
@@ -274,7 +270,7 @@
     "SUBHEADING": "Book en gratis demo, så setter vi opp FAQ-er, dokumenter og katalog sammen."
   },
   "AGENTS_CALLOUT": {
-    "TEXT": "Ser du etter mer enn en chat-widget? Utforsk AI-agenter bygget for bedrifter — for tale, booking, support og mer.",
+    "TEXT": "Ser du etter mer enn et AI-chattevindu? Utforsk AI-agenter bygget for bedrifter — for tale, booking, support og mer.",
     "CTA": "Se agentene"
   }
 }

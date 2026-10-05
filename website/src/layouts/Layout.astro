@@ -9,7 +9,7 @@ interface Props {
   description: string;
   path?: string;
   /** Which page-JSON namespace (src/assets/i18n/<lang>/<page>.json) drives client-side translation on this page. Omit for pages with no translation JSON. */
-  page?: "home" | "features" | "pricing" | "agent-pricing" | "agents" | "demo";
+  page?: "home" | "features" | "pricing" | "agent-pricing" | "agents" | "demo" | "demos" | "company";
   /** Dot-path into that page's JSON for the translated <title> (e.g. "SEO.TITLE"). */
   titleKey?: string;
   /** Dot-path into that page's JSON for the translated meta description (e.g. "SEO.DESCRIPTION"). */
@@ -29,9 +29,29 @@ interface Props {
    * the client-side i18n title swap via body[data-title-suffix].
    */
   titleSuffix?: boolean;
+  /**
+   * Whether this page also gets a Norwegian copy at /no/<path> (built by
+   * integrations/norwegian-pages.mjs). Defaults to "has a translation
+   * namespace"; LegalLayout passes true (its Norwegian body is in the page).
+   * Blog posts are English-only, so they don't.
+   */
+  translated?: boolean;
+  /** Error pages: robots noindex, and no canonical/hreflang. */
+  noindex?: boolean;
 }
 
-const { title, description, path = "/", page, titleKey, descriptionKey, structuredDataNodes, titleSuffix = true } = Astro.props;
+const {
+  title,
+  description,
+  path = "/",
+  page,
+  titleKey,
+  descriptionKey,
+  structuredDataNodes,
+  titleSuffix = true,
+  translated = !!page,
+  noindex = false,
+} = Astro.props;
 const fullTitle = titleSuffix ? `${title} · Mielikkix` : title;
 const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
 
@@ -42,6 +62,11 @@ const siteUrl = Astro.site ?? new URL("https://mielikkix.ai");
 // actual served URL exactly, rather than pointing at a URL that just redirects to it.
 const normalizedPath = path.endsWith("/") ? path : `${path}/`;
 const canonicalUrl = new URL(normalizedPath, siteUrl).toString();
+// QA 2026-10-05 (BUG-13): Norwegian had no URL of its own. The /no/ copy is
+// generated at build time only, so the dev server (which has no /no/ pages)
+// gets no alternates -- public/i18n-guard.js redirects by them.
+const hasNorwegian = translated && !noindex && import.meta.env.PROD;
+const norwegianUrl = new URL(`/no${normalizedPath}`, siteUrl).toString();
 const ogImage = new URL("/og-image.png", siteUrl).toString();
 
 // Only renders once a real Plausible account/domain exists (see .env.example) --
@@ -126,7 +151,18 @@ const structuredData = {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="canonical" href={canonicalUrl} />
+    {!noindex && <link rel="canonical" href={canonicalUrl} />}
+    {noindex && <meta name="robots" content="noindex" />}
+    {/* Before i18n-guard.js below, which reads them. */}
+    {
+      hasNorwegian && (
+        <>
+          <link rel="alternate" hreflang="en" href={canonicalUrl} />
+          <link rel="alternate" hreflang="nb" href={norwegianUrl} />
+          <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+        </>
+      )
+    }
     <meta name="generator" content={Astro.generator} />
     <meta name="google-site-verification" content="wwBSRJoUkdycn0t-ycVvIjYco3FmxAyBV0A7lGaugMM" />
 

@@ -32,7 +32,7 @@ function Table({ rows, keyPrefix }: { rows: string[]; keyPrefix: string }) {
   const [head, ...body] = rows.filter((r) => !isTableSeparator(r)).map(cells)
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-xs">
+      <table className="w-full table-fixed border-collapse text-xs">
         <thead>
           <tr>
             {head.map((c, i) => (
@@ -46,7 +46,7 @@ function Table({ rows, keyPrefix }: { rows: string[]; keyPrefix: string }) {
           {body.map((row, r) => (
             <tr key={r}>
               {row.map((c, i) => (
-                <td key={i} className="border-b border-gray-200 px-1.5 py-1 align-top">
+                <td key={i} className="border-b border-gray-200 px-1.5 py-1 align-top [overflow-wrap:anywhere]">
                   {renderInline(c, `${keyPrefix}-${r}-${i}`)}
                 </td>
               ))}

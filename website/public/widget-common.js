@@ -20,15 +20,29 @@ window.MlxWidget = (function () {
     return data;
   }
 
+  // The site language: "no" on a /no/ page or once Norsk was chosen (same
+  // localStorage key translationService.ts uses), else "en". Every demo
+  // script picks its own strings with this (QA 2026-10-05, BUG-05..09).
+  function lang() {
+    if (location.pathname === "/no" || location.pathname.startsWith("/no/")) return "no";
+    try {
+      return localStorage.getItem("mielikkix:lang") === "no" ? "no" : "en";
+    } catch (_e) {
+      return "en";
+    }
+  }
+
+  // "tir. 13. okt., 09:00" in Norwegian, "Tue, Oct 13, 9:00 AM" in English.
   function formatSlot(startISO) {
-    return new Date(startISO).toLocaleString(undefined, {
+    const no = lang() === "no";
+    return new Date(startISO).toLocaleString(no ? "nb-NO" : "en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
-      hour: "numeric",
+      hour: no ? "2-digit" : "numeric",
       minute: "2-digit",
     });
   }
 
-  return { postJSON, formatSlot };
+  return { postJSON, formatSlot, lang };
 })();

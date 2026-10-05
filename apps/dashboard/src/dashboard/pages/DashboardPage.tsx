@@ -6,6 +6,16 @@ import { MessageSquare, Users, TrendingUp, Code, Lock } from 'lucide-react'
 import { usePlan } from '../../shared/hooks/usePlan'
 import { UsageMeter } from '../../shared/components/UsageMeter'
 import { TestChatbotCard } from '../components/TestChatbotCard'
+import { useT, type MessageKey } from '../../shared/i18n'
+
+// Intent codes come from the API (rag/pipeline.py _detect_intent); only the labels are translated.
+const INTENT_LABELS: Record<string, MessageKey> = {
+  faq: 'overview.intents.faq',
+  lead: 'overview.intents.lead',
+  booking: 'overview.intents.booking',
+  product_inquiry: 'overview.intents.product_inquiry',
+  support: 'overview.intents.support',
+}
 
 interface Summary {
   conversation_count: number
@@ -23,6 +33,7 @@ interface Business {
 }
 
 export function DashboardPage() {
+  const { t, formatNumber } = useT()
   const { data: summary } = useQuery<Summary>({
     queryKey: ['analytics'],
     queryFn: () => api.get('/analytics/summary').then((r) => r.data),
@@ -37,19 +48,20 @@ export function DashboardPage() {
     ? `<script src="${window.location.origin}/widget.js" data-business="${business.id}"></script>`
     : ''
 
+  const count = (n: number | undefined) => (n === undefined ? '—' : formatNumber(n))
   const stats = [
-    { label: 'Conversations', value: summary?.conversation_count ?? '—', icon: MessageSquare, bg: 'bg-blue-100', fg: 'text-blue-600' },
-    { label: 'Leads captured', value: summary?.lead_count ?? '—', icon: Users, bg: 'bg-emerald-100', fg: 'text-emerald-600' },
-    { label: 'Visitor messages', value: summary?.message_count ?? '—', icon: TrendingUp, bg: 'bg-violet-100', fg: 'text-violet-600' },
+    { label: t('overview.stats.conversations'), value: count(summary?.conversation_count), icon: MessageSquare, bg: 'bg-blue-100', fg: 'text-blue-600' },
+    { label: t('overview.stats.leads'), value: count(summary?.lead_count), icon: Users, bg: 'bg-emerald-100', fg: 'text-emerald-600' },
+    { label: t('overview.stats.messages'), value: count(summary?.message_count), icon: TrendingUp, bg: 'bg-violet-100', fg: 'text-violet-600' },
   ]
 
   return (
     <div className="space-y-6">
       <div className="brand-gradient rounded-2xl p-6 shadow-sm shadow-brand-200 sm:p-8">
         <h1 className="text-4xl font-bold text-white">
-          {business ? `${business.name}` : 'Dashboard'}
+          {business ? business.name : t('overview.fallbackTitle')}
         </h1>
-        <p className="text-base text-brand-50 mt-1">Welcome back! Here's your chatbot at a glance.</p>
+        <p className="text-base text-brand-50 mt-1">{t('overview.welcome')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -74,13 +86,13 @@ export function DashboardPage() {
           <div className="flex flex-wrap items-center gap-4">
             <div className="min-w-[14rem] flex-1">
               <UsageMeter
-                label={`AI conversations this month (${plan.plan_name} plan)`}
+                label={t('overview.usageLabel', { plan: plan.plan_name })}
                 used={plan.usage.conversations_this_month}
                 limit={plan.limits.max_conversations_per_month}
               />
             </div>
             <Link to="/dashboard/plan" className="text-sm font-semibold text-brand-600 hover:underline">
-              Plan &amp; usage
+              {t('overview.planLink')}
             </Link>
           </div>
         </Card>
@@ -89,17 +101,17 @@ export function DashboardPage() {
       <TestChatbotCard />
 
       {summary?.analytics_tier === 'basic' && (
-        <Card title="Top visitor questions">
+        <Card title={t('overview.topQuestions')}>
           <div className="flex items-center gap-3 text-base text-slate-500">
             <Lock size={16} className="flex-shrink-0" />
-            <span className="flex-1">Question breakdowns are available on the Basic plan and up.</span>
-            <Link to="/dashboard/plan" className="font-semibold text-brand-600 underline">Upgrade</Link>
+            <span className="flex-1">{t('overview.topQuestionsLocked')}</span>
+            <Link to="/dashboard/plan" className="font-semibold text-brand-600 underline">{t('overview.upgrade')}</Link>
           </div>
         </Card>
       )}
 
       {summary && summary.top_questions.length > 0 && (
-        <Card title="Top visitor questions">
+        <Card title={t('overview.topQuestions')}>
           <ul className="space-y-2">
             {summary.top_questions.map((q, i) => (
               <li key={i} className="flex items-center justify-between gap-4 text-base">
@@ -111,7 +123,7 @@ export function DashboardPage() {
                       : 'flex-shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-sm font-bold text-violet-700'
                   }
                 >
-                  {q.count} chat{q.count === 1 ? '' : 's'}
+                  {t('overview.chats', { count: q.count })}
                 </span>
               </li>
             ))}
@@ -120,13 +132,14 @@ export function DashboardPage() {
       )}
 
       {summary?.analytics_tier === 'advanced' && Object.keys(summary.intent_breakdown).length > 0 && (
-        <Card title="Conversations by intent">
+        <Card title={t('overview.byIntent')}>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {Object.entries(summary.intent_breakdown).map(([intent, count]) => (
               <div key={intent} className="rounded-xl bg-slate-50 p-3 text-center">
-                <p className="text-2xl font-bold text-slate-900">{count}</p>
-                <p className="text-sm capitalize text-slate-500">
-                  {intent.replace('_', ' ')} · conversation{count === 1 ? '' : 's'}
+                <p className="text-2xl font-bold text-slate-900">{formatNumber(count)}</p>
+                <p className="text-sm text-slate-500">
+                  {INTENT_LABELS[intent] ? t(INTENT_LABELS[intent]) : intent.replace('_', ' ')} ·{' '}
+                  {t('overview.intentConversations', { count })}
                 </p>
               </div>
             ))}
@@ -134,9 +147,11 @@ export function DashboardPage() {
         </Card>
       )}
 
-      <Card title="Embed your chatbot">
+      <Card title={t('overview.embed.title')}>
         <p className="text-base text-slate-600 mb-3">
-          Copy this snippet and paste it before <code className="bg-slate-100 px-1 rounded">&lt;/body&gt;</code> on your website.
+          {t('overview.embed.introBefore')}
+          <code className="bg-slate-100 px-1 rounded">&lt;/body&gt;</code>
+          {t('overview.embed.introAfter')}
         </p>
         <div className="flex items-start gap-3 bg-slate-50 rounded-lg p-3 border border-slate-200">
           <Code size={18} className="text-slate-400 mt-0.5 flex-shrink-0" />
@@ -146,22 +161,24 @@ export function DashboardPage() {
           onClick={() => navigator.clipboard.writeText(embedScript)}
           className="mt-3 text-sm text-brand-600 hover:underline"
         >
-          Copy to clipboard
+          {t('overview.embed.copy')}
         </button>
         {/* GDPR Phase 5: the business is the controller for its visitors' data. */}
         <div className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-          <p className="font-medium text-slate-700">Privacy notes for your website</p>
+          <p className="font-medium text-slate-700">{t('overview.embed.privacyTitle')}</p>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             <li>
-              The widget sets no cookies. Once a visitor opens the chat, it stores a session ID
-              (<code className="bg-white px-1 rounded">mielikkix_session</code>) and the conversation so far
-              (<code className="bg-white px-1 rounded">mielikkix_chat_history</code>, so it follows them from page to
-              page) in sessionStorage, which is cleared when the tab closes. List them in your cookie and privacy notices.
+              {t('overview.embed.cookiesBefore')}
+              <code className="bg-white px-1 rounded">mielikkix_session</code>
+              {t('overview.embed.cookiesMiddle')}
+              <code className="bg-white px-1 rounded">mielikkix_chat_history</code>
+              {t('overview.embed.cookiesAfter')}
             </li>
-            <li>Visitors are told they're chatting with an AI assistant, with a link to your privacy policy.</li>
+            <li>{t('overview.embed.aiNotice')}</li>
             <li>
-              Set your privacy policy link and how long conversations are kept under{' '}
-              <a href="/dashboard/settings?tab=advanced" className="text-brand-600 hover:underline">Chatbot Settings → Advanced</a>.
+              {t('overview.embed.settingsBefore')}
+              <Link to="/dashboard/settings?tab=advanced" className="text-brand-600 hover:underline">{t('overview.embed.settingsLink')}</Link>
+              {t('overview.embed.settingsAfter')}
             </li>
           </ul>
         </div>

@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Lock, Clock } from 'lucide-react'
 import { usePlan, PlanFeatures, COMING_SOON_FEATURES } from '../hooks/usePlan'
+import { useT } from '../i18n'
 
 interface Props {
   feature: keyof PlanFeatures
@@ -18,6 +19,7 @@ interface Props {
  */
 export function PlanGate({ feature, children, inline }: Props) {
   const { data: plan, isLoading } = usePlan()
+  const { t } = useT()
   if (isLoading || !plan) return null
 
   const included = !!plan.features[feature]
@@ -29,12 +31,12 @@ export function PlanGate({ feature, children, inline }: Props) {
     return (
       <LockedNotice
         inline={inline}
-        message={`Available on a higher plan.`}
+        message={t('gates.higherPlan')}
       />
     )
   }
 
-  return <LockedNotice inline={inline} message="Coming soon." icon={Clock} tone="neutral" />
+  return <LockedNotice inline={inline} message={t('gates.comingSoon')} icon={Clock} tone="neutral" />
 }
 
 function LockedNotice({
@@ -48,6 +50,7 @@ function LockedNotice({
   icon?: typeof Lock
   tone?: 'upgrade' | 'neutral'
 }) {
+  const { t } = useT()
   const colors =
     tone === 'upgrade'
       ? 'border-brand-200 bg-brand-50 text-brand-700'
@@ -60,7 +63,7 @@ function LockedNotice({
         {message}
         {tone === 'upgrade' && (
           <Link to="/dashboard/plan" className="underline">
-            Upgrade
+            {t('gates.upgrade')}
           </Link>
         )}
       </span>
@@ -73,7 +76,7 @@ function LockedNotice({
       <span className="flex-1">{message}</span>
       {tone === 'upgrade' && (
         <Link to="/dashboard/plan" className="font-semibold underline flex-shrink-0">
-          Upgrade
+          {t('gates.upgrade')}
         </Link>
       )}
     </div>

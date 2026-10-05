@@ -7,6 +7,8 @@ import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { AgentGate } from '../../shared/components/AgentGate'
 import { useAgentAccess } from '../../shared/hooks/usePlan'
+import { useT } from '../../shared/i18n'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
 interface Review {
   id: string
@@ -63,8 +65,10 @@ interface Insights {
   unanalyzed_count: number
 }
 
-// "mock" = the demo data added by "Import sample reviews".
-const PLATFORM_LABELS: Record<string, string> = { mock: 'Sample', manual: 'Added manually', google: 'Google' }
+// Platform/sentiment/priority/topic/escalation values are API codes; their
+// labels live under reviews.* in the i18n messages ("mock" = the demo data
+// added by "Import sample reviews").
+const TONES = ['professional', 'friendly', 'warm', 'luxury', 'casual', 'concise', 'empathetic']
 
 interface Trends {
   current_period_days: number
@@ -114,6 +118,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 // props, the same reasoning ReviewCard below already follows per-review.
 function GoogleConnectionCard() {
   const qc = useQueryClient()
+  const { t } = useT()
   const [searchParams, setSearchParams] = useSearchParams()
   const [banner, setBanner] = useState<'connected' | 'error' | 'choose_location' | null>(null)
 
@@ -160,14 +165,16 @@ function GoogleConnectionCard() {
   })
 
   return (
-    <Card title="Google Business Profile">
+    <Card title={t('reviews.google.title')}>
       <div className="space-y-3">
-        {banner === 'error' && <p className="text-sm text-red-600">Couldn't connect Google Business Profile. Please try again.</p>}
+        {banner === 'error' && <p role="alert" className="text-sm text-red-600">{t('reviews.google.connectFailed')}</p>}
         {needsLocation ? (
           <>
             <p className="text-sm text-slate-500">
-              Connected{status?.google_account_email ? ` as ${status.google_account_email}` : ''} -- this account manages more
-              than one location. Choose which one Review &amp; Reputation should use:
+              {status?.google_account_email
+                ? t('reviews.google.connectedAs', { email: status.google_account_email })
+                : t('reviews.google.connectedPlain')}{' '}
+              {t('reviews.google.chooseLocation')}
             </p>
             <div className="flex flex-wrap gap-2">
               {(locations ?? []).map((loc) => (
@@ -181,41 +188,39 @@ function GoogleConnectionCard() {
                   {loc.title}
                 </Button>
               ))}
-              {locations?.length === 0 && <p className="text-sm text-slate-400">No locations found on this account.</p>}
+              {locations?.length === 0 && <p className="text-sm text-slate-400">{t('reviews.google.noLocations')}</p>}
             </div>
           </>
         ) : status?.connected ? (
           <>
-            {banner === 'connected' && <p className="text-sm text-emerald-600">Google Business Profile connected!</p>}
+            {banner === 'connected' && <p role="status" className="text-sm text-emerald-600">{t('reviews.google.connectedBanner')}</p>}
             <p className="text-sm text-slate-700">
-              Connected{status.google_account_email ? ` as ${status.google_account_email}` : ''}
-              {status.location_title ? ` -- ${status.location_title}` : ''}.
+              {status.google_account_email
+                ? t('reviews.google.connectedAs', { email: status.google_account_email })
+                : t('reviews.google.connectedPlain')}
+              {status.location_title && <> {t('reviews.google.location', { name: status.location_title })}</>}
             </p>
             <Button variant="secondary" size="sm" loading={disconnectMut.isPending} onClick={() => disconnectMut.mutate()}>
-              Disconnect
+              {t('reviews.google.disconnect')}
             </Button>
           </>
         ) : status && !status.configured ? (
           // QA 2026-10-02 (D5): this read "isn't set up for this environment yet" -- developer wording. The
           // Google Business Profile API needs Google's approval of our app, which is still pending.
           <p className="text-sm text-slate-500">
-            <span className="mr-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Coming soon</span>
-            Automatic import from your Google Business Profile is waiting for Google's approval. Until then, paste any
-            review into "Log a review" below and it is analyzed and answered the same way.
+            <span className="mr-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{t('reviews.google.soonBadge')}</span>
+            {t('reviews.google.soonText')}
           </p>
         ) : (
           <>
-            <p className="text-sm text-slate-500">
-              Connect your business's real Google Business Profile so reviews can be imported, analyzed, and replies
-              published here once approved.
-            </p>
+            <p className="text-sm text-slate-500">{t('reviews.google.connectHelp')}</p>
             <Button
               size="sm"
               onClick={() => {
                 window.location.href = `${api.defaults.baseURL}/businesses/me/reviews/authorize`
               }}
             >
-              Connect Google Business Profile
+              {t('reviews.google.connect')}
             </Button>
           </>
         )}
@@ -226,6 +231,8 @@ function GoogleConnectionCard() {
 
 function ReviewCard({ review }: { review: Review }) {
   const qc = useQueryClient()
+  const { t, tCode, formatDateTime } = useT()
+  const platformName = tCode('reviews.platforms', review.platform)
   const [expanded, setExpanded] = useState(false)
   const [editedResponse, setEditedResponse] = useState<string | null>(null)
   const [tone, setTone] = useState('')
@@ -292,16 +299,20 @@ function ReviewCard({ review }: { review: Review }) {
       <div className="flex cursor-pointer items-start justify-between gap-4" onClick={() => setExpanded((e) => !e)}>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-900">{review.customer_name || 'Anonymous'}</span>
+            <span className="text-sm font-semibold text-slate-900">{review.customer_name || t('reviews.card.anonymous')}</span>
             {review.platform === 'mock' ? (
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Sample
+                {t('reviews.card.sample')}
               </span>
             ) : (
-              <span className="text-xs uppercase tracking-wide text-slate-400">{PLATFORM_LABELS[review.platform] ?? review.platform}</span>
+              <span className="text-xs uppercase tracking-wide text-slate-400">{platformName}</span>
             )}
             {review.rating != null && (
-              <span className="flex items-center gap-0.5 text-amber-500">
+              <span
+                className="flex items-center gap-0.5 text-amber-500"
+                role="img"
+                aria-label={t('reviews.card.stars', { count: review.rating })}
+              >
                 {Array.from({ length: review.rating }).map((_, i) => (
                   <Star key={i} size={13} fill="currentColor" strokeWidth={0} />
                 ))}
@@ -313,18 +324,18 @@ function ReviewCard({ review }: { review: Review }) {
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           {review.sentiment && (
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${SENTIMENT_COLORS[review.sentiment]}`}>
-              {review.sentiment}
+              {tCode('reviews.sentiments', review.sentiment)}
             </span>
           )}
           {!review.analyzed_at && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">not analyzed yet</span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">{t('reviews.card.notAnalyzed')}</span>
           )}
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_COLORS[review.priority]}`}>
-            {review.priority}
+            {tCode('reviews.priorities', review.priority)}
           </span>
           {review.requires_human_review && (
             <span className="flex items-center gap-1 text-xs font-medium text-red-600">
-              <AlertTriangle size={12} /> needs a human
+              <AlertTriangle size={12} /> {t('reviews.card.needsHuman')}
             </span>
           )}
         </div>
@@ -335,31 +346,36 @@ function ReviewCard({ review }: { review: Review }) {
           {review.analyzed_at ? (
             <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
               <div>
-                <p className="font-medium text-slate-500">Topics</p>
-                <p className="text-slate-800">{review.topics.join(', ') || '-'}</p>
+                <p className="font-medium text-slate-500">{t('reviews.card.topics')}</p>
+                <p className="text-slate-800">{review.topics.map((topic) => tCode('reviews.topics', topic)).join(', ') || '-'}</p>
               </div>
               <div>
-                <p className="font-medium text-slate-500">Primary issue</p>
+                <p className="font-medium text-slate-500">{t('reviews.card.primaryIssue')}</p>
                 <p className="text-slate-800">{review.primary_issue || '-'}</p>
               </div>
               {review.positive_points.length > 0 && (
                 <div>
-                  <p className="font-medium text-emerald-600">Positive</p>
+                  <p className="font-medium text-emerald-600">{t('reviews.card.positive')}</p>
                   <p className="text-slate-800">{review.positive_points.join('; ')}</p>
                 </div>
               )}
               {review.negative_points.length > 0 && (
                 <div>
-                  <p className="font-medium text-red-600">Negative</p>
+                  <p className="font-medium text-red-600">{t('reviews.card.negative')}</p>
                   <p className="text-slate-800">{review.negative_points.join('; ')}</p>
                 </div>
               )}
               {review.escalation_reason && (
                 <div className="md:col-span-2 rounded-lg bg-red-50 px-3 py-2 text-red-700">
-                  Escalation reason: <strong>{review.escalation_reason}</strong>
+                  {t('reviews.card.escalationReason')} <strong>{tCode('reviews.escalations', review.escalation_reason)}</strong>
                   {review.risk_reasons.length > 1 && (
                     <span className="block text-xs text-red-600">
-                      Also flagged for: {review.risk_reasons.filter((r) => r !== review.escalation_reason).join(', ')}
+                      {t('reviews.card.alsoFlagged', {
+                        reasons: review.risk_reasons
+                          .filter((r) => r !== review.escalation_reason)
+                          .map((r) => tCode('reviews.escalations', r))
+                          .join(', '),
+                      })}
                     </span>
                   )}
                 </div>
@@ -367,18 +383,19 @@ function ReviewCard({ review }: { review: Review }) {
             </div>
           ) : (
             <Button size="sm" variant="secondary" loading={analyzeMut.isPending} onClick={() => analyzeMut.mutate()}>
-              Analyze
+              {t('reviews.card.analyze')}
             </Button>
           )}
 
           <div>
-            <p className="text-sm font-medium text-slate-500">
-              {review.ai_response ? 'Suggested response' : 'Write your own response'}
-            </p>
+            <label htmlFor={`review-response-${review.id}`} className="text-sm font-medium text-slate-500">
+              {review.ai_response ? t('reviews.card.suggested') : t('reviews.card.writeOwn')}
+            </label>
             <textarea
+              id={`review-response-${review.id}`}
               className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm text-slate-800 outline-none focus:border-violet-400"
               rows={3}
-              placeholder="No response generated yet -- write your own, or generate an AI draft below."
+              placeholder={t('reviews.card.responsePlaceholder')}
               value={editedResponse ?? review.ai_response ?? ''}
               onChange={(e) => setEditedResponse(e.target.value)}
             />
@@ -386,23 +403,24 @@ function ReviewCard({ review }: { review: Review }) {
               <select
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
+                aria-label={t('reviews.card.toneLabel')}
                 className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-600"
               >
-                <option value="">Business default tone</option>
-                {['professional', 'friendly', 'warm', 'luxury', 'casual', 'concise', 'empathetic'].map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                <option value="">{t('reviews.tones.default')}</option>
+                {TONES.map((tone) => (
+                  <option key={tone} value={tone}>
+                    {tCode('reviews.tones', tone)}
                   </option>
                 ))}
               </select>
               <Button size="sm" variant="secondary" loading={generateMut.isPending} onClick={() => generateMut.mutate()}>
                 <RefreshCw size={14} className="mr-1" />
-                {review.ai_response ? 'Regenerate' : 'Generate response'}
+                {review.ai_response ? t('reviews.card.regenerate') : t('reviews.card.generate')}
               </Button>
               {editedResponse != null && editedResponse !== review.ai_response && (
                 <Button size="sm" variant="secondary" loading={editMut.isPending} onClick={() => editMut.mutate(editedResponse)}>
                   <Pencil size={14} className="mr-1" />
-                  Save edit
+                  {t('reviews.card.saveEdit')}
                 </Button>
               )}
               {(review.ai_response || (editedResponse && editedResponse.trim())) && review.response_status !== 'published' && (
@@ -416,8 +434,8 @@ function ReviewCard({ review }: { review: Review }) {
                     >
                       <Send size={14} className="mr-1" />
                       {review.response_status === 'approved'
-                        ? `Reply on ${review.platform === 'google' ? 'Google' : review.platform}`
-                        : `Approve & Reply on ${review.platform === 'google' ? 'Google' : review.platform}`}
+                        ? t('reviews.card.replyOn', { platform: platformName })
+                        : t('reviews.card.approveReplyOn', { platform: platformName })}
                     </Button>
                   ) : (
                     <Button
@@ -427,12 +445,12 @@ function ReviewCard({ review }: { review: Review }) {
                       onClick={() => approveMut.mutate()}
                     >
                       <Check size={14} className="mr-1" />
-                      {review.response_status === 'approved' ? 'Approved' : 'Approve'}
+                      {review.response_status === 'approved' ? t('reviews.card.approved') : t('reviews.card.approve')}
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" loading={rejectMut.isPending} onClick={() => rejectMut.mutate()}>
                     <X size={14} className="mr-1" />
-                    Reject
+                    {t('reviews.card.reject')}
                   </Button>
                   <Button
                     size="sm"
@@ -442,32 +460,32 @@ function ReviewCard({ review }: { review: Review }) {
                     onClick={() => escalateMut.mutate()}
                   >
                     <Flag size={14} className="mr-1" />
-                    {review.requires_human_review ? 'Escalated' : 'Escalate'}
+                    {review.requires_human_review ? t('reviews.card.escalated') : t('reviews.card.escalate')}
                   </Button>
                 </>
               )}
             </div>
             {(publishMut.isError || approveAndPublishMut.isError) && (
-              <p className="mt-2 text-xs font-medium text-red-600">
-                {(approveAndPublishMut.error as any)?.response?.data?.detail ||
-                  (publishMut.error as any)?.response?.data?.detail ||
-                  'Publishing failed -- the approved draft is unchanged, safe to retry.'}
+              <p role="alert" className="mt-2 text-xs font-medium text-red-600">
+                {apiErrorMessage(approveAndPublishMut.error ?? publishMut.error, 'reviews.card.publishFailed')}
               </p>
             )}
             {review.response_status === 'approved' && review.requires_human_review && (
               <p className="mt-2 text-xs font-medium text-red-600">
-                Flagged for human review -- publishing is disabled. Handle this directly on {review.platform}, or resolve the flag first.
+                {t('reviews.card.flagged', { platform: platformName })}
               </p>
             )}
             {review.response_status === 'approved' && !PUBLISHABLE_PLATFORMS.has(review.platform) && (
               <p className="mt-2 text-xs text-slate-400">
-                Approved -- {review.platform} publishing isn't supported yet, so post this manually for now.
+                {t('reviews.card.manualPost', { platform: platformName })}
               </p>
             )}
             {review.response_status === 'published' && (
               <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                 <p className="font-medium">
-                  Published to {review.platform}{review.published_at ? ` on ${new Date(review.published_at).toLocaleString()}` : ''}.
+                  {review.published_at
+                    ? t('reviews.card.publishedOn', { platform: platformName, date: formatDateTime(review.published_at) })
+                    : t('reviews.card.published', { platform: platformName })}
                 </p>
                 {review.published_response && <p className="mt-1 text-emerald-800">{review.published_response}</p>}
               </div>
@@ -481,6 +499,7 @@ function ReviewCard({ review }: { review: Review }) {
 
 function ReviewsPageContent() {
   const qc = useQueryClient()
+  const { t, tCode, formatNumber } = useT()
   const [priority, setPriority] = useState('')
   const [sentiment, setSentiment] = useState('')
   const [attentionOnly, setAttentionOnly] = useState(false)
@@ -569,36 +588,31 @@ function ReviewsPageContent() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900">Review &amp; Reputation</h1>
-          <p className="mt-1 text-base text-slate-500">
-            Every review is analyzed for sentiment and priority. Responses are always drafted for your review --
-            nothing posts anywhere without your approval.
-          </p>
+          <h1 className="text-4xl font-bold text-slate-900">{t('reviews.title')}</h1>
+          <p className="mt-1 text-base text-slate-500">{t('reviews.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {googleStatus?.connected && (
             <Button size="sm" loading={importGoogleMut.isPending} onClick={() => importGoogleMut.mutate()}>
               <Download size={16} className="mr-1" />
-              Import from Google
+              {t('reviews.importGoogle')}
             </Button>
           )}
           {hasSamples ? (
             <Button size="sm" variant="secondary" loading={deleteSamplesMut.isPending} onClick={() => deleteSamplesMut.mutate()}>
               <X size={16} className="mr-1" />
-              Remove sample reviews
+              {t('reviews.removeSamples')}
             </Button>
           ) : (
             <Button size="sm" variant="secondary" loading={importMut.isPending} onClick={() => importMut.mutate()}>
               <Download size={16} className="mr-1" />
-              Import sample reviews
+              {t('reviews.importSamples')}
             </Button>
           )}
         </div>
       </div>
       {importGoogleMut.isError && (
-        <p className="text-sm font-medium text-red-600">
-          {(importGoogleMut.error as any)?.response?.data?.detail || 'Import from Google failed -- please try again.'}
-        </p>
+        <p role="alert" className="text-sm font-medium text-red-600">{apiErrorMessage(importGoogleMut.error, 'reviews.importGoogleFailed')}</p>
       )}
 
       <GoogleConnectionCard />
@@ -606,71 +620,72 @@ function ReviewsPageContent() {
       {/* QA 2026-10-02 (D1): when stats failed to load these used to show "0" next to a list of 8 reviews. */}
       {insightsFailed && (
         <p className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          <AlertTriangle size={16} /> Couldn't load review statistics.
+          <AlertTriangle size={16} /> {t('reviews.stats.loadFailed')}
           <button className="font-semibold underline" onClick={() => refetchInsights()}>
-            Try again
+            {t('reviews.stats.retry')}
           </button>
         </p>
       )}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Reputation score" value={reputationScore != null ? `${reputationScore}` : '-'} />
-        <StatCard label="Average rating" value={insights?.average_rating != null ? insights.average_rating.toFixed(1) : '-'} />
-        <StatCard label="Total reviews" value={insights ? String(insights.total_reviews ?? insights.review_count) : '-'} />
+        <StatCard label={t('reviews.stats.score')} value={reputationScore != null ? formatNumber(reputationScore) : '-'} />
         <StatCard
-          label="Positive %"
-          value={insights && !insights.insufficient_data ? `${insights.sentiment_breakdown.positive ?? 0}%` : '-'}
+          label={t('reviews.stats.average')}
+          value={insights?.average_rating != null ? formatNumber(insights.average_rating, 1) : '-'}
         />
         <StatCard
-          label="Negative %"
-          value={insights && !insights.insufficient_data ? `${insights.sentiment_breakdown.negative ?? 0}%` : '-'}
+          label={t('reviews.stats.total')}
+          value={insights ? formatNumber(insights.total_reviews ?? insights.review_count) : '-'}
         />
-        <StatCard label="Needs attention" value={insights ? String(insights.reviews_requiring_attention) : '-'} />
+        <StatCard
+          label={t('reviews.stats.positive')}
+          value={insights && !insights.insufficient_data ? `${formatNumber(insights.sentiment_breakdown.positive ?? 0)} %` : '-'}
+        />
+        <StatCard
+          label={t('reviews.stats.negative')}
+          value={insights && !insights.insufficient_data ? `${formatNumber(insights.sentiment_breakdown.negative ?? 0)} %` : '-'}
+        />
+        <StatCard label={t('reviews.stats.attention')} value={insights ? formatNumber(insights.reviews_requiring_attention) : '-'} />
       </div>
 
       {(insights?.unanalyzed_count ?? 0) > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
           <span>
-            {insights!.unanalyzed_count} review{insights!.unanalyzed_count === 1 ? " hasn't" : "s haven't"} been analyzed yet, so
-            {insights!.unanalyzed_count === 1 ? ' it is' : ' they are'} not in the percentages above.
-            {analyzePendingMut.data && analyzePendingMut.data.still_pending > 0 &&
-              ' The AI analysis is failing right now; try again in a few minutes.'}
+            {t('reviews.unanalyzed', { count: insights!.unanalyzed_count })}
+            {analyzePendingMut.data && analyzePendingMut.data.still_pending > 0 && ` ${t('reviews.analysisFailing')}`}
           </span>
           <Button size="sm" variant="secondary" loading={analyzePendingMut.isPending} onClick={() => analyzePendingMut.mutate()}>
-            <RefreshCw size={14} className="mr-1" /> Analyze now
+            <RefreshCw size={14} className="mr-1" /> {t('reviews.analyzeNow')}
           </Button>
         </div>
       )}
 
       {insights?.insufficient_data ? (
         <Card>
-          <p className="text-sm text-slate-400">
-            Not enough analyzed reviews yet for insights. Import sample reviews above, or add one manually below, to
-            get started.
-          </p>
+          <p className="text-sm text-slate-400">{t('reviews.notEnough')}</p>
         </Card>
       ) : (
-        <Card title="Insights">
+        <Card title={t('reviews.insights')}>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-emerald-600">Top positive topics</p>
+              <p className="text-sm font-medium text-emerald-600">{t('reviews.topPositive')}</p>
               <ul className="mt-1 space-y-0.5 text-sm text-slate-700">
-                {(insights?.top_positive_topics ?? []).map((t) => (
-                  <li key={t.topic}>
-                    {t.topic} ({t.count})
+                {(insights?.top_positive_topics ?? []).map((item) => (
+                  <li key={item.topic}>
+                    {tCode('reviews.topics', item.topic)} ({formatNumber(item.count)})
                   </li>
                 ))}
-                {insights?.top_positive_topics.length === 0 && <li className="text-slate-400">None yet</li>}
+                {insights?.top_positive_topics.length === 0 && <li className="text-slate-400">{t('reviews.noneYet')}</li>}
               </ul>
             </div>
             <div>
-              <p className="text-sm font-medium text-red-600">Top negative topics</p>
+              <p className="text-sm font-medium text-red-600">{t('reviews.topNegative')}</p>
               <ul className="mt-1 space-y-0.5 text-sm text-slate-700">
-                {(insights?.top_negative_topics ?? []).map((t) => (
-                  <li key={t.topic}>
-                    {t.topic} ({t.count})
+                {(insights?.top_negative_topics ?? []).map((item) => (
+                  <li key={item.topic}>
+                    {tCode('reviews.topics', item.topic)} ({formatNumber(item.count)})
                   </li>
                 ))}
-                {insights?.top_negative_topics.length === 0 && <li className="text-slate-400">None yet</li>}
+                {insights?.top_negative_topics.length === 0 && <li className="text-slate-400">{t('reviews.noneYet')}</li>}
               </ul>
             </div>
           </div>
@@ -678,21 +693,26 @@ function ReviewsPageContent() {
           {trends && !trends.insufficient_data && trends.sudden_spike && (
             <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-red-50 p-3 text-sm text-red-700">
               <AlertTriangle size={16} />
-              Negative reviews jumped from {trends.previous_negative_pct}% to {trends.current_negative_pct}% over
-              the last {trends.current_period_days} days.
-              {trends.recurring_negative_topics[0] && ` Most mentioned: ${trends.recurring_negative_topics[0].topic}.`}
+              {t('reviews.spike', {
+                previous: trends.previous_negative_pct ?? 0,
+                current: trends.current_negative_pct ?? 0,
+                days: trends.current_period_days,
+              })}
+              {trends.recurring_negative_topics[0] &&
+                ` ${t('reviews.mostMentioned', { topic: tCode('reviews.topics', trends.recurring_negative_topics[0].topic) })}`}
             </p>
           )}
         </Card>
       )}
 
-      <Card title="Log a review">
+      <Card title={t('reviews.log.title')}>
         <div className="flex flex-col gap-2 md:flex-row">
           <input
             type="text"
             value={newReviewText}
             onChange={(e) => setNewReviewText(e.target.value)}
-            placeholder="Paste a review's text..."
+            placeholder={t('reviews.log.textPlaceholder')}
+            aria-label={t('reviews.log.textLabel')}
             className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
           />
           <input
@@ -701,36 +721,47 @@ function ReviewsPageContent() {
             max={5}
             value={newReviewRating}
             onChange={(e) => setNewReviewRating(e.target.value)}
-            placeholder="Rating (optional)"
+            placeholder={t('reviews.log.ratingPlaceholder')}
+            aria-label={t('reviews.log.ratingLabel')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400 md:w-40"
           />
           <Button size="sm" disabled={!newReviewText.trim()} loading={addMut.isPending} onClick={() => addMut.mutate()}>
             <MessageSquare size={16} className="mr-1" />
-            Add
+            {t('reviews.log.add')}
           </Button>
         </div>
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <select value={priority} onChange={(e) => setPriority(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-          <option value="">All priorities</option>
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          aria-label={t('reviews.filters.priority')}
+          className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+        >
+          <option value="">{t('reviews.filters.allPriorities')}</option>
           {['low', 'medium', 'high', 'critical'].map((p) => (
             <option key={p} value={p}>
-              {p}
+              {tCode('reviews.priorities', p)}
             </option>
           ))}
         </select>
-        <select value={sentiment} onChange={(e) => setSentiment(e.target.value)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-          <option value="">All sentiments</option>
+        <select
+          value={sentiment}
+          onChange={(e) => setSentiment(e.target.value)}
+          aria-label={t('reviews.filters.sentiment')}
+          className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+        >
+          <option value="">{t('reviews.filters.allSentiments')}</option>
           {['positive', 'neutral', 'negative', 'mixed'].map((s) => (
             <option key={s} value={s}>
-              {s}
+              {tCode('reviews.sentiments', s)}
             </option>
           ))}
         </select>
         <label className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-600">
           <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} />
-          Needs attention only
+          {t('reviews.filters.attentionOnly')}
         </label>
       </div>
 
@@ -739,7 +770,7 @@ function ReviewsPageContent() {
           <ReviewCard key={review.id} review={review} />
         ))}
         {reviews.length === 0 && (
-          <div className="py-12 text-center text-base text-slate-400">No reviews match these filters yet.</div>
+          <div className="py-12 text-center text-base text-slate-400">{t('reviews.empty')}</div>
         )}
       </div>
     </div>
@@ -748,12 +779,13 @@ function ReviewsPageContent() {
 
 export function ReviewsPage() {
   const { data: access, isLoading } = useAgentAccess()
+  const { t } = useT()
   if (isLoading) return null
 
   if (!access?.review_reputation) {
     return (
       <div className="space-y-6">
-        <h1 className="text-4xl font-bold text-slate-900">Review &amp; Reputation</h1>
+        <h1 className="text-4xl font-bold text-slate-900">{t('reviews.title')}</h1>
         <AgentGate agentKey="review_reputation">
           <span />
         </AgentGate>

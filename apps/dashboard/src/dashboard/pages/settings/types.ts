@@ -21,15 +21,8 @@ export interface BusinessHours {
   sunday?: DayHours | null
 }
 
-export const DAYS: { key: keyof BusinessHours; label: string }[] = [
-  { key: 'monday', label: 'Monday' },
-  { key: 'tuesday', label: 'Tuesday' },
-  { key: 'wednesday', label: 'Wednesday' },
-  { key: 'thursday', label: 'Thursday' },
-  { key: 'friday', label: 'Friday' },
-  { key: 'saturday', label: 'Saturday' },
-  { key: 'sunday', label: 'Sunday' },
-]
+// Labels: settings.booking.days.<key> in the i18n messages.
+export const DAYS: (keyof BusinessHours)[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 export interface CalendarStatus {
   connected: boolean
@@ -56,19 +49,10 @@ export interface Settings {
 }
 
 // Small curated list rather than every ISO code -- keeps the picker usable;
-// extend as real demand shows up.
-export const AVAILABLE_LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'no', label: 'Norwegian' },
-  { code: 'de', label: 'German' },
-  { code: 'fr', label: 'French' },
-  { code: 'es', label: 'Spanish' },
-  { code: 'it', label: 'Italian' },
-  { code: 'nl', label: 'Dutch' },
-  { code: 'pl', label: 'Polish' },
-  { code: 'pt', label: 'Portuguese' },
-  { code: 'sv', label: 'Swedish' },
-]
+// extend as real demand shows up. These are the chatbot's languages (codes the
+// API stores), not the dashboard's own UI language; names come from
+// Intl.DisplayNames in the UI language (useT().languageName).
+export const AVAILABLE_LANGUAGES = ['en', 'no', 'de', 'fr', 'es', 'it', 'nl', 'pl', 'pt', 'sv']
 
 export interface Business {
   primary_color: string

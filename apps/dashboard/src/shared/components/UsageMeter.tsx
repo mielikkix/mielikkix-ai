@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { clsx } from 'clsx'
+import { useT } from '../i18n'
 
 interface Props {
   label: string
@@ -11,11 +12,12 @@ interface Props {
 /** Small usage-vs-limit bar used on Documents/Products/etc. to show how
  * close a business is to its plan's cap, with an upgrade nudge once full. */
 export function UsageMeter({ label, used, limit }: Props) {
+  const { t, formatNumber } = useT()
   if (limit === null) {
     return (
       <p className="text-sm text-slate-500">
-        {label}: <span className="font-medium text-slate-700">{used}</span>{' '}
-        <span className="text-slate-400">(unlimited on your plan)</span>
+        {label}: <span className="font-medium text-slate-700">{formatNumber(used)}</span>{' '}
+        <span className="text-slate-400">{t('usage.unlimitedOnPlan')}</span>
       </p>
     )
   }
@@ -27,11 +29,11 @@ export function UsageMeter({ label, used, limit }: Props) {
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
         <span className="text-slate-500">
-          {label}: <span className="font-medium text-slate-700">{used} / {limit}</span>
+          {label}: <span className="font-medium text-slate-700">{formatNumber(used)} / {formatNumber(limit)}</span>
         </span>
         {atLimit && (
           <Link to="/dashboard/plan" className="font-semibold text-brand-600 underline">
-            Upgrade for more
+            {t('usage.upgradeForMore')}
           </Link>
         )}
       </div>

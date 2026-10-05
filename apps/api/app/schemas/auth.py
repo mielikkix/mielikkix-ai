@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, field_validator
 from ..core.countries import COUNTRY_CODES
+from ..core.locale import normalize_locale
 
 
 class RegisterRequest(BaseModel):
@@ -20,6 +21,13 @@ class RegisterRequest(BaseModel):
     terms_accepted: bool  # Terms of Service AND the DPA (one checkbox)
     age_confirmed: bool  # 18+ and signing up on behalf of a business
     marketing_opt_in: bool = False
+    # The language chosen on the sign-up page ("en"/"nb"); saved on the user.
+    locale: Optional[str] = None
+
+    @field_validator("locale")
+    @classmethod
+    def _locale(cls, v: Optional[str]) -> Optional[str]:
+        return normalize_locale(v)
 
     @field_validator("password")
     @classmethod
@@ -88,6 +96,12 @@ class UserOut(BaseModel):
     # account is scheduled for deletion (drives the cancel banner).
     pending_acceptance: list[str] = []
     deletion_scheduled_for: Optional[datetime] = None
+    # Dashboard language, "en" or "nb"; None = not chosen yet.
+    locale: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class PreferencesUpdate(BaseModel):
+    locale: Literal["en", "nb"]

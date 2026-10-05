@@ -123,7 +123,7 @@ def request_deletion(
     already = db.get(Business, user.business_id).deletion_scheduled_for is not None
     business = account_service.request_deletion(db, user, body.confirm_business_name)
     if not already:
-        background_tasks.add_task(notify_account_deletion_scheduled, user.email, user.full_name, business.name, business.deletion_scheduled_for)
+        background_tasks.add_task(notify_account_deletion_scheduled, user.email, user.full_name, business.name, business.deletion_scheduled_for, user.locale or "en")
     return _privacy(db, user)
 
 
@@ -132,5 +132,5 @@ def cancel_deletion(background_tasks: BackgroundTasks, user: User = Depends(get_
     was_scheduled = db.get(Business, user.business_id).deletion_scheduled_for is not None
     business = account_service.cancel_deletion(db, user)
     if was_scheduled:
-        background_tasks.add_task(notify_account_deletion_cancelled, user.email, user.full_name, business.name)
+        background_tasks.add_task(notify_account_deletion_cancelled, user.email, user.full_name, business.name, user.locale or "en")
     return _privacy(db, user)

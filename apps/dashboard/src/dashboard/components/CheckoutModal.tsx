@@ -5,7 +5,7 @@ import { api } from '../../shared/api/client'
 import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { PlanCatalogEntry } from '../../shared/hooks/usePlan'
-import { formatNok } from '../../shared/price'
+import { useT, type MessageKey } from '../../shared/i18n'
 
 interface Props {
   plan: PlanCatalogEntry
@@ -41,15 +41,15 @@ function passesLuhnCheck(digits: string) {
   return digits.length > 0 && sum % 10 === 0
 }
 
-function validateExpiry(mmYY: string): string | null {
+function validateExpiry(mmYY: string): MessageKey | null {
   const match = /^(\d{2})\/(\d{2})$/.exec(mmYY)
-  if (!match) return 'Enter expiry as MM/YY'
+  if (!match) return 'checkout.errExpiryFormat'
   const month = parseInt(match[1], 10)
   const year = 2000 + parseInt(match[2], 10)
-  if (month < 1 || month > 12) return 'Enter a valid month'
+  if (month < 1 || month > 12) return 'checkout.errExpiryMonth'
   const now = new Date()
   const lastDayOfExpiryMonth = new Date(year, month, 0)
-  if (lastDayOfExpiryMonth < new Date(now.getFullYear(), now.getMonth(), 1)) return 'Card has expired'
+  if (lastDayOfExpiryMonth < new Date(now.getFullYear(), now.getMonth(), 1)) return 'checkout.errExpired'
   return null
 }
 
@@ -67,6 +67,7 @@ function validateExpiry(mmYY: string): string | null {
  */
 export function CheckoutModal({ plan, format, onClose }: Props) {
   const qc = useQueryClient()
+  const { t, formatNok } = useT()
   const [cardName, setCardName] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [expiry, setExpiry] = useState('')
@@ -74,12 +75,18 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
   const [touched, setTouched] = useState(false)
 
   const digits = cardNumber.replace(/\D/g, '')
-  const errors = {
-    cardName: cardName.trim().length < 2 ? 'Enter the name on the card' : null,
+  const errorKeys: Record<'cardName' | 'cardNumber' | 'expiry' | 'cvc', MessageKey | null> = {
+    cardName: cardName.trim().length < 2 ? 'checkout.errCardName' : null,
     cardNumber:
-      digits.length !== 16 ? 'Card number must be 16 digits' : !passesLuhnCheck(digits) ? "That card number doesn't look right" : null,
+      digits.length !== 16 ? 'checkout.errCardDigits' : !passesLuhnCheck(digits) ? 'checkout.errCardCheck' : null,
     expiry: validateExpiry(expiry),
-    cvc: !/^\d{3,4}$/.test(cvc) ? 'Enter a valid CVC' : null,
+    cvc: !/^\d{3,4}$/.test(cvc) ? 'checkout.errCvc' : null,
+  }
+  const errors = {
+    cardName: errorKeys.cardName && t(errorKeys.cardName),
+    cardNumber: errorKeys.cardNumber && t(errorKeys.cardNumber),
+    expiry: errorKeys.expiry && t(errorKeys.expiry),
+    cvc: errorKeys.cvc && t(errorKeys.cvc),
   }
   const isValid = !errors.cardName && !errors.cardNumber && !errors.expiry && !errors.cvc
 
@@ -107,36 +114,38 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`Upgrade to ${plan.name}`}
+        aria-label={t('checkout.title', { plan: plan.name })}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">Upgrade to {plan.name}</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 text-slate-400" aria-label="Close">
+          <h2 className="text-lg font-semibold text-slate-900">{t('checkout.title', { plan: plan.name })}</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 text-slate-400" aria-label={t('common.close')}>
             <X size={18} />
           </button>
         </div>
 
         <div className="space-y-4 px-6 py-5">
           <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-            <span className="text-base text-slate-600">{plan.name} plan</span>
+            <span className="text-base text-slate-600">{t('checkout.planLine', { plan: plan.name })}</span>
             <span className="text-right">
-              <span className="block text-lg font-bold text-slate-900">{formatNok(plan.price_nok)}/mo excl. VAT</span>
+              <span className="block text-lg font-bold text-slate-900">
+                {t('checkout.priceExclVat', { price: formatNok(plan.price_nok) })}
+              </span>
               {format(plan.price_nok) !== formatNok(plan.price_nok) && (
-                <span className="block text-xs text-slate-500">≈ {format(plan.price_nok)}/mo</span>
+                <span className="block text-xs text-slate-500">{t('checkout.approx', { price: format(plan.price_nok) })}</span>
               )}
             </span>
           </div>
 
           <Input
-            label="Name on card"
-            placeholder="Jane Doe"
+            label={t('checkout.cardName')}
+            placeholder={t('checkout.cardNamePlaceholder')}
             value={cardName}
             onChange={(e) => setCardName(e.target.value)}
             error={touched ? errors.cardName ?? undefined : undefined}
           />
 
           <Input
-            label="Card number"
+            label={t('checkout.cardNumber')}
             placeholder="4242 4242 4242 4242"
             inputMode="numeric"
             value={cardNumber}
@@ -146,8 +155,8 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
 
           <div className="flex gap-3">
             <Input
-              label="Expiry"
-              placeholder="MM/YY"
+              label={t('checkout.expiry')}
+              placeholder={t('checkout.expiryPlaceholder')}
               inputMode="numeric"
               value={expiry}
               onChange={(e) => setExpiry(formatExpiry(e.target.value))}
@@ -155,7 +164,7 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
               className="flex-1"
             />
             <Input
-              label="CVC"
+              label={t('checkout.cvc')}
               placeholder="123"
               inputMode="numeric"
               value={cvc}
@@ -167,19 +176,16 @@ export function CheckoutModal({ plan, format, onClose }: Props) {
 
           <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
             <Lock size={14} className="mt-0.5 flex-shrink-0" />
-            <span>
-              No payment processor is connected yet, so no real charge is made and card details are never sent or
-              stored anywhere. This switches your plan for demo purposes only.
-            </span>
+            <span>{t('checkout.demoNotice')}</span>
           </div>
 
           {payMutation.isError && (
-            <p className="text-sm text-red-600">Couldn't complete the upgrade. Please try again.</p>
+            <p role="alert" className="text-sm text-red-600">{t('checkout.failed')}</p>
           )}
 
           <Button className="w-full justify-center" loading={payMutation.isPending} onClick={handleSubmit}>
             <CreditCard size={16} className="mr-2" />
-            Pay {formatNok(plan.price_nok)}/mo and upgrade
+            {t('checkout.pay', { price: formatNok(plan.price_nok) })}
           </Button>
         </div>
       </div>

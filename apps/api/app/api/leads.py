@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
 from ..core.limiter import limiter
+from ..core.locale import business_locale
 from ..models.user import User
 from ..models.lead import Lead
 from ..models.business import Business, BusinessSettings
@@ -69,7 +70,9 @@ def create_lead(request: Request, body: LeadCreate, background_tasks: Background
     business = db.query(Business).filter(Business.id == body.business_id).first()
     biz_settings = db.query(BusinessSettings).filter(BusinessSettings.business_id == body.business_id).first()
     if business and biz_settings and biz_settings.contact_email:
-        background_tasks.add_task(notify_new_lead, business.name, biz_settings.contact_email, lead)
+        background_tasks.add_task(
+            notify_new_lead, business.name, biz_settings.contact_email, lead, business_locale(db, business.id)
+        )
 
     return LeadCreateResponse(
         success=True, message="Thank you. Your demo request has been received."

@@ -11,8 +11,10 @@ import { LanguagesSection } from './settings/LanguagesSection'
 import { BookingSection } from './settings/BookingSection'
 import { AdvancedSection } from './settings/AdvancedSection'
 import { PrivacySection } from './settings/PrivacySection'
+import { Card } from '../../shared/components/Card'
+import { LanguageSwitcher } from '../../shared/components/LanguageSwitcher'
+import { useT } from '../../shared/i18n'
 import {
-  AVAILABLE_LANGUAGES,
   Business,
   BusinessHours,
   CalendarStatus,
@@ -30,6 +32,7 @@ import {
 export function SettingsPage() {
   const isPlatformAdmin = useAuthStore((st) => st.user?.is_platform_admin)
   const qc = useQueryClient()
+  const { t, languageName } = useT()
   const { data } = useQuery<Settings>({
     queryKey: ['settings'],
     queryFn: () => api.get('/businesses/me/settings').then((r) => r.data),
@@ -103,7 +106,7 @@ export function SettingsPage() {
   const welcomeMessages = form.welcome_messages ?? {}
   const setWelcomeMessageFor = (code: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, welcome_messages: { ...(f.welcome_messages ?? {}), [code]: e.target.value } }))
-  const languageLabel = (code: string) => AVAILABLE_LANGUAGES.find((l) => l.code === code)?.label ?? code
+  const languageLabel = (code: string) => languageName(code)
   const toggleLanguage = (code: string) => {
     const has = languages.includes(code)
     if (has) {
@@ -183,9 +186,20 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-slate-900">Chatbot Settings</h1>
-        <p className="text-base text-slate-500 mt-1">Customize how your chatbot speaks and behaves.</p>
+        <h1 className="text-4xl font-bold text-slate-900">{t('settings.title')}</h1>
+        <p className="text-base text-slate-500 mt-1">{t('settings.subtitle')}</p>
       </div>
+
+      {/* The dashboard's own language (saved on the user), not the chatbot's languages. */}
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900">{t('settings.dashboardLanguage.title')}</h2>
+            <p className="text-sm text-slate-500">{t('settings.dashboardLanguage.help')}</p>
+          </div>
+          <LanguageSwitcher />
+        </div>
+      </Card>
 
       <div className="flex flex-col gap-6 md:flex-row md:gap-8">
         <SettingsNav active={tab} onChange={setTab} />

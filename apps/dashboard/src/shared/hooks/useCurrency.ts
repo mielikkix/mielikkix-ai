@@ -8,12 +8,13 @@ import {
   getStoredCurrency,
   setStoredCurrency,
 } from '../currency'
-import { formatNok } from '../price'
+import { useT } from '../i18n'
 
 /** Exchange rates change slowly enough that once/day is plenty — keeps API calls low. */
 const RATE_STALE_TIME = 24 * 60 * 60 * 1000
 
 export function useCurrency() {
+  const { formatNok } = useT()
   const [currency, setCurrencyState] = useState<CurrencyCode>(getStoredCurrency)
 
   const { data: rate } = useQuery({
@@ -37,7 +38,7 @@ export function useCurrency() {
       if (!converted || rate == null) return formatNok(nokAmount)
       return formatCurrency(Math.round(nokAmount * rate), currency)
     },
-    [converted, currency, rate]
+    [converted, currency, rate, formatNok]
   )
 
   return { currency, setCurrency, format, converted }

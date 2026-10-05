@@ -18,6 +18,9 @@ class User(Base):
     # ISO 3166-1 alpha-2 (core/countries.py). Nullable: accounts created
     # before the Register form asked for it have none.
     country = Column(Text, nullable=True)
+    # Dashboard/email language, "en" or "nb" (core/locale.py). Nullable: not
+    # chosen yet, treated as English.
+    locale = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

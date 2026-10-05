@@ -28,9 +28,11 @@ import { AdminArticlesPage } from './dashboard/pages/admin/AdminArticlesPage'
 import { AdminArticleFormPage } from './dashboard/pages/admin/AdminArticleFormPage'
 import { useAuthStore } from './shared/store/authStore'
 import { AccountNotices } from './dashboard/components/AccountNotices'
+import { useT } from './shared/i18n'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { t } = useT()
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden print:block print:h-auto print:overflow-visible">
@@ -39,7 +41,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:hidden print:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
+            aria-label={t('navigation.openMenu')}
             className="text-slate-500 hover:text-slate-700"
           >
             <Menu size={22} />
@@ -97,6 +99,12 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
 
 export function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth)
+  const { t } = useT()
+
+  // The browser tab title follows the UI language too.
+  useEffect(() => {
+    document.title = t('common.appTitle')
+  }, [t])
 
   useEffect(() => {
     checkAuth()

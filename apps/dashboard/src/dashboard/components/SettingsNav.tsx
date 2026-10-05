@@ -1,6 +1,7 @@
 import { MessageCircle, Palette, Globe, CalendarCheck, Sliders, ShieldCheck, type LucideIcon } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useEffect, useRef } from 'react'
+import { useT, type MessageKey } from '../../shared/i18n'
 
 export type SettingsTab = 'personality' | 'appearance' | 'languages' | 'booking' | 'advanced' | 'privacy'
 
@@ -10,13 +11,13 @@ export type SettingsTab = 'personality' | 'appearance' | 'languages' | 'booking'
 // text-slate-600 hover:bg-slate-50) -- this is local, in-page navigation
 // rather than routing, so plain buttons instead of router NavLink, but the
 // same visual language as the app's one existing nav pattern.
-const SECTIONS: { key: SettingsTab; label: string; icon: LucideIcon }[] = [
-  { key: 'personality', label: 'Personality', icon: MessageCircle },
-  { key: 'appearance', label: 'Appearance', icon: Palette },
-  { key: 'languages', label: 'Languages', icon: Globe },
-  { key: 'booking', label: 'Booking', icon: CalendarCheck },
-  { key: 'advanced', label: 'Advanced', icon: Sliders },
-  { key: 'privacy', label: 'Privacy & data', icon: ShieldCheck },
+const SECTIONS: { key: SettingsTab; label: MessageKey; icon: LucideIcon }[] = [
+  { key: 'personality', label: 'settings.nav.personality', icon: MessageCircle },
+  { key: 'appearance', label: 'settings.nav.appearance', icon: Palette },
+  { key: 'languages', label: 'settings.nav.languages', icon: Globe },
+  { key: 'booking', label: 'settings.nav.booking', icon: CalendarCheck },
+  { key: 'advanced', label: 'settings.nav.advanced', icon: Sliders },
+  { key: 'privacy', label: 'settings.nav.privacy', icon: ShieldCheck },
 ]
 
 export function isSettingsTab(value: string | null): value is SettingsTab {
@@ -32,6 +33,7 @@ export function SettingsNav({ active, onChange }: Props) {
   // On narrow screens the tabs scroll horizontally; keep the active one
   // visible (e.g. arriving at ?tab=privacy from the deletion banner).
   const navRef = useRef<HTMLElement>(null)
+  const { t } = useT()
   useEffect(() => {
     const reveal = () => {
       const nav = navRef.current
@@ -58,7 +60,7 @@ export function SettingsNav({ active, onChange }: Props) {
     <nav
       ref={navRef}
       className="flex gap-2 overflow-x-auto pb-1 md:w-56 md:flex-shrink-0 md:flex-col md:gap-1 md:overflow-visible md:pb-0"
-      aria-label="Settings sections"
+      aria-label={t('settings.nav.label')}
     >
       {SECTIONS.map(({ key, label, icon: Icon }) => {
         const isActive = key === active
@@ -76,7 +78,7 @@ export function SettingsNav({ active, onChange }: Props) {
             )}
           >
             <Icon size={18} className={isActive ? 'text-white' : 'text-slate-400'} />
-            {label}
+            {t(label)}
           </button>
         )
       })}

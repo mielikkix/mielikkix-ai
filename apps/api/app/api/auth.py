@@ -12,6 +12,7 @@ from ..schemas.auth import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
     MessageResponse,
+    PreferencesUpdate,
     UserOut,
 )
 from ..services import auth_service, consent_service
@@ -65,6 +66,17 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
     return _user_out(current_user, db)
 
 
+@router.patch("/me/preferences", response_model=UserOut)
+def update_preferences(
+    body: PreferencesUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """The dashboard language the user picked, restored on every login."""
+    current_user.locale = body.locale
+    db.commit()
+    db.refresh(current_user)
+    return _user_out(current_user, db)
+
+
 @router.post("/logout", response_model=MessageResponse)
 def logout(response: Response):
     response.delete_cookie(AUTH_COOKIE_NAME, path="/")
@@ -82,7 +94,7 @@ def forgot_password(
     result = auth_service.request_password_reset(db, req.email)
     if result:
         user, raw_token = result
-        background_tasks.add_task(notify_password_reset, user.email, user.full_name, raw_token)
+        background_tasks.add_task(notify_password_reset, user.email, user.full_name, raw_token, user.locale or "en")
     # Always the same message whether or not the email is registered, so this
     # endpoint can't be used to enumerate accounts.
     return MessageResponse(message="If an account exists for that email, we've sent a password reset link.")

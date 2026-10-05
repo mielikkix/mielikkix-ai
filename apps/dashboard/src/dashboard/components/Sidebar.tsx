@@ -2,19 +2,21 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, MessageSquare, BookOpen, FileText, ShoppingBag, Users, Settings, CreditCard, LogOut, X, ShieldCheck, Sparkles, Star, Mail } from 'lucide-react'
 import { useAuthStore } from '../../shared/store/authStore'
 import { clsx } from 'clsx'
+import { useT, type MessageKey } from '../../shared/i18n'
+import { LanguageSwitcher } from '../../shared/components/LanguageSwitcher'
 
-const nav = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Overview', color: 'text-violet-500' },
-  { to: '/dashboard/conversations', icon: MessageSquare, label: 'Conversations', color: 'text-blue-500' },
-  { to: '/dashboard/faqs', icon: BookOpen, label: 'FAQs', color: 'text-emerald-500' },
-  { to: '/dashboard/documents', icon: FileText, label: 'Documents', color: 'text-amber-500' },
-  { to: '/dashboard/products', icon: ShoppingBag, label: 'Products', color: 'text-indigo-500' },
-  { to: '/dashboard/seo', icon: Sparkles, label: 'SEO', color: 'text-fuchsia-500' },
-  { to: '/dashboard/reviews', icon: Star, label: 'Review & Reputation', color: 'text-yellow-500' },
-  { to: '/dashboard/email-marketing', icon: Mail, label: 'Email Marketing', color: 'text-rose-500' },
-  { to: '/dashboard/leads', icon: Users, label: 'Leads', color: 'text-pink-500' },
-  { to: '/dashboard/plan', icon: CreditCard, label: 'Plan & Billing', color: 'text-orange-500' },
-  { to: '/dashboard/settings', icon: Settings, label: 'Settings', color: 'text-slate-500' },
+const nav: { to: string; icon: typeof LayoutDashboard; label: MessageKey; color: string }[] = [
+  { to: '/dashboard', icon: LayoutDashboard, label: 'navigation.overview', color: 'text-violet-500' },
+  { to: '/dashboard/conversations', icon: MessageSquare, label: 'navigation.conversations', color: 'text-blue-500' },
+  { to: '/dashboard/faqs', icon: BookOpen, label: 'navigation.faqs', color: 'text-emerald-500' },
+  { to: '/dashboard/documents', icon: FileText, label: 'navigation.documents', color: 'text-amber-500' },
+  { to: '/dashboard/products', icon: ShoppingBag, label: 'navigation.products', color: 'text-indigo-500' },
+  { to: '/dashboard/seo', icon: Sparkles, label: 'navigation.seo', color: 'text-fuchsia-500' },
+  { to: '/dashboard/reviews', icon: Star, label: 'navigation.reviews', color: 'text-yellow-500' },
+  { to: '/dashboard/email-marketing', icon: Mail, label: 'navigation.emailMarketing', color: 'text-rose-500' },
+  { to: '/dashboard/leads', icon: Users, label: 'navigation.leads', color: 'text-pink-500' },
+  { to: '/dashboard/plan', icon: CreditCard, label: 'navigation.plan', color: 'text-orange-500' },
+  { to: '/dashboard/settings', icon: Settings, label: 'navigation.settings', color: 'text-slate-500' },
 ]
 
 interface Props {
@@ -25,6 +27,7 @@ interface Props {
 export function Sidebar({ open, onClose }: Props) {
   const logout = useAuthStore((s) => s.logout)
   const isPlatformAdmin = useAuthStore((s) => s.user?.is_platform_admin)
+  const { t } = useT()
 
   return (
     <>
@@ -49,13 +52,13 @@ export function Sidebar({ open, onClose }: Props) {
           </span>
           <button
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t('navigation.closeMenu')}
             className="text-slate-400 hover:text-slate-600 md:hidden"
           >
             <X size={22} />
           </button>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav aria-label={t('navigation.mainNav')} className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {nav.map(({ to, icon: Icon, label, color }) => (
             <NavLink
               key={to}
@@ -74,20 +77,23 @@ export function Sidebar({ open, onClose }: Props) {
               {({ isActive }) => (
                 <>
                   <Icon size={18} className={isActive ? 'text-white' : color} />
-                  {label}
+                  {t(label)}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
         <div className="p-3 border-t border-slate-100 space-y-1">
+          <div className="px-3 pb-2">
+            <LanguageSwitcher compact />
+          </div>
           {isPlatformAdmin && (
             <NavLink
               to="/admin"
               className="flex items-center gap-3 px-3 py-2 rounded-xl text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
             >
               <ShieldCheck size={18} className="text-slate-500" />
-              Platform Admin
+              {t('navigation.platformAdmin')}
             </NavLink>
           )}
           <button
@@ -95,7 +101,7 @@ export function Sidebar({ open, onClose }: Props) {
             className="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors"
           >
             <LogOut size={18} />
-            Log out
+            {t('navigation.logout')}
           </button>
         </div>
       </aside>

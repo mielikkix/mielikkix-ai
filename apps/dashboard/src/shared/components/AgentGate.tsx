@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Lock } from 'lucide-react'
 import { useAgentAccess } from '../hooks/usePlan'
+import { useT } from '../i18n'
 
 interface Props {
   agentKey: string
@@ -17,11 +18,12 @@ interface Props {
  */
 export function AgentGate({ agentKey, children, inline }: Props) {
   const { data: access, isLoading } = useAgentAccess()
+  const { t } = useT()
   if (isLoading || !access) return null
 
   if (access[agentKey]) return <>{children}</>
 
-  const message = 'Not active on your account yet.'
+  const message = t('gates.agentInactive')
 
   if (inline) {
     return (
@@ -29,7 +31,7 @@ export function AgentGate({ agentKey, children, inline }: Props) {
         <Lock size={13} />
         {message}
         <Link to="/dashboard/plan" className="underline">
-          Contact us
+          {t('gates.contactUs')}
         </Link>
       </span>
     )
@@ -40,7 +42,7 @@ export function AgentGate({ agentKey, children, inline }: Props) {
       <Lock size={18} className="flex-shrink-0" />
       <span className="flex-1">{message}</span>
       <Link to="/dashboard/plan" className="font-semibold underline flex-shrink-0">
-        Contact us
+        {t('gates.contactUs')}
       </Link>
     </div>
   )

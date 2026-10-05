@@ -7,6 +7,8 @@ import { Input } from '../../shared/components/Input'
 import { UsageMeter } from '../../shared/components/UsageMeter'
 import { usePlan } from '../../shared/hooks/usePlan'
 import { Upload, Trash2, FileText, Link2, Globe, Loader2, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { t as translateNow, useT, type MessageKey } from '../../shared/i18n'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
 interface Doc {
   id: string
@@ -20,10 +22,16 @@ interface Doc {
 }
 
 // QA 2026-10-02 (E6): show what each document is, when it was added and how much text it gave.
-function textSize(chars: number | null): string | null {
+function textSize(chars: number | null, formatNumber: (n: number, digits?: number) => string): string | null {
   if (chars == null) return null
-  if (chars < 1000) return `${chars} characters`
-  return `${(chars / 1000).toFixed(chars < 10000 ? 1 : 0)}k characters`
+  if (chars < 1000) return translateNow('documents.chars', { count: formatNumber(chars) })
+  return translateNow('documents.charsK', { count: formatNumber(chars / 1000, chars < 10000 ? 1 : 0) })
+}
+
+const STATUS_LABELS: Record<string, MessageKey> = {
+  embedded: 'documents.status.embedded',
+  processing: 'documents.status.processing',
+  failed: 'documents.status.failed',
 }
 
 const statusIcon = (status: string) => {
@@ -34,6 +42,7 @@ const statusIcon = (status: string) => {
 
 export function DocumentsPage() {
   const qc = useQueryClient()
+  const { t, formatDate, formatNumber } = useT()
   const fileRef = useRef<HTMLInputElement>(null)
   const [url, setUrl] = useState('')
   const [urlError, setUrlError] = useState('')
@@ -84,10 +93,7 @@ export function DocumentsPage() {
       setUrl('')
       setUrlError('')
     },
-    onError: (err: unknown) => {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setUrlError(detail || 'Could not fetch that URL.')
-    },
+    onError: (err: unknown) => setUrlError(apiErrorMessage(err, 'documents.page.failed')),
   })
 
   const siteMut = useMutation({
@@ -105,11 +111,11 @@ export function DocumentsPage() {
       setCrawlPollUntil(Date.now() + 30000)
       setSiteUrl('')
       setSiteError('')
-      setSiteMessage(data.message)
+      // Rebuilt from the counts so it follows the UI language (data.message is English).
+      setSiteMessage(translateNow('documents.site.started', { count: data.queued }))
     },
     onError: (err: unknown) => {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setSiteError(detail || 'Could not import that website.')
+      setSiteError(apiErrorMessage(err, 'documents.site.failed'))
       setSiteMessage('')
     },
   })
@@ -147,75 +153,71 @@ export function DocumentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900">Documents</h1>
-          <p className="text-base text-slate-500 mt-1">Upload PDF, Word, Excel, CSV, or TXT files to train your chatbot.</p>
+          <h1 className="text-4xl font-bold text-slate-900">{t('documents.title')}</h1>
+          <p className="text-base text-slate-500 mt-1">{t('documents.subtitle')}</p>
         </div>
         <Button size="sm" loading={uploadMut.isPending} disabled={atDocLimit} onClick={() => fileRef.current?.click()}>
-          <Upload size={16} className="mr-1" /> Upload
+          <Upload size={16} className="mr-1" /> {t('documents.upload')}
         </Button>
         <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.csv,.xlsx" className="hidden" onChange={handleFile} />
       </div>
 
-      <UsageMeter label="Document uploads" used={docs.length} limit={docLimit} />
+      <UsageMeter label={t('documents.usage')} used={docs.length} limit={docLimit} />
       {uploadMut.isError && (
-        <p className="text-sm text-red-600">
-          {(uploadMut.error as any)?.response?.data?.detail ?? 'Could not upload that file.'}
-        </p>
+        <p role="alert" className="text-sm text-red-600">{apiErrorMessage(uploadMut.error, 'documents.uploadFailed')}</p>
       )}
 
-      <Card title="Fetch from a web page">
-        <p className="text-base text-slate-500 mb-3">
-          Import the text content of a single page from your website (e.g. an About or FAQ page) directly into your chatbot's knowledge base.
-        </p>
+      <Card title={t('documents.page.title')}>
+        <p className="text-base text-slate-500 mb-3">{t('documents.page.intro')}</p>
         <div className="flex gap-2">
           <div className="flex-1">
             <Input
-              placeholder="https://your-site.com/about"
+              placeholder={t('documents.page.placeholder')}
+              aria-label={t('documents.page.label')}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleFetchUrl()}
             />
           </div>
           <Button size="sm" loading={urlMut.isPending} onClick={handleFetchUrl}>
-            <Link2 size={16} className="mr-1" /> Fetch
+            <Link2 size={16} className="mr-1" /> {t('documents.page.fetch')}
           </Button>
         </div>
-        {urlError && <p className="text-sm text-red-500 mt-2">{urlError}</p>}
+        {urlError && <p role="alert" className="text-sm text-red-500 mt-2">{urlError}</p>}
       </Card>
 
-      <Card title="Import your whole website">
-        <p className="text-base text-slate-500 mb-3">
-          Enter your website's domain and every page we can find will be imported automatically — no need to
-          paste each one in by hand. This runs in the background, so pages appear below as they're processed.
-        </p>
+      <Card title={t('documents.site.title')}>
+        <p className="text-base text-slate-500 mb-3">{t('documents.site.intro')}</p>
         <div className="flex gap-2">
           <div className="flex-1">
             <Input
-              placeholder="https://your-site.com"
+              placeholder={t('documents.site.placeholder')}
+              aria-label={t('documents.site.label')}
               value={siteUrl}
               onChange={(e) => setSiteUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleImportSite()}
             />
           </div>
           <Button size="sm" loading={siteMut.isPending} onClick={handleImportSite}>
-            <Globe size={16} className="mr-1" /> Import site
+            <Globe size={16} className="mr-1" /> {t('documents.site.import')}
           </Button>
         </div>
         <div className="mt-2">
           <Input
-            placeholder="Leave out pages containing… e.g. /privacy, /terms, /blog/ (optional, comma-separated)"
+            placeholder={t('documents.site.excludePlaceholder')}
+            aria-label={t('documents.site.excludeLabel')}
             value={siteExclude}
             onChange={(e) => setSiteExclude(e.target.value)}
           />
         </div>
-        {siteError && <p className="text-sm text-red-500 mt-2">{siteError}</p>}
-        {siteMessage && <p className="text-sm text-emerald-600 mt-2">{siteMessage}</p>}
+        {siteError && <p role="alert" className="text-sm text-red-500 mt-2">{siteError}</p>}
+        {siteMessage && <p role="status" className="text-sm text-emerald-600 mt-2">{siteMessage}</p>}
       </Card>
 
       <div className="space-y-3">
         {docs.map((doc) => {
           const isPage = doc.file_type === 'url'
-          const size = textSize(doc.char_count)
+          const size = textSize(doc.char_count, formatNumber)
           return (
             <Card key={doc.id}>
               <div className="flex items-center justify-between gap-4">
@@ -230,8 +232,8 @@ export function DocumentsPage() {
                     )}
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-sm text-slate-500">
                       {statusIcon(doc.status)}
-                      <span className="capitalize">{doc.status}</span>
-                      <span>· added {new Date(doc.created_at).toLocaleDateString()}</span>
+                      <span>{STATUS_LABELS[doc.status] ? t(STATUS_LABELS[doc.status]) : doc.status}</span>
+                      <span>· {t('documents.added', { date: formatDate(doc.created_at) })}</span>
                       {size && <span>· {size}</span>}
                     </div>
                   </div>
@@ -242,15 +244,15 @@ export function DocumentsPage() {
                       onClick={() => refetchMut.mutate(doc.id)}
                       disabled={refetchMut.isPending && refetchMut.variables === doc.id}
                       className="flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-                      title="Fetch this page again"
+                      title={t('documents.refetchTitle')}
                     >
-                      <RefreshCw size={13} className={refetchMut.isPending && refetchMut.variables === doc.id ? 'animate-spin' : ''} /> Re-fetch
+                      <RefreshCw size={13} className={refetchMut.isPending && refetchMut.variables === doc.id ? 'animate-spin' : ''} /> {t('documents.refetch')}
                     </button>
                   )}
                   <button
-                    onClick={() => confirm(`Remove "${doc.title || doc.filename}" from your chatbot's knowledge?`) && deleteMut.mutate(doc.id)}
+                    onClick={() => confirm(t('documents.deleteConfirm', { name: doc.title || doc.filename })) && deleteMut.mutate(doc.id)}
                     className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-600"
-                    aria-label="Delete document"
+                    aria-label={t('documents.delete')}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -259,9 +261,9 @@ export function DocumentsPage() {
             </Card>
           )
         })}
-        {refetchMut.isError && <p className="text-sm text-red-600">Couldn't fetch that page again. Check that it's still online.</p>}
+        {refetchMut.isError && <p role="alert" className="text-sm text-red-600">{t('documents.refetchFailed')}</p>}
         {docs.length === 0 && (
-          <div className="text-center py-12 text-slate-400 text-base">No documents uploaded yet.</div>
+          <div className="text-center py-12 text-slate-400 text-base">{t('documents.empty')}</div>
         )}
       </div>
     </div>

@@ -6,6 +6,8 @@ import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { Pencil, Trash2, Plus, Check, X } from 'lucide-react'
 import { KnowledgeIssuesCard } from '../components/KnowledgeIssuesCard'
+import { useT } from '../../shared/i18n'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
 interface FAQ {
   id: string
@@ -17,6 +19,7 @@ interface FAQ {
 
 export function FAQsPage() {
   const qc = useQueryClient()
+  const { t } = useT()
   const { data: faqs = [] } = useQuery<FAQ[]>({
     queryKey: ['faqs'],
     queryFn: () => api.get('/faqs').then((r) => r.data),
@@ -57,34 +60,32 @@ export function FAQsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900">FAQs</h1>
-          <p className="text-base text-slate-500 mt-1">Manage frequently asked questions for your chatbot.</p>
+          <h1 className="text-4xl font-bold text-slate-900">{t('faqs.title')}</h1>
+          <p className="text-base text-slate-500 mt-1">{t('faqs.subtitle')}</p>
         </div>
         <Button onClick={() => setAdding(true)} size="sm">
-          <Plus size={16} className="mr-1" /> Add FAQ
+          <Plus size={16} className="mr-1" /> {t('faqs.add')}
         </Button>
       </div>
 
       <KnowledgeIssuesCard />
 
       {adding && (
-        <Card title="New FAQ">
+        <Card title={t('faqs.newTitle')}>
           <div className="space-y-3">
-            <Input label="Question" value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} />
+            <Input label={t('faqs.question')} value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} />
             <div>
-              <label className="block text-base font-medium text-slate-700 mb-1">Answer</label>
-              <textarea className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base" rows={3}
+              <label htmlFor="faq-new-answer" className="block text-base font-medium text-slate-700 mb-1">{t('faqs.answer')}</label>
+              <textarea id="faq-new-answer" className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base" rows={3}
                 value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} />
             </div>
-            <Input label="Category (optional)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+            <Input label={t('faqs.category')} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
             <div className="flex gap-2">
-              <Button size="sm" disabled={formIncomplete} loading={createMut.isPending} onClick={() => createMut.mutate(form)}>Save</Button>
-              <Button size="sm" variant="secondary" onClick={() => setAdding(false)}>Cancel</Button>
+              <Button size="sm" disabled={formIncomplete} loading={createMut.isPending} onClick={() => createMut.mutate(form)}>{t('common.save')}</Button>
+              <Button size="sm" variant="secondary" onClick={() => setAdding(false)}>{t('common.cancel')}</Button>
             </div>
             {createMut.isError && (
-              <p className="text-sm text-red-600">
-                {(createMut.error as any)?.response?.data?.detail ?? 'Could not save that FAQ.'}
-              </p>
+              <p role="alert" className="text-sm text-red-600">{apiErrorMessage(createMut.error, 'faqs.saveFailed')}</p>
             )}
           </div>
         </Card>
@@ -95,22 +96,20 @@ export function FAQsPage() {
           <Card key={faq.id}>
             {editId === faq.id ? (
               <div className="space-y-3">
-                <Input value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} />
-                <textarea className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base" rows={3}
+                <Input aria-label={t('faqs.question')} value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} />
+                <textarea aria-label={t('faqs.answer')} className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base" rows={3}
                   value={form.answer} onChange={(e) => setForm({ ...form, answer: e.target.value })} />
-                <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category" />
+                <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder={t('faqs.categoryPlaceholder')} aria-label={t('faqs.categoryPlaceholder')} />
                 <div className="flex gap-2">
                   <Button size="sm" disabled={formIncomplete} loading={updateMut.isPending} onClick={() => updateMut.mutate({ id: faq.id, ...form })}>
-                    <Check size={14} className="mr-1" /> Save
+                    <Check size={14} className="mr-1" /> {t('common.save')}
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => setEditId(null)}>
-                    <X size={14} className="mr-1" /> Cancel
+                    <X size={14} className="mr-1" /> {t('common.cancel')}
                   </Button>
                 </div>
                 {updateMut.isError && (
-                  <p className="text-sm text-red-600">
-                    {(updateMut.error as any)?.response?.data?.detail ?? 'Could not save that FAQ.'}
-                  </p>
+                  <p role="alert" className="text-sm text-red-600">{apiErrorMessage(updateMut.error, 'faqs.saveFailed')}</p>
                 )}
               </div>
             ) : (
@@ -123,10 +122,10 @@ export function FAQsPage() {
                   )}
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => startEdit(faq)} className="p-1.5 rounded hover:bg-slate-100 text-slate-500">
+                  <button onClick={() => startEdit(faq)} aria-label={t('faqs.editLabel')} title={t('faqs.editLabel')} className="p-1.5 rounded hover:bg-slate-100 text-slate-500">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => deleteMut.mutate(faq.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600">
+                  <button onClick={() => deleteMut.mutate(faq.id)} aria-label={t('faqs.deleteLabel')} title={t('faqs.deleteLabel')} className="p-1.5 rounded hover:bg-red-50 text-slate-500 hover:text-red-600">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -135,7 +134,7 @@ export function FAQsPage() {
           </Card>
         ))}
         {faqs.length === 0 && !adding && (
-          <div className="text-center py-12 text-slate-400 text-base">No FAQs yet. Add your first one above.</div>
+          <div className="text-center py-12 text-slate-400 text-base">{t('faqs.empty')}</div>
         )}
       </div>
     </div>

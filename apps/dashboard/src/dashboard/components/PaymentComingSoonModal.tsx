@@ -1,6 +1,7 @@
 import { X, Clock } from 'lucide-react'
 import { Button } from '../../shared/components/Button'
 import { PlanCatalogEntry } from '../../shared/hooks/usePlan'
+import { useT } from '../../shared/i18n'
 
 interface Props {
   plan: PlanCatalogEntry
@@ -14,6 +15,7 @@ interface Props {
  * actually be taken.
  */
 export function PaymentComingSoonModal({ plan, onClose }: Props) {
+  const { t } = useT()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
       <div
@@ -21,11 +23,11 @@ export function PaymentComingSoonModal({ plan, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Payment integration coming soon"
+        aria-label={t('payment.soonTitle')}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">Payment integration coming soon</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 text-slate-400" aria-label="Close">
+          <h2 className="text-lg font-semibold text-slate-900">{t('payment.soonTitle')}</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 text-slate-400" aria-label={t('common.close')}>
             <X size={18} />
           </button>
         </div>
@@ -34,13 +36,14 @@ export function PaymentComingSoonModal({ plan, onClose }: Props) {
           <div className="flex items-start gap-3 rounded-xl bg-brand-50 px-4 py-3 text-brand-700">
             <Clock size={18} className="mt-0.5 flex-shrink-0" />
             <p className="text-base">
-              We're not able to process card payments yet, so upgrading to the <strong>{plan.name}</strong> plan
-              isn't available right now. We're working on it and will let you know as soon as it's ready.
+              {t('payment.soonBefore')}
+              <strong>{plan.name}</strong>
+              {t('payment.soonAfter')}
             </p>
           </div>
 
           <Button className="w-full justify-center" onClick={onClose}>
-            Got it
+            {t('payment.gotIt')}
           </Button>
         </div>
       </div>

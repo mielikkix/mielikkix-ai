@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { clsx } from 'clsx'
 import { CurrencyCode, CURRENCIES, SUPPORTED_CURRENCIES } from '../../shared/currency'
+import { useT } from '../../shared/i18n'
 
 interface Props {
   currency: CurrencyCode
@@ -12,6 +13,7 @@ export function CurrencySwitcher({ currency, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const active = CURRENCIES[currency]
+  const { t } = useT()
 
   useEffect(() => {
     if (!open) return
@@ -34,7 +36,7 @@ export function CurrencySwitcher({ currency, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Currency"
+        aria-label={t('currency.label')}
         aria-expanded={open}
         className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300"
       >
@@ -46,7 +48,7 @@ export function CurrencySwitcher({ currency, onChange }: Props) {
       {open && (
         <ul
           role="listbox"
-          aria-label="Currency"
+          aria-label={t('currency.label')}
           className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
         >
           {SUPPORTED_CURRENCIES.map((c) => (
@@ -62,7 +64,7 @@ export function CurrencySwitcher({ currency, onChange }: Props) {
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
               >
                 <span aria-hidden="true">{c.flag}</span>
-                <span className="flex-1">{c.name}</span>
+                <span className="flex-1">{t(`currency.names.${c.code}`)}</span>
                 {c.code === currency && <Check size={14} className="text-violet-600" />}
               </button>
             </li>

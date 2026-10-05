@@ -3,6 +3,8 @@ import { Card } from '../../../shared/components/Card'
 import { Button } from '../../../shared/components/Button'
 import { Input } from '../../../shared/components/Input'
 import { Settings, FieldChangeEvent } from './types'
+import { useT } from '../../../shared/i18n'
+import { apiErrorMessage } from '../../../shared/i18n/apiError'
 
 interface Props {
   form: Partial<Settings>
@@ -17,6 +19,7 @@ interface Props {
 const RETENTION_OPTIONS = [7, 30, 90, 180, 365]
 
 export function AdvancedSection({ form, set, advancedMut, isPlatformAdmin, maxRetentionDays }: Props) {
+  const { t } = useT()
   // QA 2026-10-02 (M5): every plan could pick up to 365 days, though Free keeps 7 days of history and
   // Start 90. An existing longer setting stays selectable (and is kept) until it's changed.
   const current = Number(form.conversation_retention_days ?? 90)
@@ -24,29 +27,26 @@ export function AdvancedSection({ form, set, advancedMut, isPlatformAdmin, maxRe
   const retentionOptions = allowed.includes(current) ? allowed : [...allowed, current].sort((a, b) => a - b)
   return (
     <div className="space-y-6">
-      <Card title="Contact info">
+      <Card title={t('settings.advanced.contactTitle')}>
         <div className="space-y-3">
-          <Input label="Contact email" type="email" value={form.contact_email || ''} onChange={set('contact_email')} />
-          <Input label="Contact phone" value={form.contact_phone || ''} onChange={set('contact_phone')} />
+          <p className="text-sm text-slate-500">{t('settings.advanced.contactHelp')}</p>
+          <Input label={t('settings.advanced.contactEmail')} type="email" value={form.contact_email || ''} onChange={set('contact_email')} />
+          <Input label={t('settings.advanced.contactPhone')} value={form.contact_phone || ''} onChange={set('contact_phone')} />
         </div>
       </Card>
 
       {/* GDPR Phase 5: you are the controller for your visitors' data; these
           drive the widget's AI notice link and the nightly deletion job. */}
-      <Card title="Visitor privacy">
+      <Card title={t('settings.advanced.privacyTitle')}>
         <div className="space-y-4">
           <Input
-            label="Your privacy policy URL"
+            label={t('settings.advanced.privacyUrl')}
             type="url"
-            placeholder="https://yourbusiness.com/privacy"
+            placeholder={t('settings.advanced.privacyUrlPlaceholder')}
             value={form.privacy_policy_url || ''}
             onChange={set('privacy_policy_url')}
           />
-          <p className="-mt-2 text-sm text-slate-500">
-            Linked from the chat widget's "you're chatting with an AI assistant" notice. Mention the widget in your
-            privacy and cookie notices: once a visitor opens the chat it stores a session ID and the conversation so far in
-            their browser (sessionStorage), cleared when they close the tab.
-          </p>
+          <p className="-mt-2 text-sm text-slate-500">{t('settings.advanced.privacyHelp')}</p>
           <label className="flex items-start gap-3">
             <input
               type="checkbox"
@@ -55,16 +55,13 @@ export function AdvancedSection({ form, set, advancedMut, isPlatformAdmin, maxRe
               onChange={set('require_chat_consent')}
             />
             <span>
-              <span className="block text-base font-medium text-slate-700">Ask visitors to agree before chatting</span>
-              <span className="block text-sm text-slate-500">
-                The widget shows an "I agree / Cancel" screen explaining that they're talking to an AI, how their
-                messages are handled, and links to the privacy policies. The chat only starts after they agree.
-              </span>
+              <span className="block text-base font-medium text-slate-700">{t('settings.advanced.consent')}</span>
+              <span className="block text-sm text-slate-500">{t('settings.advanced.consentHelp')}</span>
             </span>
           </label>
           <div>
             <label htmlFor="retention" className="block text-base font-medium text-slate-700 mb-1">
-              Delete visitor conversations after
+              {t('settings.advanced.retention')}
             </label>
             <select
               id="retention"
@@ -74,24 +71,26 @@ export function AdvancedSection({ form, set, advancedMut, isPlatformAdmin, maxRe
             >
               {retentionOptions.map((d) => (
                 <option key={d} value={d}>
-                  {d} days{maxRetentionDays != null && d > maxRetentionDays ? ' (more than your plan includes)' : ''}
+                  {t('settings.advanced.days', { count: d })}
+                  {maxRetentionDays != null && d > maxRetentionDays ? ` ${t('settings.advanced.beyondPlan')}` : ''}
                 </option>
               ))}
             </select>
             <p className="mt-1 text-sm text-slate-500">
-              Counted from the conversation's last message. Leads you've captured are kept.
-              {maxRetentionDays != null && ` Your plan includes up to ${maxRetentionDays} days of conversation history.`}
+              {t('settings.advanced.retentionHelp')}
+              {maxRetentionDays != null && ` ${t('settings.advanced.retentionPlan', { days: maxRetentionDays })}`}
             </p>
           </div>
         </div>
       </Card>
 
       {isPlatformAdmin && (
-      <Card title="AI Provider (platform admin only)">
+      <Card title={t('settings.advanced.aiTitle')}>
         <div className="space-y-3">
           <div>
-            <label className="block text-base font-medium text-slate-700 mb-1">LLM Provider</label>
+            <label htmlFor="settings-llm-provider" className="block text-base font-medium text-slate-700 mb-1">{t('settings.advanced.provider')}</label>
             <select
+              id="settings-llm-provider"
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base"
               value={form.llm_provider || 'groq'}
               onChange={set('llm_provider')}
@@ -104,22 +103,22 @@ export function AdvancedSection({ form, set, advancedMut, isPlatformAdmin, maxRe
             </select>
           </div>
           <Input
-            label="Model name (optional)"
+            label={t('settings.advanced.model')}
             value={form.llm_model || ''}
             onChange={set('llm_model')}
-            placeholder="e.g. openai/gpt-oss-120b — leave blank to use the default"
+            placeholder={t('settings.advanced.modelPlaceholder')}
           />
         </div>
       </Card>
       )}
 
       <Button loading={advancedMut.isPending} onClick={() => advancedMut.mutate()}>
-        Save advanced settings
+        {t('settings.advanced.save')}
       </Button>
-      {advancedMut.isSuccess && <p className="text-base text-green-600">Advanced settings saved!</p>}
+      {advancedMut.isSuccess && <p role="status" className="text-base text-green-600">{t('settings.advanced.saved')}</p>}
       {advancedMut.isError && (
         <p role="alert" className="text-base text-red-500">
-          {(advancedMut.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || "Couldn't save. Please check the fields above."}
+          {apiErrorMessage(advancedMut.error, 'settings.advanced.saveFailed')}
         </p>
       )}
     </div>

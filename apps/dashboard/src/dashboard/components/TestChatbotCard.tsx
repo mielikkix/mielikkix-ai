@@ -5,6 +5,7 @@ import { clsx } from 'clsx'
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
 import { MarkdownText } from '../../widget/MarkdownText'
+import { t as translateNow, useT } from '../../shared/i18n'
 
 interface Turn {
   sender: 'you' | 'bot'
@@ -21,6 +22,7 @@ const newSession = () => `test_${Math.random().toString(36).slice(2, 10)}`
  * answer pipeline (POST /api/chat/test) but is marked as a test, so none of that happens.
  */
 export function TestChatbotCard() {
+  const { t } = useT()
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
   const session = useRef(newSession())
@@ -33,7 +35,7 @@ export function TestChatbotCard() {
       setTurns((t) => [...t, { sender: 'bot', text: data.reply, weak: (data.confidence ?? 1) < 0.3 }])
       setTimeout(() => bottom.current?.scrollIntoView({ block: 'nearest' }), 0)
     },
-    onError: () => setTurns((t) => [...t, { sender: 'bot', text: "Couldn't get an answer. Please try again.", weak: true }]),
+    onError: () => setTurns((prev) => [...prev, { sender: 'bot', text: translateNow('testChat.failed'), weak: true }]),
   })
 
   const send = () => {
@@ -50,13 +52,10 @@ export function TestChatbotCard() {
   }
 
   return (
-    <Card title="Test your chatbot">
-      <p className="mb-3 text-sm text-slate-500">
-        Ask what your customers ask and check the answers. Test chats don't count toward your plan and aren't saved
-        in Conversations.
-      </p>
+    <Card title={t('testChat.title')}>
+      <p className="mb-3 text-sm text-slate-500">{t('testChat.intro')}</p>
       <div className="max-h-80 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3" aria-live="polite">
-        {turns.length === 0 && <p className="text-sm text-slate-400">Try: "What are your opening hours?" or "How much does it cost?"</p>}
+        {turns.length === 0 && <p className="text-sm text-slate-400">{t('testChat.examples')}</p>}
         {turns.map((turn, i) => (
           <div key={i} className={clsx('flex', turn.sender === 'you' ? 'justify-end' : 'justify-start')}>
             <div
@@ -67,14 +66,12 @@ export function TestChatbotCard() {
             >
               {turn.sender === 'bot' ? <MarkdownText text={turn.text} /> : turn.text}
               {turn.weak && turn.sender === 'bot' && (
-                <p className="mt-1 text-xs text-amber-700">
-                  Your knowledge base doesn't seem to cover this. Add an FAQ or a document so the chatbot can answer it.
-                </p>
+                <p className="mt-1 text-xs text-amber-700">{t('testChat.weak')}</p>
               )}
             </div>
           </div>
         ))}
-        {askMut.isPending && <p className="text-sm text-slate-400">Thinking…</p>}
+        {askMut.isPending && <p className="text-sm text-slate-400">{t('testChat.thinking')}</p>}
         <div ref={bottom} />
       </div>
       <div className="mt-3 flex gap-2">
@@ -83,19 +80,19 @@ export function TestChatbotCard() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
           maxLength={2000}
-          placeholder="Type a question…"
-          aria-label="Test question"
+          placeholder={t('testChat.placeholder')}
+          aria-label={t('testChat.inputLabel')}
           className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-400"
         />
         <button
           onClick={send}
           disabled={!input.trim() || askMut.isPending}
           className="brand-gradient flex h-10 w-10 items-center justify-center rounded-full text-white disabled:opacity-40"
-          aria-label="Send test question"
+          aria-label={t('testChat.send')}
         >
           <Send size={15} />
         </button>
-        <button onClick={reset} className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" aria-label="Start over" title="Start over">
+        <button onClick={reset} className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100" aria-label={t('testChat.reset')} title={t('testChat.reset')}>
           <RotateCcw size={15} />
         </button>
       </div>

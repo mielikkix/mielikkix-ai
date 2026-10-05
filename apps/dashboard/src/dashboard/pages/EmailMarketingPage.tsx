@@ -8,6 +8,8 @@ import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { AgentGate } from '../../shared/components/AgentGate'
 import { useAgentAccess } from '../../shared/hooks/usePlan'
+import { useT, type MessageKey } from '../../shared/i18n'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
 interface MailchimpStatus {
   connected: boolean
@@ -65,13 +67,9 @@ interface CampaignReport {
 // reads Mailchimp's own live status/report back -- it never tracks
 // individual recipients itself.
 
-function errorDetail(err: unknown, fallback: string): string {
-  const detail = (err as any)?.response?.data?.detail
-  return typeof detail === 'string' && detail ? detail : fallback
-}
-
 function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null; onSelected: () => void }) {
   const qc = useQueryClient()
+  const { t } = useT()
   const {
     data: audiences,
     isLoading,
@@ -94,16 +92,16 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
   })
 
   if (isLoading) {
-    return <p className="text-sm text-slate-500">Loading your Mailchimp audiences...</p>
+    return <p className="text-sm text-slate-500">{t('email.audiences.loading')}</p>
   }
 
   if (isError) {
     return (
       <div className="space-y-2">
-        <p className="text-sm font-medium text-red-600">{errorDetail(error, "Couldn't load audiences from Mailchimp -- please try again.")}</p>
+        <p role="alert" className="text-sm font-medium text-red-600">{apiErrorMessage(error, 'email.audiences.loadFailed')}</p>
         <Button size="sm" variant="secondary" loading={isFetching} onClick={() => refetch()}>
           <RefreshCw size={14} className="mr-1" />
-          Retry
+          {t('email.audiences.retry')}
         </Button>
       </div>
     )
@@ -112,12 +110,10 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
   if (!audiences || audiences.length === 0) {
     return (
       <div className="space-y-2">
-        <p className="text-sm text-slate-500">
-          No audiences found in this Mailchimp account. Create one in Mailchimp, then refresh below.
-        </p>
+        <p className="text-sm text-slate-500">{t('email.audiences.none')}</p>
         <Button size="sm" variant="secondary" loading={isFetching} onClick={() => refetch()}>
           <RefreshCw size={14} className="mr-1" />
-          Refresh
+          {t('email.audiences.refresh')}
         </Button>
       </div>
     )
@@ -126,9 +122,7 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
   return (
     <div className="space-y-2">
       {selectMut.isError && (
-        <p className="text-sm font-medium text-red-600">
-          {errorDetail(selectMut.error, "Couldn't save your audience selection -- please try again.")}
-        </p>
+        <p role="alert" className="text-sm font-medium text-red-600">{apiErrorMessage(selectMut.error, 'email.audiences.selectFailed')}</p>
       )}
       {audiences.map((audience) => (
         <div
@@ -139,7 +133,7 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
             <p className="truncate text-sm font-medium text-slate-900">{audience.name}</p>
             <p className="flex items-center gap-1 text-xs text-slate-500">
               <Users size={12} />
-              {audience.member_count.toLocaleString()} contact{audience.member_count === 1 ? '' : 's'}
+              {t('email.audiences.contacts', { count: audience.member_count })}
             </p>
           </div>
           <Button
@@ -149,7 +143,7 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
             loading={selectMut.isPending && selectMut.variables?.id === audience.id}
             onClick={() => selectMut.mutate(audience)}
           >
-            {audience.id === selectedId ? 'Selected' : 'Select'}
+            {audience.id === selectedId ? t('email.audiences.selected') : t('email.audiences.select')}
           </Button>
         </div>
       ))}
@@ -159,6 +153,7 @@ function AudiencePicker({ selectedId, onSelected }: { selectedId?: string | null
 
 function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStatus; isLoading: boolean }) {
   const qc = useQueryClient()
+  const { t } = useT()
   const [searchParams, setSearchParams] = useSearchParams()
   const [banner, setBanner] = useState<'connected' | 'error' | null>(null)
   const [changingAudience, setChangingAudience] = useState(false)
@@ -192,8 +187,8 @@ function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStat
       <Card title="Mailchimp">
         {/* QA 2026-10-02 (D5): this read "isn't set up for this environment yet" -- developer wording. */}
         <p className="text-sm text-slate-500">
-          <span className="mr-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">Coming soon</span>
-          Connecting your own Mailchimp account isn't available yet. We'll let you know as soon as it is.
+          <span className="mr-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{t('email.connection.soonBadge')}</span>
+          {t('email.connection.soonText')}
         </p>
       </Card>
     )
@@ -203,11 +198,8 @@ function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStat
     return (
       <Card title="Mailchimp">
         <div className="space-y-3">
-          {banner === 'error' && <p className="text-sm text-red-600">Couldn't connect Mailchimp. Please try again.</p>}
-          <p className="text-sm text-slate-500">
-            Connect your Mailchimp account to manage your email audience from Mielikkix -- see who's on your list
-            and pick which audience your future campaigns will use.
-          </p>
+          {banner === 'error' && <p role="alert" className="text-sm text-red-600">{t('email.connection.connectFailed')}</p>}
+          <p className="text-sm text-slate-500">{t('email.connection.connectHelp')}</p>
           <Button
             size="sm"
             loading={connecting}
@@ -217,7 +209,7 @@ function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStat
             }}
           >
             <Mail size={14} className="mr-1" />
-            Connect Mailchimp
+            {t('email.connection.connect')}
           </Button>
         </div>
       </Card>
@@ -229,39 +221,42 @@ function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStat
   return (
     <Card title="Mailchimp">
       <div className="space-y-3">
-        {banner === 'connected' && <p className="text-sm text-emerald-600">Mailchimp connected!</p>}
+        {banner === 'connected' && <p role="status" className="text-sm text-emerald-600">{t('email.connection.connectedBanner')}</p>}
         <p className="text-sm text-slate-700">
-          Mailchimp connected{status.account_name ? ` -- ${status.account_name}` : ''}
+          {t('email.connection.connected')}
+          {status.account_name ? ` -- ${status.account_name}` : ''}
           {status.login_email ? ` (${status.login_email})` : ''}.
         </p>
 
         {status.audience_id && !showPicker && (
           <div className="rounded-xl bg-slate-50 px-4 py-3">
-            <p className="text-sm font-medium text-slate-900">Selected audience: {status.audience_name || status.audience_id}</p>
+            <p className="text-sm font-medium text-slate-900">
+              {t('email.connection.selectedAudience', { name: status.audience_name || status.audience_id || '' })}
+            </p>
           </div>
         )}
 
         {!showPicker ? (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" onClick={() => setChangingAudience(true)}>
-              Change Audience
+              {t('email.connection.changeAudience')}
             </Button>
             <Button size="sm" variant="danger" loading={disconnectMut.isPending} onClick={() => disconnectMut.mutate()}>
-              Disconnect
+              {t('email.connection.disconnect')}
             </Button>
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm font-medium text-slate-500">Choose an audience</p>
+            <p className="text-sm font-medium text-slate-500">{t('email.connection.chooseAudience')}</p>
             <AudiencePicker selectedId={status.audience_id} onSelected={() => setChangingAudience(false)} />
             <div className="flex flex-wrap gap-2">
               {status.audience_id && (
                 <Button size="sm" variant="ghost" onClick={() => setChangingAudience(false)}>
-                  Cancel
+                  {t('email.connection.cancel')}
                 </Button>
               )}
               <Button size="sm" variant="danger" loading={disconnectMut.isPending} onClick={() => disconnectMut.mutate()}>
-                Disconnect
+                {t('email.connection.disconnect')}
               </Button>
             </div>
           </div>
@@ -271,17 +266,18 @@ function MailchimpConnectionCard({ status, isLoading }: { status?: MailchimpStat
   )
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  draft: 'Draft',
-  approved: 'Approved',
-  save: 'Approved',
-  paused: 'Paused',
-  schedule: 'Scheduled',
-  sending: 'Sending',
-  sent: 'Sent',
-  canceled: 'Canceled',
-  canceling: 'Canceling',
-  archived: 'Archived',
+// Status values come from Mailchimp/the API; only the labels are translated.
+const STATUS_LABEL: Record<string, MessageKey> = {
+  draft: 'email.status.draft',
+  approved: 'email.status.approved',
+  save: 'email.status.approved',
+  paused: 'email.status.paused',
+  schedule: 'email.status.scheduled',
+  sending: 'email.status.sending',
+  sent: 'email.status.sent',
+  canceled: 'email.status.canceled',
+  canceling: 'email.status.canceling',
+  archived: 'email.status.archived',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -298,35 +294,39 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useT()
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[status] || 'bg-slate-100 text-slate-600'}`}>
-      {STATUS_LABEL[status] || status}
+      {STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status}
     </span>
   )
 }
 
 function CampaignReportPanel({ campaignId }: { campaignId: string }) {
+  const { t, formatNumber } = useT()
+  // Mailchimp reports rates as percentages (12.5 = 12.5 %).
+  const pct = (value: number) => `${formatNumber(value, 1)} %`
   const { data: report, isLoading, isError, error } = useQuery<CampaignReport>({
     queryKey: ['campaign-report', campaignId],
     queryFn: () => api.get(`/businesses/me/campaigns/${campaignId}/report`).then((r) => r.data),
   })
 
-  if (isLoading) return <p className="text-sm text-slate-500">Loading report...</p>
+  if (isLoading) return <p className="text-sm text-slate-500">{t('email.report.loading')}</p>
   if (isError) {
-    return <p className="text-sm text-slate-500">{errorDetail(error, 'Report not available yet.')}</p>
+    return <p className="text-sm text-slate-500">{apiErrorMessage(error, 'email.report.notAvailable')}</p>
   }
   if (!report) return null
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {[
-        ['Sent', report.emails_sent.toLocaleString()],
-        ['Opens', `${report.open_rate.toFixed(1)}%`],
-        ['Clicks', `${report.click_rate.toFixed(1)}%`],
-        ['Unsubscribed', report.unsubscribed.toLocaleString()],
-        ['Unique opens', report.unique_opens.toLocaleString()],
-        ['Hard bounces', report.hard_bounces.toLocaleString()],
-        ['Soft bounces', report.soft_bounces.toLocaleString()],
+        [t('email.report.sent'), formatNumber(report.emails_sent)],
+        [t('email.report.opens'), pct(report.open_rate)],
+        [t('email.report.clicks'), pct(report.click_rate)],
+        [t('email.report.unsubscribed'), formatNumber(report.unsubscribed)],
+        [t('email.report.uniqueOpens'), formatNumber(report.unique_opens)],
+        [t('email.report.hardBounces'), formatNumber(report.hard_bounces)],
+        [t('email.report.softBounces'), formatNumber(report.soft_bounces)],
       ].map(([label, value]) => (
         <div key={label} className="rounded-xl bg-slate-50 px-3 py-2">
           <p className="text-xs text-slate-500">{label}</p>
@@ -345,6 +345,7 @@ interface ComposerProps {
 
 function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps) {
   const qc = useQueryClient()
+  const { t } = useT()
   const isNew = campaign === null
   const [subject, setSubject] = useState(campaign?.subject || '')
   const [fromName, setFromName] = useState(campaign?.from_name || '')
@@ -433,42 +434,43 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
   const anyError = saveMut.error || approveMut.error || testMut.error || sendMut.error || scheduleMut.error
 
   return (
-    <Card title={isNew ? 'New campaign' : `Campaign: ${campaign?.subject || '(untitled)'}`}>
+    <Card
+      title={
+        isNew ? t('email.composer.newTitle') : t('email.composer.title', { subject: campaign?.subject || t('email.composer.untitled') })
+      }
+    >
       <div className="space-y-4">
         {!isNew && (
           <div className="flex items-center gap-2">
             <StatusBadge status={status} />
-            {campaign?.mailchimp_campaign_id && <span className="text-xs text-slate-400">Mailchimp ID: {campaign.mailchimp_campaign_id}</span>}
+            {campaign?.mailchimp_campaign_id && <span className="text-xs text-slate-400">{t('email.composer.mailchimpId', { id: campaign.mailchimp_campaign_id })}</span>}
           </div>
         )}
 
         {anyError && (
-          <p className="text-sm font-medium text-red-600">
-            {errorDetail(anyError, 'Something went wrong -- please try again.')}
-          </p>
+          <p role="alert" className="text-sm font-medium text-red-600">{apiErrorMessage(anyError, 'email.error')}</p>
         )}
 
-        <Input label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!isDraft && !isNew} />
+        <Input label={t('email.composer.subject')} value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!isDraft && !isNew} />
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input label="From name" value={fromName} onChange={(e) => setFromName(e.target.value)} disabled={!isDraft && !isNew} />
+          <Input label={t('email.composer.fromName')} value={fromName} onChange={(e) => setFromName(e.target.value)} disabled={!isDraft && !isNew} />
           <Input
-            label="From email (reference only)"
+            label={t('email.composer.fromEmail')}
             value={fromEmail}
             onChange={(e) => setFromEmail(e.target.value)}
             disabled={!isDraft && !isNew}
           />
         </div>
-        <p className="-mt-2 text-xs text-slate-400">
-          Mailchimp always sends from your audience's own verified address -- this is stored for your reference only.
-        </p>
+        <p className="-mt-2 text-xs text-slate-400">{t('email.composer.fromEmailHelp')}</p>
 
-        <Input label="Reply-to" type="email" value={replyTo} onChange={(e) => setReplyTo(e.target.value)} disabled={!isDraft && !isNew} />
+        <Input label={t('email.composer.replyTo')} type="email" value={replyTo} onChange={(e) => setReplyTo(e.target.value)} disabled={!isDraft && !isNew} />
 
         <div>
-          <label className="mb-1 block text-base font-medium text-slate-700">Audience</label>
+          <label htmlFor="campaign-audience" className="mb-1 block text-base font-medium text-slate-700">{t('email.composer.audience')}</label>
           {isDraft || isNew ? (
             <select
+              id="campaign-audience"
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base shadow-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
               value={audienceId}
               onChange={(e) => {
@@ -476,10 +478,10 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
                 setAudienceName(audiences?.find((a) => a.id === e.target.value)?.name || '')
               }}
             >
-              <option value="">Select an audience...</option>
+              <option value="">{t('email.composer.selectAudience')}</option>
               {audiences?.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name} ({a.member_count.toLocaleString()} contacts)
+                  {t('email.composer.audienceOption', { name: a.name, count: a.member_count })}
                 </option>
               ))}
             </select>
@@ -489,24 +491,25 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
         </div>
 
         <div>
-          <label className="mb-1 block text-base font-medium text-slate-700">Email content (HTML)</label>
+          <label htmlFor="campaign-body" className="mb-1 block text-base font-medium text-slate-700">{t('email.composer.body')}</label>
           <textarea
+            id="campaign-body"
             className="w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
             rows={10}
             value={bodyHtml}
             onChange={(e) => setBodyHtml(e.target.value)}
             disabled={!isDraft && !isNew}
-            placeholder="<p>Hi there...</p>"
+            placeholder={t('email.composer.bodyPlaceholder')}
           />
         </div>
 
         {bodyHtml && (
           <div>
-            <p className="mb-1 text-sm font-medium text-slate-500">Preview</p>
+            <p className="mb-1 text-sm font-medium text-slate-500">{t('email.composer.preview')}</p>
             {/* Sandboxed (no scripts, no same-origin access): the HTML is shown as
                 the email would look, but nothing in it can run on app.mielikkix.ai. */}
             <iframe
-              title="Email preview"
+              title={t('email.composer.previewTitle')}
               sandbox=""
               srcDoc={bodyHtml}
               className="h-64 w-full rounded-xl border border-slate-200 bg-white"
@@ -517,11 +520,11 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
         {(isDraft || isNew) && (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" loading={saveMut.isPending} onClick={() => saveMut.mutate()}>
-              {savedId ? 'Save changes' : 'Save draft'}
+              {savedId ? t('email.composer.saveChanges') : t('email.composer.saveDraft')}
             </Button>
             {savedId && (
               <Button size="sm" loading={approveMut.isPending} onClick={() => approveMut.mutate()}>
-                Approve
+                {t('email.composer.approve')}
               </Button>
             )}
           </div>
@@ -531,21 +534,21 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
           <div className="space-y-3 border-t border-slate-100 pt-4">
             <div className="flex flex-wrap items-end gap-2">
               <Input
-                label="Send a test to (comma-separated)"
+                label={t('email.composer.testTo')}
                 className="min-w-[240px] flex-1"
                 value={testEmails}
                 onChange={(e) => setTestEmails(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={t('email.composer.testPlaceholder')}
               />
               <Button size="sm" variant="secondary" loading={testMut.isPending} onClick={() => testMut.mutate()} disabled={!testEmails.trim()}>
                 <FlaskConical size={14} className="mr-1" />
-                Send test
+                {t('email.composer.sendTest')}
               </Button>
             </div>
 
             <div className="flex flex-wrap items-end gap-2">
               <Input
-                label="Schedule for"
+                label={t('email.composer.scheduleFor')}
                 type="datetime-local"
                 className="min-w-[220px]"
                 value={scheduleAt}
@@ -553,7 +556,7 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
               />
               <Button size="sm" variant="secondary" loading={scheduleMut.isPending} onClick={() => scheduleMut.mutate()} disabled={!scheduleAt}>
                 <Clock size={14} className="mr-1" />
-                Schedule
+                {t('email.composer.schedule')}
               </Button>
             </div>
 
@@ -561,15 +564,15 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
               {!confirmingSend ? (
                 <Button size="sm" variant="danger" onClick={() => setConfirmingSend(true)}>
                   <Send size={14} className="mr-1" />
-                  Send now
+                  {t('email.composer.sendNow')}
                 </Button>
               ) : (
                 <>
                   <Button size="sm" variant="danger" loading={sendMut.isPending} onClick={() => sendMut.mutate()}>
-                    Confirm: send to {audienceName || 'this audience'} now
+                    {t('email.composer.confirmSend', { audience: audienceName || t('email.composer.thisAudience') })}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setConfirmingSend(false)}>
-                    Cancel
+                    {t('email.composer.cancel')}
                   </Button>
                 </>
               )}
@@ -581,7 +584,7 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
           <div className="space-y-2 border-t border-slate-100 pt-4">
             <Button size="sm" variant="secondary" onClick={() => setShowReport((v) => !v)}>
               <BarChart3 size={14} className="mr-1" />
-              {showReport ? 'Hide report' : 'View report'}
+              {showReport ? t('email.composer.hideReport') : t('email.composer.showReport')}
             </Button>
             {showReport && <CampaignReportPanel campaignId={savedId} />}
           </div>
@@ -589,7 +592,7 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
 
         <div className="border-t border-slate-100 pt-4">
           <Button size="sm" variant="ghost" onClick={onClose}>
-            Close
+            {t('email.composer.close')}
           </Button>
         </div>
       </div>
@@ -599,6 +602,7 @@ function CampaignComposer({ campaign, mailchimpStatus, onClose }: ComposerProps)
 
 function CampaignsSection({ mailchimpStatus }: { mailchimpStatus?: MailchimpStatus }) {
   const [selected, setSelected] = useState<Campaign | null | 'new'>(null)
+  const { t } = useT()
 
   const { data: campaigns, isLoading } = useQuery<Campaign[]>({
     queryKey: ['campaigns'],
@@ -616,17 +620,17 @@ function CampaignsSection({ mailchimpStatus }: { mailchimpStatus?: MailchimpStat
   }
 
   return (
-    <Card title="Campaigns">
+    <Card title={t('email.campaigns.title')}>
       <div className="space-y-3">
         <Button size="sm" onClick={() => setSelected('new')}>
           <Plus size={14} className="mr-1" />
-          New campaign
+          {t('email.campaigns.new')}
         </Button>
 
-        {isLoading && <p className="text-sm text-slate-500">Loading campaigns...</p>}
+        {isLoading && <p className="text-sm text-slate-500">{t('email.campaigns.loading')}</p>}
 
         {!isLoading && (!campaigns || campaigns.length === 0) && (
-          <p className="text-sm text-slate-500">No campaigns yet -- create your first one above.</p>
+          <p className="text-sm text-slate-500">{t('email.campaigns.empty')}</p>
         )}
 
         <div className="space-y-2">
@@ -637,8 +641,8 @@ function CampaignsSection({ mailchimpStatus }: { mailchimpStatus?: MailchimpStat
               className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left hover:bg-slate-50"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-900">{c.subject || '(untitled campaign)'}</p>
-                <p className="truncate text-xs text-slate-500">{c.mailchimp_audience_name || 'No audience selected'}</p>
+                <p className="truncate text-sm font-medium text-slate-900">{c.subject || t('email.campaigns.untitled')}</p>
+                <p className="truncate text-xs text-slate-500">{c.mailchimp_audience_name || t('email.campaigns.noAudience')}</p>
               </div>
               <StatusBadge status={c.status} />
             </button>
@@ -650,6 +654,7 @@ function CampaignsSection({ mailchimpStatus }: { mailchimpStatus?: MailchimpStat
 }
 
 function EmailMarketingPageContent() {
+  const { t } = useT()
   const { data: status, isLoading } = useQuery<MailchimpStatus>({
     queryKey: ['mailchimp-status'],
     queryFn: () => api.get('/businesses/me/mailchimp/status').then((r) => r.data),
@@ -658,10 +663,8 @@ function EmailMarketingPageContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-bold text-slate-900">Email Marketing</h1>
-        <p className="mt-1 text-slate-500">
-          Connect your email marketing account, then draft, approve, and send campaigns to your audience.
-        </p>
+        <h1 className="text-4xl font-bold text-slate-900">{t('email.title')}</h1>
+        <p className="mt-1 text-slate-500">{t('email.subtitle')}</p>
       </div>
       <MailchimpConnectionCard status={status} isLoading={isLoading} />
       {status?.connected && <CampaignsSection mailchimpStatus={status} />}
@@ -671,12 +674,13 @@ function EmailMarketingPageContent() {
 
 export function EmailMarketingPage() {
   const { data: access, isLoading } = useAgentAccess()
+  const { t } = useT()
   if (isLoading) return null
 
   if (!access?.email_marketing) {
     return (
       <div className="space-y-6">
-        <h1 className="text-4xl font-bold text-slate-900">Email Marketing</h1>
+        <h1 className="text-4xl font-bold text-slate-900">{t('email.title')}</h1>
         <AgentGate agentKey="email_marketing">
           <span />
         </AgentGate>

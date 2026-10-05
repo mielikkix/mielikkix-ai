@@ -10,6 +10,8 @@ import { AgentGate } from '../../shared/components/AgentGate'
 import { useAgentAccess, useAgentCatalog, AgentTier } from '../../shared/hooks/usePlan'
 import { useCurrency } from '../../shared/hooks/useCurrency'
 import { CurrencySwitcher } from '../components/CurrencySwitcher'
+import { useT, type MessageKey } from '../../shared/i18n'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
 interface SeoWebsite {
   id: string
@@ -85,10 +87,10 @@ interface ActionPlanItem {
 // summary correctly said "Critical: 0" -- one real source of truth
 // (SeoFinding.severity), but a wrong label describing it. If that backend
 // mapping ever changes, update this to match -- don't let it drift again.
-const PRIORITY_LABELS: Record<number, string> = {
-  1: 'Priority 1 — Critical & High',
-  2: 'Priority 2 — Medium',
-  3: 'Priority 3 — Low & Informational',
+const PRIORITY_LABELS: Record<number, MessageKey> = {
+  1: 'seo.priorities.p1',
+  2: 'seo.priorities.p2',
+  3: 'seo.priorities.p3',
 }
 
 // Phase 2 fix: health_content and health_internal_linking are removed from
@@ -101,19 +103,14 @@ const PRIORITY_LABELS: Record<number, string> = {
 // simply unconfigured in this environment (no GOOGLE_PAGESPEED_API_KEY), a
 // transient gap, not a permanent one; see the "How is this calculated?"
 // note below for how that distinction is explained in the UI.
-const HEALTH_CATEGORIES: { key: keyof SeoAudit; label: string }[] = [
-  { key: 'health_technical', label: 'Technical' },
-  { key: 'health_on_page', label: 'On-Page' },
-  { key: 'health_performance', label: 'Performance' },
+const HEALTH_CATEGORIES: { key: keyof SeoAudit; label: MessageKey }[] = [
+  { key: 'health_technical', label: 'seo.categories.technical' },
+  { key: 'health_on_page', label: 'seo.categories.onPage' },
+  { key: 'health_performance', label: 'seo.categories.performance' },
 ]
 
-const SEVERITY_LABELS: Record<Severity, string> = {
-  critical: 'Critical',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-  informational: 'Info',
-}
+// Severity codes come from the API; labels are seo.severities.<code>.
+const SEVERITIES: Severity[] = ['critical', 'high', 'medium', 'low', 'informational']
 
 interface SeoFinding {
   id: string
@@ -175,6 +172,7 @@ interface SeoPerformanceMeasurement {
 // already implied by the Performance tile above showing "—") -- never a
 // fabricated number, per this agent's CLAUDE.md.
 function CoreWebVitals({ auditId }: { auditId: string }) {
+  const { t, tCode, formatNumber } = useT()
   const { data: measurements = [] } = useQuery<SeoPerformanceMeasurement[]>({
     queryKey: ['seo', 'performance', auditId],
     queryFn: () => api.get(`/agents/seo/audits/${auditId}/performance`).then((r) => r.data),
@@ -186,12 +184,12 @@ function CoreWebVitals({ auditId }: { auditId: string }) {
     <div className="flex flex-wrap gap-4 rounded-lg bg-white p-3 text-sm border border-slate-200">
       {measurements.map((m) => (
         <div key={m.strategy}>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{m.strategy}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tCode('seo.vitals.strategies', m.strategy)}</p>
           <p className="text-slate-600">
-            {m.performance_score !== null ? `Score: ${m.performance_score}/100` : 'Score: —'}
-            {m.lcp_ms !== null && ` · LCP: ${(m.lcp_ms / 1000).toFixed(1)}s`}
-            {m.cls_score !== null && ` · CLS: ${m.cls_score}`}
-            {m.inp_ms !== null ? ` · INP: ${m.inp_ms}ms` : m.tbt_ms !== null ? ` · TBT: ${m.tbt_ms}ms` : ''}
+            {m.performance_score !== null ? t('seo.vitals.score', { score: m.performance_score }) : t('seo.vitals.scoreMissing')}
+            {m.lcp_ms !== null && ` · LCP: ${formatNumber(m.lcp_ms / 1000, 1)} s`}
+            {m.cls_score !== null && ` · CLS: ${formatNumber(m.cls_score, 3)}`}
+            {m.inp_ms !== null ? ` · INP: ${formatNumber(m.inp_ms)} ms` : m.tbt_ms !== null ? ` · TBT: ${formatNumber(m.tbt_ms)} ms` : ''}
           </p>
         </div>
       ))}
@@ -204,26 +202,22 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
   severityFilter: Severity | null
   onSeverityFilter: (s: Severity | null) => void
 }) {
+  const { t } = useT()
   return (
     <div className="mt-4 space-y-3 rounded-lg bg-slate-50 p-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-slate-500">
-            SEO Health <span className="text-xs text-slate-400">(internal diagnostic score, not a Google ranking signal)</span>
+            {t('seo.health.label')} <span className="text-xs text-slate-400">{t('seo.health.note')}</span>
           </p>
           <p className="text-3xl font-bold text-slate-900">
             {audit.overall_health !== null ? `${audit.overall_health}/100` : '—'}
           </p>
           <details className="mt-1 text-xs text-slate-400 print:hidden">
             <summary className="cursor-pointer select-none underline decoration-dotted">
-              How is this calculated?
+              {t('seo.health.how')}
             </summary>
-            <p className="mt-1 max-w-xs text-slate-500">
-              Averaged across whichever categories below actually have real data for this
-              audit -- a category missing an API key (e.g. Performance without a PageSpeed
-              key) shows "Not measured" and isn't included in the average, never guessed at
-              or counted as zero.
-            </p>
+            <p className="mt-1 max-w-xs text-slate-500">{t('seo.health.howText')}</p>
           </details>
         </div>
         <div className="flex gap-4">
@@ -232,23 +226,24 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
               <p className="text-lg font-semibold text-slate-700">
                 {audit[key] !== null ? (audit[key] as number) : '—'}
               </p>
-              <p className="text-xs text-slate-400">{label}</p>
+              <p className="text-xs text-slate-400">{t(label)}</p>
             </div>
           ))}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2 print:hidden">
-        {(Object.keys(SEVERITY_LABELS) as Severity[]).map((severity) => (
+        {SEVERITIES.map((severity) => (
           <button
             key={severity}
+            aria-pressed={severityFilter === severity}
             onClick={() => onSeverityFilter(severityFilter === severity ? null : severity)}
             className={clsx(
               'rounded-full px-3 py-1 text-sm font-medium transition-colors',
               severityFilter === severity ? SEVERITY_COLORS[severity] : 'bg-white text-slate-500 border border-slate-200',
             )}
           >
-            {SEVERITY_LABELS[severity]}: {audit.finding_counts[severity]}
+            {t(`seo.severities.${severity}`)}: {audit.finding_counts[severity]}
           </button>
         ))}
       </div>
@@ -256,11 +251,11 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
           -- the numbers are useful in a printed report, the click-to-filter
           behavior isn't. */}
       <div className="hidden flex-wrap gap-3 text-sm print:flex">
-        {(Object.keys(SEVERITY_LABELS) as Severity[])
+        {SEVERITIES
           .filter((s) => audit.finding_counts[s] > 0)
           .map((severity) => (
             <span key={severity} className="rounded-full border border-slate-300 px-3 py-1">
-              {SEVERITY_LABELS[severity]}: {audit.finding_counts[severity]}
+              {t(`seo.severities.${severity}`)}: {audit.finding_counts[severity]}
             </span>
           ))}
       </div>
@@ -280,13 +275,14 @@ function SeoHealthPanel({ audit, severityFilter, onSeverityFilter }: {
 // prioritized action plan (see app/services/seo_recommendation_service.py):
 // one item per distinct issue type, grouping every affected URL under it.
 function ActionPlanList({ auditId }: { auditId: string }) {
+  const { t, formatNumber } = useT()
   const { data: items = [], isLoading } = useQuery<ActionPlanItem[]>({
     queryKey: ['seo', 'action-plan', auditId],
     queryFn: () => api.get(`/agents/seo/audits/${auditId}/action-plan`).then((r) => r.data),
   })
 
-  if (isLoading) return <p className="text-sm text-slate-400">Loading action plan…</p>
-  if (items.length === 0) return <p className="text-sm text-slate-400">No action items -- nothing found to fix.</p>
+  if (isLoading) return <p className="text-sm text-slate-400">{t('seo.plan.loading')}</p>
+  if (items.length === 0) return <p className="text-sm text-slate-400">{t('seo.plan.empty')}</p>
 
   const byPriority = new Map<number, ActionPlanItem[]>()
   for (const item of items) {
@@ -300,7 +296,7 @@ function ActionPlanList({ auditId }: { auditId: string }) {
         if (!group || group.length === 0) return null
         return (
           <div key={priority}>
-            <h4 className="mb-2 text-sm font-semibold text-slate-700">{PRIORITY_LABELS[priority]}</h4>
+            <h4 className="mb-2 text-sm font-semibold text-slate-700">{t(PRIORITY_LABELS[priority])}</h4>
             <div className="space-y-2">
               {group.map((item) => (
                 <div key={item.rule_code} className={clsx('rounded-lg border px-3 py-2 print:break-inside-avoid', item.status === 'ignored' && 'opacity-50')}>
@@ -313,14 +309,18 @@ function ActionPlanList({ auditId }: { auditId: string }) {
                         than a misleading "0". */}
                     {item.traffic_weight !== null && (
                       <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                        {item.traffic_weight.toLocaleString()} sessions/clicks (28d)
+                        {t('seo.plan.traffic', { count: formatNumber(item.traffic_weight) })}
                       </span>
                     )}
                   </div>
                   <p className="mt-1 text-sm text-slate-500">
-                    {item.affected_urls.length} page(s) affected · Difficulty: {item.implementation_difficulty} · Benefit: {item.expected_benefit}
+                    {t('seo.plan.meta', {
+                      pages: item.affected_urls.length,
+                      difficulty: item.implementation_difficulty,
+                      benefit: item.expected_benefit,
+                    })}
                   </p>
-                  {item.recommended_action && <p className="mt-1 text-sm text-slate-700">Fix: {item.recommended_action}</p>}
+                  {item.recommended_action && <p className="mt-1 text-sm text-slate-700">{t('seo.plan.fix', { fix: item.recommended_action })}</p>}
                 </div>
               ))}
             </div>
@@ -351,69 +351,74 @@ interface SeoAuditReport {
 // implemented (see this agent's CLAUDE.md, Phase 17) -- "Print / Save as
 // PDF" below is the browser's own native print dialog, not a generated PDF.
 function ReportView({ auditId }: { auditId: string }) {
+  const { t, formatDate, formatNumber } = useT()
   const { data: report, isLoading, isError } = useQuery<SeoAuditReport>({
     queryKey: ['seo', 'report', auditId],
     queryFn: () => api.get(`/agents/seo/audits/${auditId}/report`).then((r) => r.data),
   })
 
-  if (isLoading) return <p className="text-sm text-slate-400">Building report…</p>
+  if (isLoading) return <p className="text-sm text-slate-400">{t('seo.report.loading')}</p>
   if (isError || !report) {
-    return <p className="text-sm text-red-500">Report isn't available yet -- the audit may still be running.</p>
+    return <p className="text-sm text-red-500">{t('seo.report.unavailable')}</p>
   }
 
   return (
     <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 print:border-0 print:p-0">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">SEO Report — {report.website_name || report.website_url}</h3>
+        <h3 className="text-lg font-semibold text-slate-900">{t('seo.report.title', { name: report.website_name || report.website_url })}</h3>
         <p className="text-sm text-slate-500">
           {report.website_url}
-          {report.audit_completed_at && ` · Generated ${new Date(report.audit_completed_at).toLocaleDateString()}`}
+          {report.audit_completed_at && ` · ${t('seo.report.generated', { date: formatDate(report.audit_completed_at) })}`}
         </p>
       </div>
 
       <div className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 print:border print:border-slate-300">
         <span className="text-2xl font-bold text-slate-900">{report.overall_health ?? '—'}</span>
-        <span className="text-sm text-slate-500">Overall SEO health (internal diagnostic score, not a Google ranking)</span>
+        <span className="text-sm text-slate-500">{t('seo.report.overall')}</span>
       </div>
 
       {report.executive_summary && (
         <div>
-          <h4 className="mb-1 text-sm font-semibold text-slate-700">Summary</h4>
+          <h4 className="mb-1 text-sm font-semibold text-slate-700">{t('seo.report.summary')}</h4>
           <p className="text-sm text-slate-700">{report.executive_summary}</p>
         </div>
       )}
 
       <div>
-        <h4 className="mb-1 text-sm font-semibold text-slate-700">Issues found</h4>
+        <h4 className="mb-1 text-sm font-semibold text-slate-700">{t('seo.report.issues')}</h4>
         <div className="flex flex-wrap gap-3 text-sm">
           {(Object.keys(report.finding_counts) as Severity[])
             .filter((s) => report.finding_counts[s] > 0)
             .map((severity) => (
               <span key={severity} className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">
-                {report.finding_counts[severity]} {severity}
+                {report.finding_counts[severity]} {t(`seo.severities.${severity}`)}
               </span>
             ))}
           {Object.values(report.finding_counts).every((c) => c === 0) && (
-            <span className="text-slate-400">No issues found.</span>
+            <span className="text-slate-400">{t('seo.report.noIssues')}</span>
           )}
         </div>
       </div>
 
       {report.top_action_items.length > 0 && (
         <div>
-          <h4 className="mb-1 text-sm font-semibold text-slate-700">Top priorities</h4>
+          <h4 className="mb-1 text-sm font-semibold text-slate-700">{t('seo.report.top')}</h4>
           <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
             {report.top_action_items.map((item) => (
               <li key={item.rule_code}>
-                {item.issue} ({item.affected_urls.length} page(s), {item.implementation_difficulty} fix)
-                {item.traffic_weight !== null && ` — ${item.traffic_weight.toLocaleString()} sessions/clicks (28d)`}
+                {t('seo.report.topItem', {
+                  issue: item.issue,
+                  pages: item.affected_urls.length,
+                  difficulty: item.implementation_difficulty,
+                })}
+                {item.traffic_weight !== null && ` — ${t('seo.plan.traffic', { count: formatNumber(item.traffic_weight) })}`}
               </li>
             ))}
           </ol>
         </div>
       )}
 
-      <p className="text-sm text-slate-500">{report.keyword_opportunity_count} keyword opportunit{report.keyword_opportunity_count === 1 ? 'y' : 'ies'} identified.</p>
+      <p className="text-sm text-slate-500">{t('seo.report.keywords', { count: report.keyword_opportunity_count })}</p>
     </div>
   )
 }
@@ -446,6 +451,7 @@ interface SeoAuditComparison {
 // Findings are matched across runs by (rule_code, affected_url), not by
 // row ID, since every audit persists brand-new SeoFinding rows.
 function AuditComparisonPanel({ currentAuditId, previousAuditId }: { currentAuditId: string; previousAuditId: string }) {
+  const { t } = useT()
   const { data, isLoading, isError } = useQuery<SeoAuditComparison>({
     queryKey: ['seo', 'compare', currentAuditId, previousAuditId],
     queryFn: () =>
@@ -454,13 +460,13 @@ function AuditComparisonPanel({ currentAuditId, previousAuditId }: { currentAudi
         .then((r) => r.data),
   })
 
-  if (isLoading) return <p className="mt-2 text-sm text-slate-400">Comparing…</p>
-  if (isError || !data) return <p className="mt-2 text-sm text-red-500">Could not compare these audits.</p>
+  if (isLoading) return <p className="mt-2 text-sm text-slate-400">{t('seo.compare.loading')}</p>
+  if (isError || !data) return <p className="mt-2 text-sm text-red-500">{t('seo.compare.failed')}</p>
 
   return (
     <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
       <p className="font-medium text-slate-700">
-        Overall health: {data.overall_health_previous ?? '—'} → {data.overall_health_current ?? '—'}
+        {t('seo.compare.overall', { previous: data.overall_health_previous ?? '—', current: data.overall_health_current ?? '—' })}
         {data.overall_health_delta !== null && (
           <span className={clsx('ml-2 font-semibold', data.overall_health_delta >= 0 ? 'text-green-600' : 'text-red-600')}>
             ({data.overall_health_delta >= 0 ? '+' : ''}
@@ -469,13 +475,13 @@ function AuditComparisonPanel({ currentAuditId, previousAuditId }: { currentAudi
         )}
       </p>
       <div className="flex gap-4">
-        <span className="text-green-700">{data.resolved_findings.length} resolved</span>
-        <span className="text-amber-700">{data.new_findings.length} new</span>
-        <span className="text-slate-500">{data.persisting_findings.length} still open</span>
+        <span className="text-green-700">{t('seo.compare.resolvedCount', { count: data.resolved_findings.length })}</span>
+        <span className="text-amber-700">{t('seo.compare.newCount', { count: data.new_findings.length })}</span>
+        <span className="text-slate-500">{t('seo.compare.openCount', { count: data.persisting_findings.length })}</span>
       </div>
       {data.resolved_findings.length > 0 && (
         <div>
-          <p className="font-medium text-slate-600">Resolved</p>
+          <p className="font-medium text-slate-600">{t('seo.compare.resolved')}</p>
           <ul className="list-disc pl-5 text-slate-600">
             {data.resolved_findings.map((f) => (
               <li key={`${f.rule_code}-${f.affected_url ?? ''}`}>
@@ -488,7 +494,7 @@ function AuditComparisonPanel({ currentAuditId, previousAuditId }: { currentAudi
       )}
       {data.new_findings.length > 0 && (
         <div>
-          <p className="font-medium text-slate-600">New</p>
+          <p className="font-medium text-slate-600">{t('seo.compare.new')}</p>
           <ul className="list-disc pl-5 text-slate-600">
             {data.new_findings.map((f) => (
               <li key={`${f.rule_code}-${f.affected_url ?? ''}`}>
@@ -505,9 +511,10 @@ function AuditComparisonPanel({ currentAuditId, previousAuditId }: { currentAudi
 
 function AuditHistoryList({ audits }: { audits: SeoAudit[] }) {
   const [comparingId, setComparingId] = useState<string | null>(null)
+  const { t, formatDateTime } = useT()
   const completed = audits.filter((a) => a.status === 'completed')
 
-  if (completed.length === 0) return <p className="text-sm text-slate-400">No completed audits yet.</p>
+  if (completed.length === 0) return <p className="text-sm text-slate-400">{t('seo.history.empty')}</p>
 
   return (
     <div className="space-y-2">
@@ -517,8 +524,10 @@ function AuditHistoryList({ audits }: { audits: SeoAudit[] }) {
           <div key={audit.id} className="rounded-lg border border-slate-200 px-3 py-2 print:break-inside-avoid">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="font-medium text-slate-800">{new Date(audit.created_at).toLocaleString()}</p>
-                <p className="text-sm text-slate-500">Overall health: {audit.overall_health ?? 'Not yet scored'}</p>
+                <p className="font-medium text-slate-800">{formatDateTime(audit.created_at)}</p>
+                <p className="text-sm text-slate-500">
+                  {t('seo.history.overall', { score: audit.overall_health ?? t('seo.history.notScored') })}
+                </p>
               </div>
               {previous && (
                 <Button
@@ -527,7 +536,7 @@ function AuditHistoryList({ audits }: { audits: SeoAudit[] }) {
                   className="print:hidden"
                   onClick={() => setComparingId((v) => (v === audit.id ? null : audit.id))}
                 >
-                  {comparingId === audit.id ? 'Hide comparison' : 'Compare to previous'}
+                  {comparingId === audit.id ? t('seo.history.hide') : t('seo.history.compare')}
                 </Button>
               )}
             </div>
@@ -558,18 +567,21 @@ interface SeoKeywordOpportunity {
 // search-volume/CPC/competition data source is connected, and this is
 // shown honestly rather than guessed.
 function KeywordOpportunitiesList({ auditId }: { auditId: string }) {
+  const { t } = useT()
   const { data: keywords = [], isLoading } = useQuery<SeoKeywordOpportunity[]>({
     queryKey: ['seo', 'keyword-opportunities', auditId],
     queryFn: () => api.get(`/agents/seo/audits/${auditId}/keyword-opportunities`).then((r) => r.data),
   })
 
-  if (isLoading) return <p className="text-sm text-slate-400">Loading keyword ideas…</p>
-  if (keywords.length === 0) return <p className="text-sm text-slate-400">No keyword ideas generated for this audit.</p>
+  if (isLoading) return <p className="text-sm text-slate-400">{t('seo.keywords.loading')}</p>
+  if (keywords.length === 0) return <p className="text-sm text-slate-400">{t('seo.keywords.empty')}</p>
 
   return (
     <div className="space-y-2">
       <p className="text-xs text-slate-400">
-        Search volume/CPC/competition: <span className="font-medium">Not available</span> -- no real keyword-data source is connected.
+        {t('seo.keywords.volumeBefore')}
+        <span className="font-medium">{t('seo.keywords.volumeNA')}</span>
+        {t('seo.keywords.volumeAfter')}
       </p>
       {keywords.map((k) => (
         <div key={k.id} className="rounded-lg border border-slate-200 px-3 py-2 print:break-inside-avoid">
@@ -577,9 +589,11 @@ function KeywordOpportunitiesList({ auditId }: { auditId: string }) {
             <span className="font-medium text-slate-800">{k.keyword}</span>
             {k.intent && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{k.intent}</span>}
           </div>
-          {k.content_gap && <p className="mt-1 text-sm text-amber-700">Content gap: {k.content_gap}</p>}
-          {k.current_page && <p className="mt-1 text-sm text-slate-500">Already covered by: {k.current_page}</p>}
-          {k.suggested_page && !k.current_page && <p className="mt-1 text-sm text-slate-500">Suggested page: {k.suggested_page}</p>}
+          {k.content_gap && <p className="mt-1 text-sm text-amber-700">{t('seo.keywords.gap', { gap: k.content_gap })}</p>}
+          {k.current_page && <p className="mt-1 text-sm text-slate-500">{t('seo.keywords.covered', { page: k.current_page })}</p>}
+          {k.suggested_page && !k.current_page && (
+            <p className="mt-1 text-sm text-slate-500">{t('seo.keywords.suggested', { page: k.suggested_page })}</p>
+          )}
           {k.recommendation && <p className="mt-1 text-sm text-slate-700">{k.recommendation}</p>}
         </div>
       ))}
@@ -595,6 +609,7 @@ function KeywordOpportunitiesList({ auditId }: { auditId: string }) {
 // business to use themselves, see seo_service.approve_draft's own docstring.
 function FindingDraftAction({ finding }: { finding: SeoFinding }) {
   const qc = useQueryClient()
+  const { t } = useT()
   const draftsKey = ['seo', 'finding-drafts', finding.id]
   const { data: drafts = [] } = useQuery<SeoDraft[]>({
     queryKey: draftsKey,
@@ -622,30 +637,30 @@ function FindingDraftAction({ finding }: { finding: SeoFinding }) {
       <div className="mt-2 print:hidden">
         <Button size="sm" variant="secondary" loading={generateMut.isPending} onClick={() => generateMut.mutate()}>
           <Sparkles size={14} className="mr-1" />
-          {latest?.status === 'rejected' ? 'Regenerate fix' : 'Generate fix'}
+          {latest?.status === 'rejected' ? t('seo.draft.regenerate') : t('seo.draft.generate')}
         </Button>
-        {generateMut.isError && <p className="mt-1 text-sm text-red-600">Couldn't generate a fix. Try again.</p>}
+        {generateMut.isError && <p role="alert" className="mt-1 text-sm text-red-600">{apiErrorMessage(generateMut.error, 'seo.draft.failed')}</p>}
       </div>
     )
   }
 
   return (
     <div className="mt-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 print:border-slate-300 print:bg-transparent">
-      <p className="text-xs font-medium uppercase tracking-wide text-brand-600">Suggested fix</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-brand-600">{t('seo.draft.suggested')}</p>
       <p className="mt-1 text-sm text-slate-800">{draftText}</p>
       {latest.status === 'draft' ? (
         <div className="mt-2 flex gap-2 print:hidden">
           <Button size="sm" loading={approveMut.isPending} onClick={() => approveMut.mutate()}>
             <Check size={14} className="mr-1" />
-            Approve
+            {t('seo.draft.approve')}
           </Button>
           <Button size="sm" variant="secondary" loading={rejectMut.isPending} onClick={() => rejectMut.mutate()}>
             <X size={14} className="mr-1" />
-            Reject
+            {t('seo.draft.reject')}
           </Button>
         </div>
       ) : (
-        <p className="mt-1 text-xs font-medium text-emerald-600">Approved -- ready to use.</p>
+        <p className="mt-1 text-xs font-medium text-emerald-600">{t('seo.draft.approved')}</p>
       )}
     </div>
   )
@@ -657,6 +672,7 @@ function FindingDraftAction({ finding }: { finding: SeoFinding }) {
 // priority narrative are a later stage; this is the raw, real finding list.
 function FindingsList({ auditId, severityFilter }: { auditId: string; severityFilter: Severity | null }) {
   const qc = useQueryClient()
+  const { t } = useT()
   const { data: findings = [], isLoading } = useQuery<SeoFinding[]>({
     queryKey: ['seo', 'findings', auditId, severityFilter],
     queryFn: () =>
@@ -670,9 +686,15 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seo', 'findings', auditId] }),
   })
 
-  if (isLoading) return <p className="text-sm text-slate-400">Loading findings…</p>
+  if (isLoading) return <p className="text-sm text-slate-400">{t('seo.findings.loading')}</p>
   if (findings.length === 0) {
-    return <p className="text-sm text-slate-400">{severityFilter ? `No ${severityFilter} findings.` : 'No issues found.'}</p>
+    return (
+      <p className="text-sm text-slate-400">
+        {severityFilter
+          ? t('seo.findings.noneOfSeverity', { severity: t(`seo.severities.${severityFilter}`).toLocaleLowerCase() })
+          : t('seo.findings.none')}
+      </p>
+    )
   }
 
   return (
@@ -682,17 +704,17 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
           <div className="flex items-start justify-between gap-3">
             <div>
               <span className={clsx('mr-2 rounded-full px-2 py-0.5 text-xs font-medium uppercase', SEVERITY_COLORS[f.severity])}>
-                {f.severity}
+                {t(`seo.severities.${f.severity}`)}
               </span>
               <span className="font-medium text-slate-800">{f.issue}</span>
               {f.affected_url && <p className="mt-1 text-sm text-slate-500 break-all">{f.affected_url}</p>}
               {f.explanation && <p className="mt-1 text-sm text-slate-500">{f.explanation}</p>}
-              {f.recommended_fix && <p className="mt-1 text-sm text-slate-700">Fix: {f.recommended_fix}</p>}
+              {f.recommended_fix && <p className="mt-1 text-sm text-slate-700">{t('seo.findings.fix', { fix: f.recommended_fix })}</p>}
               {f.status !== 'ignored' && COPYWRITER_RULE_CODES.has(f.rule_code) && <FindingDraftAction finding={f} />}
             </div>
             {f.status !== 'ignored' && (
               <Button size="sm" variant="ghost" className="print:hidden" loading={ignoreMut.isPending} onClick={() => ignoreMut.mutate(f.id)}>
-                Ignore
+                {t('seo.findings.ignore')}
               </Button>
             )}
           </div>
@@ -716,6 +738,7 @@ function FindingsList({ auditId, severityFilter }: { auditId: string; severityFi
 // definitions above, so what's left here is exactly the same real data,
 // laid out for paper instead of a screen.
 function PrintableAuditReport({ auditId, audits }: { auditId: string; audits: SeoAudit[] }) {
+  const { t } = useT()
   return (
     <div className="hidden print:block">
       <section>
@@ -723,22 +746,22 @@ function PrintableAuditReport({ auditId, audits }: { auditId: string; audits: Se
       </section>
 
       <section className="print:break-before-page">
-        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">Action Plan</h2>
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">{t('seo.print.plan')}</h2>
         <ActionPlanList auditId={auditId} />
       </section>
 
       <section className="mt-8 print:mt-0 print:break-before-page">
-        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">All Findings</h2>
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">{t('seo.print.findings')}</h2>
         <FindingsList auditId={auditId} severityFilter={null} />
       </section>
 
       <section className="mt-8 print:mt-0 print:break-before-page">
-        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">Keyword Ideas</h2>
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">{t('seo.print.keywords')}</h2>
         <KeywordOpportunitiesList auditId={auditId} />
       </section>
 
       <section className="mt-8 print:mt-0 print:break-before-page">
-        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">Audit History</h2>
+        <h2 className="mb-3 border-b border-slate-300 pb-1.5 text-xl font-bold text-slate-900">{t('seo.print.history')}</h2>
         <AuditHistoryList audits={audits} />
       </section>
     </div>
@@ -751,6 +774,7 @@ function PrintableAuditReport({ auditId, audits }: { auditId: string; audits: Se
 // of that same plan; this is just "run a crawl and see it finish".
 function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onDelete: () => void; deleting: boolean }) {
   const qc = useQueryClient()
+  const { t, tCode, formatDate, formatNumber } = useT()
   const [showFindings, setShowFindings] = useState(false)
   const [severityFilter, setSeverityFilter] = useState<Severity | null>(null)
   const [detailTab, setDetailTab] = useState<'findings' | 'plan' | 'keywords' | 'history' | 'report'>('plan')
@@ -793,25 +817,26 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
           </p>
           <p className="mt-1 text-sm text-slate-500">{website.url}</p>
           <p className="mt-2 text-sm text-slate-400">
-            {[website.target_country, website.target_language].filter(Boolean).join(' · ') || 'No target set'}
+            {[website.target_country, website.target_language].filter(Boolean).join(' · ') || t('seo.website.noTarget')}
             {' · '}
-            {website.crawl_tier} tier
+            {t('seo.website.tier', { tier: tCode('seo.website.tiers', website.crawl_tier) })}
           </p>
           <div className="mt-2 flex items-center gap-2 text-sm">
-            <label className="text-slate-400">Recurring audits</label>
+            <label htmlFor={`seo-schedule-${website.id}`} className="text-slate-400">{t('seo.website.recurring')}</label>
             <select
+              id={`seo-schedule-${website.id}`}
               value={website.audit_schedule ?? ''}
               disabled={scheduleMut.isPending}
               onChange={(e) => scheduleMut.mutate((e.target.value || null) as 'weekly' | 'monthly' | null)}
               className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
             >
-              <option value="">Off</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
+              <option value="">{t('seo.website.schedule.off')}</option>
+              <option value="weekly">{t('seo.website.schedule.weekly')}</option>
+              <option value="monthly">{t('seo.website.schedule.monthly')}</option>
             </select>
             {website.audit_schedule && website.next_scheduled_audit_at && (
               <span className="text-slate-400">
-                Next: {new Date(website.next_scheduled_audit_at).toLocaleDateString()}
+                {t('seo.website.next', { date: formatDate(website.next_scheduled_audit_at) })}
               </span>
             )}
           </div>
@@ -819,9 +844,9 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" loading={runAuditMut.isPending} onClick={() => runAuditMut.mutate()}>
             <PlayCircle size={16} className="mr-1" />
-            Run audit
+            {t('seo.website.runAudit')}
           </Button>
-          <Button size="sm" variant="ghost" loading={deleting} onClick={onDelete}>
+          <Button size="sm" variant="ghost" loading={deleting} onClick={onDelete} aria-label={t('seo.website.delete')} title={t('seo.website.delete')}>
             <Trash2 size={16} />
           </Button>
         </div>
@@ -830,17 +855,17 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
       {latestAudit && (
         <div className="mt-4 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm print:hidden">
           <span className={clsx('rounded-full px-2 py-0.5 font-medium', AUDIT_STATUS_COLORS[latestAudit.status])}>
-            {latestAudit.status}
+            {tCode('seo.auditStatus', latestAudit.status)}
           </span>
           <span className="text-slate-500">
-            {latestAudit.pages_crawled} crawled
-            {latestAudit.pages_discovered > 0 && ` of ${latestAudit.pages_discovered} discovered`}
-            {latestAudit.pages_blocked > 0 && ` · ${latestAudit.pages_blocked} blocked`}
-            {latestAudit.pages_in_sitemap != null && ` · ${latestAudit.pages_in_sitemap} in your sitemap`}
+            {t('seo.website.crawled', { count: formatNumber(latestAudit.pages_crawled) })}
+            {latestAudit.pages_discovered > 0 && t('seo.website.discovered', { count: formatNumber(latestAudit.pages_discovered) })}
+            {latestAudit.pages_blocked > 0 && t('seo.website.blocked', { count: formatNumber(latestAudit.pages_blocked) })}
+            {latestAudit.pages_in_sitemap != null && t('seo.website.inSitemap', { count: formatNumber(latestAudit.pages_in_sitemap) })}
           </span>
           {latestAudit.status === 'completed' && (
             <Button className="ml-auto" size="sm" variant="ghost" onClick={() => setShowFindings((v) => !v)}>
-              {showFindings ? 'Hide SEO Health' : 'View SEO Health'}
+              {showFindings ? t('seo.website.hideHealth') : t('seo.website.viewHealth')}
             </Button>
           )}
         </div>
@@ -853,24 +878,17 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
           </div>
           <div className="mt-3 flex items-center justify-between gap-2 border-b border-slate-200 print:hidden">
             <div className="flex gap-2">
-              {(['plan', 'findings', 'keywords', 'history', 'report'] as const).map((t) => (
+              {(['plan', 'findings', 'keywords', 'history', 'report'] as const).map((key) => (
                 <button
-                  key={t}
-                  onClick={() => setDetailTab(t)}
+                  key={key}
+                  onClick={() => setDetailTab(key)}
+                  aria-pressed={detailTab === key}
                   className={clsx(
                     'px-3 py-1.5 text-sm font-medium border-b-2 -mb-px',
-                    detailTab === t ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500',
+                    detailTab === key ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-500',
                   )}
                 >
-                  {t === 'plan'
-                    ? 'Action Plan'
-                    : t === 'findings'
-                    ? 'All Findings'
-                    : t === 'keywords'
-                    ? 'Keyword Ideas'
-                    : t === 'history'
-                    ? 'History'
-                    : 'Report'}
+                  {t(`seo.website.tabs.${key}`)}
                 </button>
               ))}
             </div>
@@ -879,7 +897,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
                 on screen -- see that component's own docstring for why a
                 per-tab print button couldn't do this. */}
             <Button size="sm" variant="secondary" className="mb-2" onClick={() => window.print()}>
-              Print Full Report (PDF)
+              {t('seo.website.printFull')}
             </Button>
           </div>
           <div className="mt-3 print:hidden">
@@ -914,6 +932,7 @@ function WebsiteCard({ website, onDelete, deleting }: { website: SeoWebsite; onD
 // attempt that already happened.
 function GoogleConnectionCard() {
   const qc = useQueryClient()
+  const { t } = useT()
   const [searchParams, setSearchParams] = useSearchParams()
   const [banner, setBanner] = useState<'connected' | 'error' | null>(null)
   const [propertyId, setPropertyId] = useState('')
@@ -959,24 +978,24 @@ function GoogleConnectionCard() {
   })
 
   return (
-    <Card title="Google Analytics & Search Console" className="print:hidden">
+    <Card title={t('seo.google.title')} className="print:hidden">
       <div className="space-y-3">
-        {banner === 'connected' && <p className="text-base text-green-600">Google connected!</p>}
-        {banner === 'error' && <p className="text-base text-red-600">Couldn't connect Google. Please try again.</p>}
+        {banner === 'connected' && <p role="status" className="text-base text-green-600">{t('seo.google.connectedBanner')}</p>}
+        {banner === 'error' && <p role="alert" className="text-base text-red-600">{t('seo.google.connectFailed')}</p>}
 
         {status?.connected ? (
           <>
             <p className="text-base text-slate-700">
-              Connected{status.google_account_email ? ` as ${status.google_account_email}` : ''}.
+              {status.google_account_email
+                ? t('seo.google.connectedAs', { email: status.google_account_email })
+                : t('seo.google.connectedPlain')}
             </p>
-            <p className="text-sm text-slate-500">
-              Real traffic and search data feed into your audits' action plans -- an issue on a page
-              people actually visit is prioritized above the same issue on a page nobody visits.
-            </p>
+            <p className="text-sm text-slate-500">{t('seo.google.connectedHelp')}</p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
-                <label className="text-sm text-slate-500">GA4 property ID</label>
+                <label htmlFor="seo-ga4-property" className="text-sm text-slate-500">{t('seo.google.propertyId')}</label>
                 <input
+                  id="seo-ga4-property"
                   placeholder="properties/123456789"
                   value={propertyId}
                   onChange={(e) => setPropertyId(e.target.value)}
@@ -984,9 +1003,10 @@ function GoogleConnectionCard() {
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-500">Search Console site URL</label>
+                <label htmlFor="seo-gsc-site" className="text-sm text-slate-500">{t('seo.google.siteUrl')}</label>
                 <input
-                  placeholder="https://example.com/ or sc-domain:example.com"
+                  id="seo-gsc-site"
+                  placeholder={t('seo.google.siteUrlPlaceholder')}
                   value={siteUrl}
                   onChange={(e) => setSiteUrl(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
@@ -995,26 +1015,23 @@ function GoogleConnectionCard() {
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" loading={configMut.isPending} onClick={() => configMut.mutate()}>
-                Save
+                {t('seo.google.save')}
               </Button>
               <Button size="sm" variant="secondary" loading={disconnectMut.isPending} onClick={() => disconnectMut.mutate()}>
-                Disconnect
+                {t('seo.google.disconnect')}
               </Button>
-              {configMut.isSuccess && <span className="text-sm text-green-600">Saved.</span>}
+              {configMut.isSuccess && <span role="status" className="text-sm text-green-600">{t('seo.google.saved')}</span>}
             </div>
           </>
         ) : (
           <>
-            <p className="text-sm text-slate-500">
-              Connect your Google account so audits can factor in real traffic and search performance
-              data -- which pages actually matter, not just which findings are technically worse.
-            </p>
+            <p className="text-sm text-slate-500">{t('seo.google.connectHelp')}</p>
             <Button
               onClick={() => {
                 window.location.href = `${api.defaults.baseURL}/businesses/me/google/authorize`
               }}
             >
-              Connect Google
+              {t('seo.google.connect')}
             </Button>
           </>
         )}
@@ -1028,6 +1045,7 @@ function GoogleConnectionCard() {
 // findings, and recommendations land in later stages of that same plan.
 function WebsitesTab() {
   const qc = useQueryClient()
+  const { t } = useT()
   const { data: websites = [] } = useQuery<SeoWebsite[]>({
     queryKey: ['seo', 'websites'],
     queryFn: () => api.get('/agents/seo/websites').then((r) => r.data),
@@ -1067,7 +1085,7 @@ function WebsitesTab() {
     <div className="space-y-6">
       <GoogleConnectionCard />
 
-      <Card title="Add a website to audit" className="print:hidden">
+      <Card title={t('seo.add.title')} className="print:hidden">
         <form
           className="space-y-3"
           onSubmit={(e) => {
@@ -1078,50 +1096,53 @@ function WebsitesTab() {
           <input
             type="url"
             required
-            placeholder="https://example.com"
+            placeholder={t('seo.add.urlPlaceholder')}
+            aria-label={t('seo.add.url')}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
           />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <input
-              placeholder="Name (optional)"
+              placeholder={t('seo.add.name')}
+              aria-label={t('seo.add.name')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-base"
             />
             <input
-              placeholder="Target country (optional)"
+              placeholder={t('seo.add.country')}
+              aria-label={t('seo.add.country')}
               value={targetCountry}
               onChange={(e) => setTargetCountry(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-base"
             />
             <input
-              placeholder="Target language (optional)"
+              placeholder={t('seo.add.language')}
+              aria-label={t('seo.add.language')}
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2 text-base"
             />
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm text-slate-500">Crawl depth</label>
+            <label htmlFor="seo-crawl-depth" className="text-sm text-slate-500">{t('seo.add.depth')}</label>
             <select
+              id="seo-crawl-depth"
               value={crawlTier}
               onChange={(e) => setCrawlTier(e.target.value as typeof crawlTier)}
               className="rounded-lg border border-slate-300 px-2 py-1.5 text-base"
             >
-              <option value="starter">Starter (25 pages)</option>
-              <option value="standard">Standard (100 pages)</option>
-              <option value="advanced">Advanced (500 pages)</option>
+              <option value="starter">{t('seo.add.depths.starter')}</option>
+              <option value="standard">{t('seo.add.depths.standard')}</option>
+              <option value="advanced">{t('seo.add.depths.advanced')}</option>
             </select>
           </div>
           <Button type="submit" size="sm" loading={createMut.isPending} disabled={!url}>
-            Add website
+            {t('seo.add.submit')}
           </Button>
           {createMut.isError && (
-            <p className="text-sm text-red-600">
-              Couldn't add that website. Check the URL and your account's website limit.
-            </p>
+            <p role="alert" className="text-sm text-red-600">{apiErrorMessage(createMut.error, 'seo.add.failed')}</p>
           )}
         </form>
       </Card>
@@ -1137,7 +1158,7 @@ function WebsitesTab() {
         ))}
         {websites.length === 0 && (
           <div className="text-center py-12 text-slate-400 text-base">
-            No websites registered yet. Add one above to start an SEO audit.
+            {t('seo.add.empty')}
           </div>
         )}
       </div>
@@ -1171,6 +1192,7 @@ interface SeoDraft {
 // have, so nothing here ever calls PATCH /products directly.
 function DraftReview({ product, draft }: { product: Product; draft: SeoDraft }) {
   const qc = useQueryClient()
+  const { t } = useT()
 
   const approveMut = useMutation({
     mutationFn: () => api.post(`/agents/seo/drafts/${draft.id}/approve`),
@@ -1190,27 +1212,27 @@ function DraftReview({ product, draft }: { product: Product; draft: SeoDraft }) 
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <p className="text-sm font-medium text-slate-400 uppercase tracking-wide">Live now</p>
-          <p className="mt-1 text-base text-slate-600">{product.description || '(no description)'}</p>
-          <p className="mt-2 text-sm text-slate-400">SEO title: {product.seo_title || '-'}</p>
-          <p className="text-sm text-slate-400">Meta: {product.meta_description || '-'}</p>
+          <p className="text-sm font-medium text-slate-400 uppercase tracking-wide">{t('seo.content.liveNow')}</p>
+          <p className="mt-1 text-base text-slate-600">{product.description || t('seo.content.noDescription')}</p>
+          <p className="mt-2 text-sm text-slate-400">{t('seo.content.seoTitle', { value: product.seo_title || '-' })}</p>
+          <p className="text-sm text-slate-400">{t('seo.content.meta', { value: product.meta_description || '-' })}</p>
         </div>
         <div>
-          <p className="text-sm font-medium text-brand-600 uppercase tracking-wide">Draft</p>
+          <p className="text-sm font-medium text-brand-600 uppercase tracking-wide">{t('seo.content.draft')}</p>
           <p className="mt-1 text-base text-slate-900">{draft.draft_description || '-'}</p>
-          <p className="mt-2 text-sm text-slate-600">SEO title: {draft.draft_seo_title || '-'}</p>
-          <p className="text-sm text-slate-600">Meta: {draft.draft_meta_description || '-'}</p>
+          <p className="mt-2 text-sm text-slate-600">{t('seo.content.seoTitle', { value: draft.draft_seo_title || '-' })}</p>
+          <p className="text-sm text-slate-600">{t('seo.content.meta', { value: draft.draft_meta_description || '-' })}</p>
         </div>
       </div>
 
       <div className="mt-4 flex gap-2">
         <Button size="sm" loading={approveMut.isPending} onClick={() => approveMut.mutate()}>
           <Check size={16} className="mr-1" />
-          Approve
+          {t('seo.content.approve')}
         </Button>
         <Button size="sm" variant="secondary" loading={rejectMut.isPending} onClick={() => rejectMut.mutate()}>
           <X size={16} className="mr-1" />
-          Reject
+          {t('seo.content.reject')}
         </Button>
       </div>
     </Card>
@@ -1219,6 +1241,7 @@ function DraftReview({ product, draft }: { product: Product; draft: SeoDraft }) 
 
 function ContentTab() {
   const qc = useQueryClient()
+  const { t } = useT()
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: () => api.get('/products').then((r) => r.data),
@@ -1248,7 +1271,7 @@ function ContentTab() {
 
   return (
     <div className="space-y-6">
-      <Card title="Pick products to (re)generate">
+      <Card title={t('seo.content.pickTitle')}>
         <div className="space-y-2">
           {products.map((p) => (
             <label key={p.id} className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-slate-50">
@@ -1261,7 +1284,7 @@ function ContentTab() {
               <span className="text-base text-slate-700">{p.name}</span>
             </label>
           ))}
-          {products.length === 0 && <p className="text-base text-slate-400">Add products first.</p>}
+          {products.length === 0 && <p className="text-base text-slate-400">{t('seo.content.addProductsFirst')}</p>}
         </div>
         <Button
           className="mt-4"
@@ -1271,10 +1294,10 @@ function ContentTab() {
           onClick={() => generateMut.mutate()}
         >
           <Sparkles size={16} className="mr-1" />
-          Generate drafts ({selected.size})
+          {t('seo.content.generate', { count: selected.size })}
         </Button>
         {generateMut.isError && (
-          <p className="mt-2 text-sm text-red-600">Something went wrong generating drafts. Please try again.</p>
+          <p role="alert" className="mt-2 text-sm text-red-600">{apiErrorMessage(generateMut.error, 'seo.content.failed')}</p>
         )}
       </Card>
 
@@ -1290,7 +1313,7 @@ function ContentTab() {
         })}
         {drafts.length === 0 && (
           <div className="text-center py-12 text-slate-400 text-base">
-            No drafts waiting for review. Pick some products above and generate a batch.
+            {t('seo.content.empty')}
           </div>
         )}
       </div>
@@ -1303,9 +1326,10 @@ function ContentTab() {
 // two pricing surfaces in this app don't look like two different products.
 function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: boolean; format: (nokAmount: number) => string }) {
   const navigate = useNavigate()
+  const { t } = useT()
   const isFree = tier.key === 'free'
   // NOK/month excl. MVA (agent_catalog.py's price_nok), shown in the chosen currency (useCurrency).
-  const priceLabel = isFree ? 'Free' : format(tier.price_nok)
+  const priceLabel = isFree ? t('seo.plans.free') : format(tier.price_nok)
 
   return (
     <div
@@ -1316,14 +1340,14 @@ function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: 
     >
       {!isFree && (
         <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-sm font-semibold print:border print:border-slate-300 print:bg-transparent print:text-slate-700">
-          <Star size={12} /> Most Popular
+          <Star size={12} /> {t('seo.plans.mostPopular')}
         </span>
       )}
       <h3 className={clsx('text-xl font-bold', !isFree ? 'text-white print:text-slate-900' : 'text-slate-900')}>{tier.name}</h3>
       <p className={clsx('text-sm mt-1', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}>{tier.tagline}</p>
       <p className="mt-4">
         <span className={clsx('text-3xl font-bold', !isFree ? 'text-white print:text-slate-900' : 'text-slate-900')}>{priceLabel}</span>
-        {!isFree && <span className={clsx('text-sm', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}> /month</span>}
+        {!isFree && <span className={clsx('text-sm', !isFree ? 'text-brand-50 print:text-slate-500' : 'text-slate-500')}>{t('seo.plans.perMonth')}</span>}
       </p>
 
       <Button
@@ -1332,7 +1356,7 @@ function SeoTierCard({ tier, isCurrent, format }: { tier: AgentTier; isCurrent: 
         disabled={isCurrent}
         onClick={() => navigate('/dashboard/plan')}
       >
-        {isCurrent ? 'Current plan' : isFree ? 'Contact us to activate' : 'Contact us to upgrade'}
+        {isCurrent ? t('seo.plans.currentPlan') : isFree ? t('seo.plans.activate') : t('seo.plans.upgrade')}
       </Button>
 
       <ul className="mt-5 space-y-2 flex-1">
@@ -1361,6 +1385,7 @@ function PlansTab() {
   const { data: catalog } = useAgentCatalog()
   const { data: access } = useAgentAccess()
   const { currency, setCurrency, format, converted } = useCurrency()
+  const { t } = useT()
   const seo = catalog?.find((a) => a.key === 'seo_audit_optimization')
 
   if (!seo?.tiers) return null
@@ -1369,16 +1394,13 @@ function PlansTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 print:hidden">
         <p className="text-base text-slate-500 max-w-2xl">
-          SEO Audit &amp; Optimize has two self-serve plans here: Free, and Start, which adds
-          Google Analytics, Search Console and scheduled audits. Prices exclude VAT. Items marked
-          "(coming soon)" are priced in but not built yet. Want us to do the fixes for you? Ask about
-          the Managed Business and Growth plans.
-          {converted && ' EUR/USD prices are approximate; you are invoiced in NOK.'}
+          {t('seo.plans.intro')}
+          {converted && t('seo.plans.approx')}
         </p>
         <div className="flex items-center gap-2">
           <CurrencySwitcher currency={currency} onChange={setCurrency} />
           <Button size="sm" variant="secondary" onClick={() => window.print()}>
-            Print / Save as PDF
+            {t('seo.plans.print')}
           </Button>
         </div>
       </div>
@@ -1396,21 +1418,18 @@ function PlansTab() {
   )
 }
 
-const TABS = [
-  { key: 'websites', label: 'Websites' },
-  { key: 'content', label: 'Content' },
-  { key: 'plans', label: 'Plans' },
-] as const
+const TABS = ['websites', 'content', 'plans'] as const
 
 export function SeoPage() {
   const { data: access, isLoading } = useAgentAccess()
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('websites')
+  const { t } = useT()
+  const [tab, setTab] = useState<(typeof TABS)[number]>('websites')
   if (isLoading) return null
 
   if (!access?.seo_audit_optimization) {
     return (
       <div className="space-y-6">
-        <h1 className="text-4xl font-bold text-slate-900">SEO</h1>
+        <h1 className="text-4xl font-bold text-slate-900">{t('seo.title')}</h1>
         <AgentGate agentKey="seo_audit_optimization">
           <span />
         </AgentGate>
@@ -1422,26 +1441,24 @@ export function SeoPage() {
   return (
     <div className="space-y-6">
       <div className="print:hidden">
-        <h1 className="text-4xl font-bold text-slate-900">SEO</h1>
-        <p className="text-base text-slate-500 mt-1">
-          Audit your websites for real, deterministic SEO issues, and fix them with AI-generated
-          copy you review before anything goes live.
-        </p>
+        <h1 className="text-4xl font-bold text-slate-900">{t('seo.title')}</h1>
+        <p className="text-base text-slate-500 mt-1">{t('seo.subtitle')}</p>
       </div>
 
       <div className="flex gap-2 border-b border-slate-200 print:hidden">
-        {TABS.map((t) => (
+        {TABS.map((key) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={key}
+            onClick={() => setTab(key)}
+            aria-pressed={tab === key}
             className={clsx(
               'px-4 py-2 text-base font-medium border-b-2 -mb-px transition-colors',
-              tab === t.key
+              tab === key
                 ? 'border-brand-600 text-brand-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700',
             )}
           >
-            {t.label}
+            {t(`seo.tabs.${key}`)}
           </button>
         ))}
       </div>

@@ -5,73 +5,12 @@ import { Input } from '../../shared/components/Input'
 import { Button } from '../../shared/components/Button'
 import { AuthLayout } from '../components/AuthLayout'
 import { countryOptions, guessCountry } from '../../shared/countries'
-import { marketingUrl, useAuthLang, type AuthLang } from '../../shared/authLang'
+import { marketingPath, useT } from '../../shared/i18n'
+import { INTL_LOCALE } from '../../shared/i18n/core'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
-// QA 2026-10-05 (BUG-15): English only, even from the Norwegian site.
+// Stored values (sent to the API as-is); only the labels are translated.
 const INDUSTRIES = ['retail', 'restaurant', 'clinic', 'real_estate', 'service', 'other'] as const
-
-const STRINGS = {
-  en: {
-    title: 'Create your account',
-    intro: 'Start on the free plan: no card needed, and it never expires.',
-    businessName: 'Business name',
-    slug: 'Business slug (URL-friendly)',
-    industry: 'Industry',
-    selectIndustry: 'Select your industry',
-    industries: { retail: 'Retail', restaurant: 'Restaurant', clinic: 'Clinic', real_estate: 'Real estate', service: 'Services', other: 'Other' },
-    name: 'Your name',
-    email: 'Email',
-    password: 'Password',
-    country: 'Country',
-    selectCountry: 'Select your country',
-    agreements: 'Agreements',
-    termsBefore: 'I agree to the ',
-    terms: 'Terms of Service',
-    and: ' and ',
-    dpa: 'Data Processing Agreement',
-    age: 'I confirm I am 18 or older and signing up on behalf of a business.',
-    marketing: 'Send me product updates and tips by email. You can unsubscribe anytime. (Optional)',
-    errAgreements: 'Please accept the Terms of Service and Data Processing Agreement, and confirm you are 18 or older and signing up for a business.',
-    errCountry: 'Please select your country.',
-    errIndustry: 'Please select your industry.',
-    errFailed: 'Registration failed.',
-    submit: 'Create account',
-    privacyBefore: 'We process your account data to provide the service. Read our ',
-    privacy: 'Privacy Policy',
-    haveAccount: 'Already have an account?',
-    signIn: 'Sign in',
-  },
-  no: {
-    title: 'Opprett konto',
-    intro: 'Start på gratisplanen: ingen kort nødvendig, og den utløper aldri.',
-    businessName: 'Bedriftsnavn',
-    slug: 'Kortnavn for bedriften (brukes i URL-er)',
-    industry: 'Bransje',
-    selectIndustry: 'Velg bransje',
-    industries: { retail: 'Butikk', restaurant: 'Restaurant', clinic: 'Klinikk', real_estate: 'Eiendom', service: 'Tjenester', other: 'Annet' },
-    name: 'Navnet ditt',
-    email: 'E-post',
-    password: 'Passord',
-    country: 'Land',
-    selectCountry: 'Velg land',
-    agreements: 'Avtaler',
-    termsBefore: 'Jeg godtar ',
-    terms: 'vilkårene for bruk',
-    and: ' og ',
-    dpa: 'databehandleravtalen',
-    age: 'Jeg bekrefter at jeg er 18 år eller eldre og registrerer meg på vegne av en bedrift.',
-    marketing: 'Send meg produktnyheter og tips på e-post. Du kan melde deg av når som helst. (Valgfritt)',
-    errAgreements: 'Godta vilkårene for bruk og databehandleravtalen, og bekreft at du er 18 år eller eldre og registrerer deg for en bedrift.',
-    errCountry: 'Velg land.',
-    errIndustry: 'Velg bransje.',
-    errFailed: 'Registreringen mislyktes.',
-    submit: 'Opprett konto',
-    privacyBefore: 'Vi behandler kontoopplysningene dine for å levere tjenesten. Les ',
-    privacy: 'personvernerklæringen',
-    haveAccount: 'Har du allerede en konto?',
-    signIn: 'Logg inn',
-  },
-} satisfies Record<AuthLang, unknown>
 
 // GDPR Phase 3. The two required boxes and the marketing box all start
 // unticked; the API independently rejects a registration without
@@ -109,12 +48,12 @@ function Checkbox({ id, checked, onChange, required, children }: {
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const { t, locale } = useT()
   const register = useAuthStore((s) => s.register)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const lang = useAuthLang()
-  const t = STRINGS[lang]
-  const countries = useMemo(() => countryOptions(lang === 'no' ? 'nb' : 'en'), [lang])
+  // Country names in the page's language (Intl.DisplayNames).
+  const countries = useMemo(() => countryOptions(INTL_LOCALE[locale]), [locale])
   // No preselected industry (QA 2026-10-05, BUG-15: "retail" was preselected).
   const [form, setForm] = useState({
     business_name: '', business_slug: '', industry: '',
@@ -132,15 +71,15 @@ export function RegisterPage() {
     // Browsers already block submit via the checkboxes' `required`; this
     // covers any that don't, with an explicit message.
     if (!termsAccepted || !ageConfirmed) {
-      setError(t.errAgreements)
+      setError(t('auth.register.errAgreements'))
       return
     }
     if (!form.industry) {
-      setError(t.errIndustry)
+      setError(t('auth.register.errIndustry'))
       return
     }
     if (!form.country) {
-      setError(t.errCountry)
+      setError(t('auth.register.errCountry'))
       return
     }
     setLoading(true)
@@ -154,8 +93,7 @@ export function RegisterPage() {
       })
       navigate('/dashboard')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setError(msg || t.errFailed)
+      setError(apiErrorMessage(err, 'auth.register.errFailed'))
     } finally {
       setLoading(false)
     }
@@ -163,13 +101,19 @@ export function RegisterPage() {
 
   return (
     <AuthLayout cardClassName="max-w-md">
-      <h1 className="text-4xl font-bold text-slate-900 mb-1">{t.title}</h1>
-      <p className="text-base text-slate-500 mb-6">{t.intro}</p>
+      <h1 className="text-4xl font-bold text-slate-900 mb-1">{t('auth.register.title')}</h1>
+      <p className="text-base text-slate-500 mb-6">{t('auth.register.intro')}</p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input label={t.businessName} value={form.business_name} onChange={set('business_name')} autoComplete="organization" required />
-        <Input label={t.slug} value={form.business_slug} onChange={set('business_slug')} placeholder={lang === 'no' ? 'min-butikk' : 'my-shop'} required />
+        <Input label={t('auth.register.businessName')} value={form.business_name} onChange={set('business_name')} autoComplete="organization" required />
+        <Input
+          label={t('auth.register.slug')}
+          value={form.business_slug}
+          onChange={set('business_slug')}
+          placeholder={t('auth.register.slugPlaceholder')}
+          required
+        />
         <div>
-          <label htmlFor="register-industry" className="block text-base font-medium text-slate-700 mb-1">{t.industry}</label>
+          <label htmlFor="register-industry" className="block text-base font-medium text-slate-700 mb-1">{t('auth.register.industry')}</label>
           <select
             id="register-industry"
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base"
@@ -177,17 +121,28 @@ export function RegisterPage() {
             onChange={set('industry')}
             required
           >
-            <option value="" disabled>{t.selectIndustry}</option>
+            <option value="" disabled>{t('auth.register.selectIndustry')}</option>
             {INDUSTRIES.map((i) => (
-              <option key={i} value={i}>{t.industries[i]}</option>
+              <option key={i} value={i}>{t(`auth.register.industries.${i}`)}</option>
             ))}
           </select>
         </div>
-        <Input label={t.name} value={form.full_name} onChange={set('full_name')} autoComplete="name" required />
-        <Input label={t.email} type="email" value={form.email} onChange={set('email')} autoComplete="email" required />
-        <Input label={t.password} type="password" value={form.password} onChange={set('password')} autoComplete="new-password" required />
+        <Input label={t('auth.register.fullName')} value={form.full_name} onChange={set('full_name')} autoComplete="name" required />
+        <Input label={t('auth.register.email')} type="email" value={form.email} onChange={set('email')} autoComplete="email" required />
         <div>
-          <label htmlFor="register-country" className="block text-base font-medium text-slate-700 mb-1">{t.country}</label>
+          <Input
+            label={t('auth.register.password')}
+            type="password"
+            value={form.password}
+            onChange={set('password')}
+            autoComplete="new-password"
+            minLength={10}
+            required
+          />
+          <p className="mt-1 text-sm text-slate-500">{t('auth.register.passwordHint')}</p>
+        </div>
+        <div>
+          <label htmlFor="register-country" className="block text-base font-medium text-slate-700 mb-1">{t('auth.register.country')}</label>
           <select
             id="register-country"
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-base"
@@ -195,35 +150,39 @@ export function RegisterPage() {
             onChange={set('country')}
             required
           >
-            <option value="" disabled>{t.selectCountry}</option>
+            <option value="" disabled>{t('auth.register.selectCountry')}</option>
             {countries.map((c) => (
               <option key={c.code} value={c.code}>{c.name}</option>
             ))}
           </select>
         </div>
         <fieldset className="space-y-3 pt-1">
-          <legend className="sr-only">{t.agreements}</legend>
+          <legend className="sr-only">{t('auth.register.agreements')}</legend>
           <Checkbox id="register-terms" checked={termsAccepted} onChange={setTermsAccepted} required>
-            {t.termsBefore}<ExternalLink href={marketingUrl('/terms/', lang)}>{t.terms}</ExternalLink>{t.and}
-            <ExternalLink href={marketingUrl('/dpa/', lang)}>{t.dpa}</ExternalLink>.
+            {t('auth.register.termsBefore')}
+            <ExternalLink href={marketingPath(locale, '/terms/')}>{t('auth.register.terms')}</ExternalLink>
+            {t('auth.register.and')}
+            <ExternalLink href={marketingPath(locale, '/dpa/')}>{t('auth.register.dpa')}</ExternalLink>
+            {t('auth.register.termsAfter')}
           </Checkbox>
           <Checkbox id="register-age" checked={ageConfirmed} onChange={setAgeConfirmed} required>
-            {t.age}
+            {t('auth.register.age')}
           </Checkbox>
           <Checkbox id="register-marketing" checked={marketingOptIn} onChange={setMarketingOptIn}>
-            {t.marketing}
+            {t('auth.register.marketing')}
           </Checkbox>
         </fieldset>
         {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
-        <Button type="submit" loading={loading} className="w-full">{t.submit}</Button>
+        <Button type="submit" loading={loading} className="w-full">{t('auth.register.submit')}</Button>
         <p className="text-sm text-slate-500">
-          {t.privacyBefore}
-          <ExternalLink href={marketingUrl('/privacy/', lang)}>{t.privacy}</ExternalLink>.
+          {t('auth.register.privacyBefore')}
+          <ExternalLink href={marketingPath(locale, '/privacy/')}>{t('auth.register.privacy')}</ExternalLink>
+          {t('auth.register.privacyAfter')}
         </p>
       </form>
       <p className="mt-4 text-center text-base text-slate-500">
-        {t.haveAccount}{' '}
-        <Link to="/login" className="text-brand-600 font-medium hover:underline">{t.signIn}</Link>
+        {t('auth.register.haveAccount')}{' '}
+        <Link to="/login" className="text-brand-600 font-medium hover:underline">{t('auth.register.signIn')}</Link>
       </p>
     </AuthLayout>
   )

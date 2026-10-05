@@ -4,9 +4,12 @@ import { useAuthStore } from '../../shared/store/authStore'
 import { Input } from '../../shared/components/Input'
 import { Button } from '../../shared/components/Button'
 import { AuthLayout } from '../components/AuthLayout'
+import { useT } from '../../shared/i18n'
+import { apiErrorMessage } from '../../shared/i18n/apiError'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { t } = useT()
   const login = useAuthStore((s) => s.login)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -20,8 +23,8 @@ export function LoginPage() {
     try {
       await login(email, password)
       navigate('/dashboard')
-    } catch {
-      setError('Invalid email or password.')
+    } catch (err) {
+      setError(apiErrorMessage(err, 'auth.login.invalid'))
     } finally {
       setLoading(false)
     }
@@ -29,23 +32,30 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <h1 className="text-4xl font-bold text-slate-900 mb-1">Welcome back</h1>
-      <p className="text-base text-slate-500 mb-6">Sign in to your Mielikkix dashboard</p>
+      <h1 className="text-4xl font-bold text-slate-900 mb-1">{t('auth.login.title')}</h1>
+      <p className="text-base text-slate-500 mb-6">{t('auth.login.subtitle')}</p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Input label={t('auth.login.email')} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <div>
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input
+            label={t('auth.login.password')}
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
           <Link to="/forgot-password" className="mt-1 inline-block text-sm text-brand-600 hover:underline">
-            Forgot password?
+            {t('auth.login.forgot')}
           </Link>
         </div>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <Button type="submit" loading={loading} className="w-full">Sign in</Button>
+        {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+        <Button type="submit" loading={loading} className="w-full">{t('auth.login.submit')}</Button>
       </form>
       <p className="mt-4 text-center text-base text-slate-500">
-        No account?{' '}
+        {t('auth.login.noAccount')}{' '}
         <Link to="/register" className="text-brand-600 font-medium hover:underline">
-          Register
+          {t('auth.login.register')}
         </Link>
       </p>
     </AuthLayout>

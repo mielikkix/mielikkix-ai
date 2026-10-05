@@ -3,6 +3,7 @@ import { clsx } from 'clsx'
 import { Card } from '../../../shared/components/Card'
 import { Button } from '../../../shared/components/Button'
 import { AVAILABLE_LANGUAGES } from './types'
+import { useT } from '../../../shared/i18n'
 
 interface Props {
   languages: string[]
@@ -19,14 +20,17 @@ interface Props {
 export function LanguagesSection({ languages, maxLanguages, toggleLanguage, languagesMut }: Props) {
   // undefined = plan not loaded yet (treat as 1); null limits arrive here as undefined too.
   const effectiveMax = maxLanguages ?? 1
+  const { t, languageName } = useT()
   return (
-    <Card title="Languages">
+    <Card title={t('settings.languages.title')}>
       <div className="space-y-3">
+        <p className="text-sm text-slate-500">{t('settings.languages.intro')}</p>
         <p className="text-sm text-slate-500">
-          {languages.length} of {maxLanguages ?? 1} language{effectiveMax === 1 ? '' : 's'} on your plan selected
+          {t('settings.languages.count', { count: languages.length, max: maxLanguages ?? 1 })}
         </p>
         <div className="flex flex-wrap gap-2">
-          {AVAILABLE_LANGUAGES.map(({ code, label }) => {
+          {AVAILABLE_LANGUAGES.map((code) => {
+            const label = languageName(code)
             const active = languages.includes(code)
             const disabled = !active && languages.length >= effectiveMax
             return (
@@ -34,6 +38,7 @@ export function LanguagesSection({ languages, maxLanguages, toggleLanguage, lang
                 key={code}
                 type="button"
                 disabled={disabled}
+                aria-pressed={active}
                 onClick={() => toggleLanguage(code)}
                 className={clsx(
                   'rounded-full border px-3 py-1.5 text-sm font-medium transition',
@@ -50,9 +55,9 @@ export function LanguagesSection({ languages, maxLanguages, toggleLanguage, lang
           })}
         </div>
         <Button size="sm" loading={languagesMut.isPending} onClick={() => languagesMut.mutate(languages)}>
-          Save languages
+          {t('settings.languages.save')}
         </Button>
-        {languagesMut.isSuccess && <p className="text-base text-green-600">Languages saved!</p>}
+        {languagesMut.isSuccess && <p role="status" className="text-base text-green-600">{t('settings.languages.saved')}</p>}
       </div>
     </Card>
   )

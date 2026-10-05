@@ -5,6 +5,7 @@ import { Card } from '../../shared/components/Card'
 import { Button } from '../../shared/components/Button'
 import { clsx } from 'clsx'
 import { Download, Search, Trash2 } from 'lucide-react'
+import { t as translateNow, useT, type MessageKey } from '../../shared/i18n'
 
 interface Lead {
   id: string
@@ -25,14 +26,20 @@ interface Lead {
 // mielikkix.ai (lead_service); the API rejects anything not in this list.
 // QA 2026-10-02 (D4/M6): statuses showed as raw values (DEMO_REQUESTED, new, won) and
 // the only control was hidden behind an unlabelled "..." menu.
-const STATUSES: { value: string; label: string; color: string }[] = [
-  { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-700' },
-  { value: 'DEMO_REQUESTED', label: 'Demo requested', color: 'bg-violet-100 text-violet-700' },
-  { value: 'contacted', label: 'Contacted', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'won', label: 'Won', color: 'bg-green-100 text-green-700' },
-  { value: 'lost', label: 'Lost', color: 'bg-slate-100 text-slate-500' },
+// The stored status values never change with the language; only their labels do.
+const STATUSES: { value: string; label: MessageKey; color: string }[] = [
+  { value: 'new', label: 'leads.statuses.new', color: 'bg-blue-100 text-blue-700' },
+  { value: 'DEMO_REQUESTED', label: 'leads.statuses.DEMO_REQUESTED', color: 'bg-violet-100 text-violet-700' },
+  { value: 'contacted', label: 'leads.statuses.contacted', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'won', label: 'leads.statuses.won', color: 'bg-green-100 text-green-700' },
+  { value: 'lost', label: 'leads.statuses.lost', color: 'bg-slate-100 text-slate-500' },
 ]
-const statusInfo = (value: string) => STATUSES.find((s) => s.value === value) ?? { value, label: value, color: 'bg-slate-100 text-slate-600' }
+const statusInfo = (value: string) => {
+  const known = STATUSES.find((s) => s.value === value)
+  return known
+    ? { value, label: translateNow(known.label), color: known.color }
+    : { value, label: value, color: 'bg-slate-100 text-slate-600' }
+}
 
 function csvCell(value: unknown): string {
   const text = value == null ? '' : String(value)
@@ -40,7 +47,10 @@ function csvCell(value: unknown): string {
 }
 
 function downloadCsv(leads: Lead[]) {
-  const header = ['Name', 'Email', 'Phone', 'Company', 'Status', 'Interest', 'Source', 'Message', 'Notes', 'Created', 'Last updated']
+  // Column headers and status labels follow the UI language; the lead data is exported as entered.
+  const header = (['name', 'email', 'phone', 'company', 'status', 'interest', 'source', 'message', 'notes', 'created', 'updated'] as const).map(
+    (k) => translateNow(`leads.csv.${k}`),
+  )
   const rows = leads.map((l) => [
     l.name, l.email, l.phone, l.company, statusInfo(l.status).label, l.interest, l.source, l.message, l.notes,
     l.created_at, l.updated_at,
@@ -57,6 +67,7 @@ function downloadCsv(leads: Lead[]) {
 
 function LeadNotes({ lead }: { lead: Lead }) {
   const qc = useQueryClient()
+  const { t } = useT()
   const [value, setValue] = useState(lead.notes ?? '')
   const saveMut = useMutation({
     mutationFn: (notes: string) => api.patch(`/leads/${lead.id}`, { notes }),
@@ -66,7 +77,7 @@ function LeadNotes({ lead }: { lead: Lead }) {
   return (
     <div className="mt-3">
       <label htmlFor={`notes-${lead.id}`} className="text-xs font-medium text-slate-500">
-        Notes
+        {t('leads.notes')}
       </label>
       <textarea
         id={`notes-${lead.id}`}
@@ -74,17 +85,19 @@ function LeadNotes({ lead }: { lead: Lead }) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={() => dirty && saveMut.mutate(value)}
-        placeholder="Add a note (saved when you click away)"
+        placeholder={t('leads.notesPlaceholder')}
         className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400"
       />
-      {saveMut.isPending && <p className="text-xs text-slate-400">Saving…</p>}
-      {saveMut.isError && <p className="text-xs text-red-600">Couldn't save the note. Please try again.</p>}
+      {saveMut.isPending && <p className="text-xs text-slate-400">{t('leads.notesSaving')}</p>}
+      {saveMut.isError && <p role="alert" className="text-xs text-red-600">{t('leads.notesFailed')}</p>}
     </div>
   )
 }
 
 export function LeadsPage() {
   const qc = useQueryClient()
+  // useT() also re-renders this page on a language change, which re-labels statusInfo()'s badges.
+  const { t, formatDateTime } = useT()
   const { data: leads = [] } = useQuery<Lead[]>({
     queryKey: ['leads'],
     queryFn: () => api.get('/leads').then((r) => r.data),
@@ -126,11 +139,11 @@ export function LeadsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900">Leads</h1>
-          <p className="text-base text-slate-500 mt-1">Contacts captured by your chatbot and website.</p>
+          <h1 className="text-4xl font-bold text-slate-900">{t('leads.title')}</h1>
+          <p className="text-base text-slate-500 mt-1">{t('leads.subtitle')}</p>
         </div>
         <Button size="sm" variant="secondary" disabled={visible.length === 0} onClick={() => downloadCsv(visible)}>
-          <Download size={16} className="mr-1" /> Export CSV
+          <Download size={16} className="mr-1" /> {t('leads.exportCsv')}
         </Button>
       </div>
 
@@ -141,13 +154,13 @@ export function LeadsPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, email, phone, company or notes"
-            aria-label="Search leads"
+            placeholder={t('leads.searchPlaceholder')}
+            aria-label={t('leads.searchLabel')}
             className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
-          {[{ value: '', label: 'All' }, ...STATUSES].map((s) => {
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('leads.filterLabel')}>
+          {[{ value: '', label: 'leads.all' as MessageKey }, ...STATUSES].map((s) => {
             const n = s.value ? counts[s.value] ?? 0 : leads.length
             if (s.value && n === 0) return null
             return (
@@ -160,7 +173,7 @@ export function LeadsPage() {
                   statusFilter === s.value ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 )}
               >
-                {s.label} <span className="text-slate-400">{n}</span>
+                {t(s.label)} <span className="text-slate-400">{n}</span>
               </button>
             )
           })}
@@ -182,20 +195,20 @@ export function LeadsPage() {
                   <div className="flex gap-3 mt-1 text-sm text-slate-500 flex-wrap">
                     {lead.email && <a href={`mailto:${lead.email}`} className="hover:text-brand-600">{lead.email}</a>}
                     {lead.phone && <a href={`tel:${lead.phone}`} className="hover:text-brand-600">{lead.phone}</a>}
-                    {lead.interest && <span>Interested in: {lead.interest}</span>}
+                    {lead.interest && <span>{t('leads.interestedIn', { interest: lead.interest })}</span>}
                   </div>
                   {lead.message && (
                     <p className="mt-2 text-base text-slate-600 bg-slate-50 rounded-lg px-3 py-2 whitespace-pre-line">{lead.message}</p>
                   )}
                   <LeadNotes lead={lead} />
                   <p className="mt-2 text-sm text-slate-400">
-                    Created {new Date(lead.created_at).toLocaleString()}
-                    {lead.updated_at && <> · Last updated {new Date(lead.updated_at).toLocaleString()}</>}
+                    {t('leads.created', { date: formatDateTime(lead.created_at) })}
+                    {lead.updated_at && <> · {t('leads.updated', { date: formatDateTime(lead.updated_at) })}</>}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <label className="flex items-center gap-2 text-sm text-slate-600">
-                    Status
+                    {t('leads.status')}
                     <select
                       value={lead.status}
                       onChange={(e) => updateMut.mutate({ id: lead.id, status: e.target.value })}
@@ -203,7 +216,7 @@ export function LeadsPage() {
                     >
                       {STATUSES.map((s) => (
                         <option key={s.value} value={s.value}>
-                          {s.label}
+                          {t(s.label)}
                         </option>
                       ))}
                       {!STATUSES.some((s) => s.value === lead.status) && <option value={lead.status}>{lead.status}</option>}
@@ -211,13 +224,13 @@ export function LeadsPage() {
                   </label>
                   <button
                     onClick={() => {
-                      if (confirm(`Erase all data for ${lead.name}? This deletes this lead, any other leads with the same email or phone, and their chat conversations. It can't be undone.`)) {
+                      if (confirm(t('leads.eraseConfirm', { name: lead.name }))) {
                         eraseMut.mutate(lead.id)
                       }
                     }}
                     className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-600"
                   >
-                    <Trash2 size={12} /> Erase this person's data
+                    <Trash2 size={12} /> {t('leads.erase')}
                   </button>
                 </div>
               </div>
@@ -225,10 +238,10 @@ export function LeadsPage() {
           )
         })}
         {leads.length === 0 && (
-          <div className="text-center py-12 text-slate-400 text-base">No leads yet. They'll appear here when visitors contact you — never miss a customer.</div>
+          <div className="text-center py-12 text-slate-400 text-base">{t('leads.empty')}</div>
         )}
         {leads.length > 0 && visible.length === 0 && (
-          <div className="text-center py-12 text-slate-400 text-base">No leads match your search.</div>
+          <div className="text-center py-12 text-slate-400 text-base">{t('leads.noMatch')}</div>
         )}
       </div>
     </div>

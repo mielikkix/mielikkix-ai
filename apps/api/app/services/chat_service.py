@@ -13,6 +13,7 @@ from fastapi import BackgroundTasks, HTTPException
 from ..core.plans import get_plan
 from ..models.user import User
 from ..notifications import notify_quota_warning
+from ..core.locale import business_locale
 
 HISTORY_LIMIT = 6
 
@@ -201,7 +202,14 @@ async def handle_message(
         ]
         if owners:
             background_tasks.add_task(
-                notify_quota_warning, owners, business.name, get_plan(business.plan).name, level, used, limit
+                notify_quota_warning,
+                owners,
+                business.name,
+                get_plan(business.plan).name,
+                level,
+                used,
+                limit,
+                business_locale(db, business.id),
             )
 
     # An ungated business's chatbot never offers booking in the first place

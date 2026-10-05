@@ -47,6 +47,7 @@ def register(db: Session, req: RegisterRequest, ip_hash: Optional[str] = None) -
         full_name=req.full_name,
         role="owner",
         country=req.country,
+        locale=req.locale,
     )
     db.add(user)
     db.flush()

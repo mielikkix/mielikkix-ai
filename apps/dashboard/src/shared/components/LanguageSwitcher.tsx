@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 
 // Two text buttons, "English" / "Norsk" (no flags: a language is not a
 // country). Used before sign-in (AuthLayout) and inside the dashboard
-// (Sidebar, Settings). Switching keeps the current page and any form state --
+// (top bar in App.tsx's DashboardLayout, Settings). Switching keeps the current page and any form state --
 // it only re-renders the text -- and saves the choice on the user when signed in.
 export function LanguageSwitcher({ className, compact = false }: { className?: string; compact?: boolean }) {
   const { t, locale } = useT()

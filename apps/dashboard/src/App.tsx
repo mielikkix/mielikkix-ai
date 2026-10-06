@@ -29,6 +29,7 @@ import { AdminArticleFormPage } from './dashboard/pages/admin/AdminArticleFormPa
 import { useAuthStore } from './shared/store/authStore'
 import { AccountNotices } from './dashboard/components/AccountNotices'
 import { useT } from './shared/i18n'
+import { LanguageSwitcher } from './shared/components/LanguageSwitcher'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -38,18 +39,21 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-gray-50 overflow-hidden print:block print:h-auto print:overflow-visible">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col overflow-hidden print:block print:overflow-visible">
-        <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:hidden print:hidden">
+        {/* Top bar: menu button + logo on mobile only (the sidebar has its own
+            logo on desktop); the language switch sits top right at every width. */}
+        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-8 md:py-2.5 print:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label={t('navigation.openMenu')}
-            className="text-slate-500 hover:text-slate-700"
+            className="text-slate-500 hover:text-slate-700 md:hidden"
           >
             <Menu size={22} />
           </button>
-          <span className="text-lg font-bold tracking-tight">
+          <span className="text-lg font-bold tracking-tight md:hidden">
             Mielikki<span className="brand-gradient-text">x</span>
           </span>
-        </div>
+          <LanguageSwitcher compact className="ml-auto" />
+        </header>
         {/* Printing an SEO audit report (SeoPage's own "Print / Save as PDF" button)
             must flow the FULL report across as many pages as needed -- the normal
             dashboard layout is a fixed-height scrollable panel (h-screen +

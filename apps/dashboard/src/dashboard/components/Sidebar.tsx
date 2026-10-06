@@ -3,7 +3,6 @@ import { LayoutDashboard, MessageSquare, BookOpen, FileText, ShoppingBag, Users,
 import { useAuthStore } from '../../shared/store/authStore'
 import { clsx } from 'clsx'
 import { useT, type MessageKey } from '../../shared/i18n'
-import { LanguageSwitcher } from '../../shared/components/LanguageSwitcher'
 
 const nav: { to: string; icon: typeof LayoutDashboard; label: MessageKey; color: string }[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'navigation.overview', color: 'text-violet-500' },
@@ -84,9 +83,6 @@ export function Sidebar({ open, onClose }: Props) {
           ))}
         </nav>
         <div className="p-3 border-t border-slate-100 space-y-1">
-          <div className="px-3 pb-2">
-            <LanguageSwitcher compact />
-          </div>
           {isPlatformAdmin && (
             <NavLink
               to="/admin"

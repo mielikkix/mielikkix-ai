@@ -103,8 +103,8 @@ async def test_80_percent_warning_email_is_queued_for_the_owner(client, db_sessi
     monkeypatch.setattr(chat_service, "run_rag", fake_run_rag)
     sent = []
 
-    async def fake_notify(to_emails, business_name, plan_name, level, used, limit):
-        sent.append((to_emails, level, used, limit))
+    async def fake_notify(to_emails, business_name, plan_name, level, used, limit, locale="en"):
+        sent.append((to_emails, level, used, limit, locale))
 
     monkeypatch.setattr(chat_service, "notify_quota_warning", fake_notify)
     for _ in range(39):
@@ -118,6 +118,7 @@ async def test_80_percent_warning_email_is_queued_for_the_owner(client, db_sessi
         )
         assert resp.status_code == 200
     assert len(sent) == 1
-    to_emails, level, used, limit = sent[0]
+    to_emails, level, used, limit, locale = sent[0]
     assert (level, used, limit) == (80, 40, 50)
+    assert locale == "en"  # the owner never chose a dashboard language
     assert to_emails and all("@" in e for e in to_emails)

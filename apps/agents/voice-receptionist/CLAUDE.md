@@ -1,7 +1,7 @@
 # CLAUDE.md — apps/agents/voice-receptionist
 
-Read `apps/agents/CLAUDE.md` first (shared conventions across the three
-flagship agents) — this file covers only what's specific to this one.
+Read `apps/agents/CLAUDE.md` first (shared conventions across the Force
+agents) — this file covers only what's specific to this one.
 
 ## What this agent does
 
@@ -151,12 +151,19 @@ build one-off UI.
 
 ## Definition of done for the 8-day sprint
 
-- [ ] Inbound call answered, held, and ended cleanly (happy path)
-- [ ] Webhook signature validation rejects forged requests
-- [ ] Booking handoff to Booking Assistant works end-to-end
-- [ ] Support handoff to Support Triage works end-to-end
-- [ ] Summary notification delivered to business owner
-- [ ] Graceful fallback TwiML if the LLM call fails/times out mid-call
+Status checked against `apps/api/tests/test_agents_voice.py` on 2026-10-07.
+Code: `apps/api/app/api/agents_voice.py` (OpenAI `gpt-4o`, English + Norwegian
+nb-NO speech).
+
+- [x] Inbound call answered, held, and ended cleanly (happy path) — via
+      test calls and the browser demo; no purchased production number yet
+- [x] Webhook signature validation rejects forged requests
+- [x] Booking handoff to Booking Assistant works end-to-end (deterministic
+      propose → read back → confirm, booking notification email)
+- [x] Support handoff to Support Triage works end-to-end (escalated ticket)
+- [ ] Summary notification delivered to business owner at the end of the
+      call (only the booking notification exists)
+- [x] Graceful fallback if the LLM call fails/times out mid-call
       (never leave the caller in dead air)
 - [ ] Call log visible in dashboard, gated correctly by entitlement
 - [ ] Load test: N concurrent calls sustained without dropping (define N

@@ -38,12 +38,12 @@ decides whether it runs through the shared job queue or needs its own handling.>
 - [ ] Deployed on the VPS, smoke-tested in production
 
 ---
-### Reference — the 6 queued agents already scaffolded from this template
+### Reference — agents scaffolded from this template
 
 | Agent | Folder | One-line scope |
 |---|---|---|
 | Social Media Agent | `apps/agents/social-media` | Turns offers/updates into ready-to-post social content |
-| Email Marketing | `apps/agents/email-marketing` | Newsletters, cart recovery, promo sends |
+| Email Marketing | `apps/agents/email-marketing` | **Built, not queued** — Mailchimp campaigns (draft → approve → send/schedule → report); see its own `CLAUDE.md` |
 | ~~SEO Copywriter~~ SEO Audit & Optimize | `apps/agents/seo-audit` | **Built, not queued** — technical/on-page site audits + the original bulk product-copy generation; see its own `CLAUDE.md` |
 | Feedback & Survey | `apps/agents/feedback-survey` | Post-visit surveys, sentiment summaries |
 | Loyalty & Re-engagement | `apps/agents/loyalty-reengage` | Automated win-back and repeat-customer offers |

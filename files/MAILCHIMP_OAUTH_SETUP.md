@@ -63,25 +63,27 @@ This creates the `mailchimp_connections` table (see
 does not touch the existing `leads` table or its own `mailchimp_*` columns
 used by the separate lead-sync flow.
 
-## 4. Plan gating
+## 4. Agent access
 
-This feature is gated behind the `email_marketing_enabled` plan feature
-(`apps/api/app/core/plans.py`) — same gating mechanism as Booking
-Assistant/SEO Copywriter/Review & Reputation. Free and Basic plans do not
-include it; Business and Growth do. To test locally on a Free-plan test
-business, bump its plan directly in the database the same way this
-project's own test fixtures do:
+This feature is gated by **agent access**, not by the Chat Widget plan:
+the business needs the `email_marketing` agent switched on
+(`business_agent_access` table, checked by
+`apps/api/app/services/agent_access_service.require_agent_access` — the same
+gate every Force agent uses). The old `email_marketing_enabled` plan flag
+was removed. To switch it on locally, either use the platform admin page
+(`/admin/businesses/<id>` → agents) or insert the row directly:
 
 ```sql
-UPDATE businesses SET plan = 'business', status = 'active' WHERE id = '<your test business id>';
+INSERT INTO business_agent_access (id, business_id, agent_key, status, activated_at)
+VALUES (gen_random_uuid(), '<your test business id>', 'email_marketing', 'active', now());
 ```
 
 ## 5. Perform a real end-to-end connection test
 
 1. Start the backend (`uvicorn app.main:app --reload` from `apps/api/`)
    and the dashboard (`npm run dev` from `apps/dashboard/`).
-2. Log in to the dashboard as a business on a plan with
-   `email_marketing_enabled` (see step 4).
+2. Log in to the dashboard as a business with the Email Marketing agent
+   switched on (see step 4).
 3. Go to **Email Marketing** in the sidebar.
 4. Click **Connect Mailchimp** — you should land on Mailchimp's own
    `login.mailchimp.com/oauth2/authorize` consent screen.

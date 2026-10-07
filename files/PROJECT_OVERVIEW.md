@@ -43,11 +43,11 @@ A multi-tenant SaaS chatbot where each business:
 - Business hours & contact info
 
 ### AI capabilities
-- RAG over uploaded documents (pgvector)
+- RAG over uploaded documents, FAQs and products (multilingual embeddings in Postgres)
 - Intent detection (FAQ / lead / product inquiry / support)
 - Context-aware multi-turn conversation
 - Confidence-based fallback to rule-based / "talk to a human" responses
-- Swappable LLM provider (free-tier first: Groq / Gemini / Ollama; OpenAI/Claude optional upgrade)
+- Swappable LLM provider for the chat widget (Groq / Gemini / Ollama); Force agents use OpenAI and Anthropic Claude (see `files/LLM_MODELS.md`)
 
 ## 6. Success Criteria
 
@@ -80,21 +80,38 @@ Out of scope for MVP: human-agent live handoff (email/notification handoff is en
 | Phase 5 — Polish & deploy | Weeks 6–7 | Analytics, branding, deploy to free-tier host, embed script |
 | Phase 6 — Pilot | Week 8 | Onboard 3 pilot businesses, gather feedback |
 
-**Actual progress vs. this roadmap**: backend, RAG chat, widget, and dashboard (Phases 0–4) are
-built. Scope has grown past the original Phase 5 polish step — plan-based feature gating, a
-(simulated) checkout flow, multi-website management, self-serve password reset, per-business
-multi-language chat (auto-detected, plan-capped), and tiered analytics all now exist, none of
-which were in the original MVP scope below. See `files/FEATURES.md` for what's actually
-built and working, and its "not yet built" footer for real remaining gaps (payment processing,
-human handoff, multi-language, etc.) — treat that file as more current than this roadmap table.
+**Actual progress vs. this roadmap** (as of 2026-10-07): Phases 0–5 are built, and scope has
+grown well past the original MVP:
+
+- **Chat Widget** — RAG over FAQs/documents/products (embedding-matched), whole-website import,
+  multi-language replies, lead capture, inline booking, AI notice + optional consent screen,
+  conversation kept across pages, soft conversation limit with 80%/100% emails.
+- **Dashboard** — English + Norwegian (Bokmål), plan/usage page, knowledge-conflict check,
+  "test your chatbot", privacy settings, per-agent modules.
+- **Platform admin** (`/admin`) — businesses, plans, agent access, AI usage, bookings, support
+  tickets, and a blog CMS that publishes to the marketing site.
+- **Mielikkix Force agents** — Voice Receptionist, Booking Assistant (per-business Google
+  Calendar), Support Triage (live on mielikkix.ai), Review & Reputation (Google Business
+  Profile), SEO Audit & Optimize (free + Start tier), Email Marketing (Mailchimp). Four more
+  agents are queued.
+- **GDPR** — consent records, account export/deletion, visitor retention/erasure, consent-gated
+  analytics, legal pages in English and Norwegian, internal privacy records.
+
+See `files/FEATURES.md` for the full, verified list and its "not yet built" footer — treat that
+file as more current than this roadmap table.
 
 ## 9. Pricing Strategy
 
-Superseded by the actual implemented plans — `files/FEATURES.md`'s pricing table (sourced from
-`apps/api/app/core/plans.py`) is the current source of truth: **Free / Basic ($24/mo) / Business
-($48/mo) / Growth ($96/mo)**, no free trial period (Free is a permanent tier, not a 14-day trial),
-and no separate "Custom/Freelance" tier has been built. Checkout exists in the dashboard but is a
-simulated flow — no real payment processor is connected yet (see `files/FEATURES.md`).
+Superseded by the implemented prices — fixed NOK per month, excl. MVA (`apps/api/app/core/plans.py`,
+`apps/api/app/core/agent_catalog.py`, `website/src/data/pricing.ts`; rules in
+`docs/pricing-rules.md`):
+
+- **Chat Widget**: Free / Start (490 kr) / Business (990 kr) / Growth (1 990 kr). Free is a
+  permanent tier, not a trial. Yearly = 10 × monthly.
+- **Force agents**: sold per agent (e.g. Booking Assistant 390 kr, Voice Receptionist 590 kr,
+  Support Triage 990 kr; SEO Audit & Optimize free or Start 490 kr), or as a 3-pack / Full Crew
+  bundle.
+- No payment processor yet — paid plans are switched on by a platform admin and invoiced manually.
 
 ## 10. Freelance Service Angle
 

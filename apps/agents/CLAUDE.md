@@ -2,13 +2,19 @@
 
 Read the root `CLAUDE.md` first (non-negotiable monorepo conventions — shared
 packages, one dashboard, modular-process deploy). This file adds the
-conventions shared across the 5 Force agents built so far: **Voice
+conventions shared across the 6 Force agents built so far: **Voice
 Receptionist**, **Booking Assistant**, **Support Triage** (the original 3
-flagships), plus **Review & Reputation** and **SEO Copywriter** (both since
-built too — see each agent's own `CLAUDE.md` for exact status). The
-remaining agents (social-media, email-marketing, feedback-survey,
-loyalty-reengage, quote-invoice) are still queued, structure-only scaffolds
-under `_template/`.
+flagships), plus **Review & Reputation**, **SEO Audit & Optimize** (grew out
+of the SEO Copywriter) and **Email Marketing** — see each agent's own
+`CLAUDE.md` for exact status. The remaining agents (social-media,
+feedback-survey, loyalty-reengage, quote-invoice) are still queued,
+structure-only scaffolds built from `_template/`.
+
+**Where the code is:** every built agent runs inside `apps/api` — routers in
+`apps/api/app/api/agents_*.py` (plus `campaigns.py` and the `*_oauth.py`
+connection routers), logic in `apps/api/app/services/`, models in
+`apps/api/app/models/`, tests in `apps/api/tests/`. The `apps/agents/<name>/`
+folders hold the spec/status doc and a stub `app/main.py` only.
 
 Each agent's own `CLAUDE.md` (in its folder) covers what's specific to that
 agent. This file covers what they share, so it isn't reinvented differently
@@ -25,7 +31,7 @@ in each one.
   turns for a minute-plus under real load — see `llm_client.py`'s own
   comments): each agent picks its own provider explicitly at construction
   (`LLMClient(provider="openai"|"anthropic"|"groq", ...)`), by tier —
-    - **Voice Receptionist, SEO Copywriter, Review & Reputation** (low-latency /
+    - **Voice Receptionist, SEO Audit & Optimize, Review & Reputation** (low-latency /
       cheap, routine generation) → **OpenAI**
       (`settings.openai_model`/`openai_mini_model`).
     - **Booking Assistant, Support Triage** (multi-turn reasoning,
@@ -44,7 +50,16 @@ in each one.
   compose service, pgvector-enabled) — not a new database per agent. New
   tables carry `business_id` like every other tenant-scoped table.
 - **Entitlements**: whether a tenant can use a given agent is checked once,
-  in `packages/billing` — not re-implemented per agent (root convention #2).
+  by `apps/api/app/services/agent_access_service.require_agent_access`
+  (`business_agent_access` table, switched on/off by a platform admin) — not
+  re-implemented per agent (root convention #2). `packages/billing` is still
+  a scaffold; this is meant to move there.
+- **AI safety**: customer-facing prompts append
+  `mielikkix_agent_core.guardrails.AI_SAFETY_RULES`; give every `LLMClient` a
+  `usage_tag` so its calls show on the admin AI Usage page.
+- **Per-tenant connections**: OAuth with a signed `state`, token encrypted
+  via `core/encryption.py`, one row per business (`calendar_connections`,
+  `review_connections`, `seo_google_connections`, `mailchimp_connections`).
 - **Notifications (SMS/email)**: reuse `apps/api/app/notifications`
   (Resend provider already wired there) for summaries/escalations/reminders.
   Don't add a second Resend integration per agent.
@@ -61,56 +76,56 @@ keep their own footprint rather than folding into agent-core:
   isn't something self-hosted software can provide; Twilio's API is the
   external dependency here, wired through the voice agent's own
   `integrations/` module.
-- **Cal.com, self-hosted** (Booking Assistant's scheduling engine) — a
-  separate open-source app you didn't build, in its own container with its
-  own Postgres (that's a different thing from "one container/DB per Force
-  agent" — Cal.com isn't one of the 10 agents, it's a dependency of one).
-  Runs at its own subdomain, e.g. `scheduling.mielikkix.ai`; set up event
-  types via Cal.com's own admin UI.
+- **Google Calendar** (Booking Assistant's calendar backend) — each
+  business connects its own Google account via OAuth from `apps/dashboard`;
+  the agent itself owns availability math and booking creation, calling
+  Google only for `freebusy.query` / `events.insert`. Wired through the
+  calendar-provider abstraction (`apps/api/app/integrations/
+  calendar_provider.py` → `google_calendar_client.py`), so Outlook etc. is
+  a factory change. Nothing to self-host. (Self-hosted Cal.com was the
+  original plan and was dropped — see `booking-assistant/CLAUDE.md`'s "Why
+  Google Calendar directly (not Cal.com)".)
 
 ## Process & deploy
 
-Root convention #4: modular process, not one container per agent. Concretely
-for these three:
+Root convention #4: modular process, not one container per agent. Concretely:
 
-- All three mount into the shared modular agent process (see
-  `infra/deploy/README.md` — exact wiring still TBD, same placeholder status
-  as the rest of `infra/deploy`), not one FastAPI container each.
+- Every agent is a set of routers inside the one `apps/api` FastAPI process
+  (`backend` service in `docker-compose.yml`), not one container each.
 - Public routes are exposed under the existing `api.mielikkix.ai` host as
   path-scoped routes (e.g. `/api/agents/voice/incoming`,
   `/api/agents/booking/...`, `/api/agents/support/chat/message`) — not a new
-  subdomain per agent. Caddy (planned reverse-proxy/TLS layer, see
-  `files/ARCHITECTURE.md` §5 — not yet configured) fronts the one host,
-  same as everything else.
+  subdomain per agent, behind the same TLS reverse proxy as everything else
+  (`files/ARCHITECTURE.md` §5).
 - **Voice Receptionist is the one exception to "just a router"**: it holds a
   sustained real-time connection for the length of a phone call, unlike the
   other two (request/response). Load-test it separately before assuming the
   VPS headroom that works for the other agents applies here too.
-- Background/non-real-time work (escalation emails, reminders, review
-  polling once that agent is built) goes through the shared job queue
-  mentioned in the root `CLAUDE.md`, not a standalone daemon.
+- Background/non-real-time work is meant for the shared job queue in the
+  root `CLAUDE.md`, which doesn't exist yet. Today: FastAPI `BackgroundTasks`
+  (emails, SEO audits, crawls, website deploys) and one in-process
+  APScheduler tick (SEO recurring audits). No standalone daemons.
 
-## How the three agents talk to each other
+## How the agents talk to each other
 
 Because they share one process, a handoff between agents is a **direct
 function/service call**, not an authenticated HTTP call between containers
-— no `INTERNAL_API_KEY`, no internal network, one less thing to secure:
+— no `INTERNAL_API_KEY`, no internal network, one less thing to secure.
+All of these are built:
 
-- Voice Receptionist → Booking Assistant's booking service, when a caller
-  wants to schedule something
-- Voice Receptionist → Support Triage's ticket service, when a caller has an
+- Voice Receptionist → `booking_service.resolve_booking_request` /
+  `confirm_booking_slot`, when a caller wants to schedule something
+- Voice Receptionist → `support_service.create_ticket`, when a caller has an
   issue that needs human follow-up
-- Support Triage → Booking Assistant's booking service, when a chat visitor
-  asks to book/reschedule
+- Support Triage and the Chat Widget → the Booking Assistant flow, when a
+  visitor asks to book (`suggest_booking_flow` on the reply makes the widget
+  open its booking UI, which calls `/api/agents/booking/request` + `/confirm`)
 
-Each service exposes a plain importable function (e.g.
-`booking_assistant.service.create_booking(...)`) for the others to call.
-
-## Note for Claude Code, on every agent in this trio
+## Note for Claude Code, on every agent
 
 The person maintaining this code is a senior frontend engineer
 (Angular/TypeScript/C#, 16+ years) who is **new to Python**. When writing
-code for any of these three:
+code for any agent:
 
 - Comment thoroughly, especially anywhere Python idioms diverge from typical
   TS/Angular patterns (decorators, type hints, `async`/`await` semantics,
@@ -123,9 +138,10 @@ code for any of these three:
 ## Worth flagging back to the site review
 
 The Aug 22, 2026 site review noted `website/` (the marketing site, in this
-same repo — not a separate repo) runs no live chat widget, only a static
-mockup. Support Triage's chat widget (see its own `CLAUDE.md`, Phase 4) is
-the fix — once live, embed it site-wide in `website/` instead of the mockup.
-This is a **different widget from the product's existing chat widget**
-(`apps/dashboard/src/widget`, embedded on tenant businesses' own sites) —
-don't confuse the two when reading either doc.
+same repo — not a separate repo) ran no live chat widget, only a static
+mockup. **Resolved:** the site now runs Mielikkix's own product Chat Widget
+on every page (`Layout.astro`, dogfooding), and Support Triage has its own
+live demo at `/demo/support-triage` (`website/public/support-triage.js`).
+Support Triage is a **different widget from the product's chat widget**
+(`apps/dashboard/src/widget`, embedded on tenant businesses' own sites and on
+mielikkix.ai) — don't confuse the two when reading either doc.

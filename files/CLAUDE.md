@@ -4,69 +4,86 @@ Guidance for Claude (and any AI coding assistant) working in this repository.
 
 ## Project
 
-**Mielikkix** — a multi-tenant AI chatbot platform for every businesses (retail, service providers, restaurants, clinics, real estate, local shops). Each business gets a branded, embeddable chat widget backed by RAG over their own FAQs/documents, plus an admin dashboard for managing content and leads.
+**Mielikkix** — a multi-tenant AI platform for small businesses (retail, service providers, restaurants, clinics, real estate, local shops). Each business gets a branded, embeddable chat widget backed by RAG over their own FAQs/documents/products, an admin dashboard (English/Norwegian) for content, leads and conversations, and optional Mielikkix Force AI agents (Voice Receptionist, Booking Assistant, Support Triage, Review & Reputation, SEO Audit & Optimize, Email Marketing).
 
 ## Tech Stack
 
-| Layer | Choice | Why |
-|---|---|---|
-| Frontend | React 18 + TypeScript + Vite | Fast dev server, free, huge ecosystem |
-| UI | Tailwind CSS + shadcn/ui | Free, no license cost, easy theming per tenant |
-| State/data | TanStack Query + Zustand | Lightweight, free |
-| Backend | Python 3.12 + FastAPI | Async, typed, free, great for AI/RAG workloads |
-| ORM | SQLAlchemy 2.0 + Alembic | Free, mature migrations |
-| Database | PostgreSQL | Free, self-hostable |
-| Vector store | pgvector extension | Free — avoids paid Pinecone; lives in the same Postgres instance |
-| RAG orchestration | LangChain (Python) | Free, open-source |
-| Embeddings | `sentence-transformers` (local, free) — fallback to a free-tier hosted embedding API | No per-call cost for MVP |
-| LLM | Provider-agnostic layer — Groq (generous free tier, fast), Google Gemini free tier, or local Ollama (Llama 3 / Mistral) — OpenAI/Claude as paid upgrade option | Keeps MVP cost near $0 |
-| Auth | JWT via `python-jose` + `passlib` (self-rolled) or Supabase Auth free tier | No license cost |
-| File storage | Local disk (MVP) → Supabase Storage free tier or Cloudflare R2 free tier | Free at low volume |
-| Background jobs | FastAPI `BackgroundTasks` (MVP) → Celery + Redis (free, self-hosted) later | Keep MVP simple |
-| Containerization | Docker + Docker Compose | Free |
-| Hosting | Dashboard (`apps/dashboard`) + API (`apps/api`+`db`) on a Hostinger VPS via `docker-compose.yml`, served as two separate hosts (`app.mielikkix.ai` / `api.mielikkix.ai`); marketing site (`website/`) on Hostinger shared hosting, static build | Domain `mielikkix.ai` is already registered/hosted on Hostinger — one vendor for domain, marketing site, and VPS. See `files/ARCHITECTURE.md` §5. |
-| CI/CD | GitHub Actions (free for public/small private repos) | Free |
-| Monitoring/errors | Sentry free tier | Free |
+As actually installed (`apps/api/requirements.txt`, `apps/dashboard/package.json`,
+`website/package.json`, `docker-compose.yml`) — last checked 2026-10-07.
 
-No paid SaaS is required to build and demo the MVP.
+| Layer | Choice | Notes |
+|---|---|---|
+| Backend | Python 3.12 + FastAPI 0.111 on Uvicorn | Async, typed; one app (`apps/api`) serves the widget, dashboard, admin and every Force agent route |
+| Validation/config | Pydantic v2 + pydantic-settings, python-dotenv | One root `.env` |
+| ORM / migrations | SQLAlchemy 2.0 + Alembic | psycopg2 driver |
+| Database | PostgreSQL 16 + pgvector extension (`pgvector/pgvector:pg16` image) | Embeddings are currently stored as JSON text and scored in Python — see `files/ARCHITECTURE.md` §2.4 |
+| RAG | Hand-rolled pipeline (`apps/api/app/rag/pipeline.py`, chunking in `services/document_service.py`) + `sentence-transformers` (`paraphrase-multilingual-MiniLM-L12-v2`, local, CPU-only torch) | No paid vector DB. `langchain` is still in `requirements.txt` but nothing imports it |
+| Chat Widget LLM | Per-business provider abstraction (`apps/api/app/rag/providers/`): Groq (default, `openai/gpt-oss-120b`), Google Gemini, Ollama | See `files/LLM_MODELS.md` |
+| Force agent LLM | `packages/agent-core` `LLMClient`: OpenAI (`gpt-4o` / `gpt-4o-mini`), Anthropic Claude Sonnet (Opus reserved), Groq | Shared AI safety rules in `agent-core/guardrails.py`; usage hook logs every call |
+| Auth | Self-rolled JWT (`python-jose`) in an httpOnly cookie, `passlib`/bcrypt passwords | `PLATFORM_ADMIN_EMAILS` allowlist for `/admin` |
+| Security | `cryptography` (Fernet — OAuth tokens encrypted at rest), `slowapi` rate limiting, `bleach` HTML sanitizing, SSRF guards, Twilio signature validation | |
+| Document parsing / crawling | PyPDF2, python-docx, openpyxl, BeautifulSoup4, httpx/requests | Website crawler shared by knowledge-base import and SEO audits |
+| Integrations | Twilio (voice), Google Calendar, Google Business Profile (reviews), Google Analytics Data + Search Console + PageSpeed Insights, Mailchimp (OAuth + Marketing API), Resend (email) | Each behind a provider abstraction (root `CLAUDE.md` convention #6) |
+| Scheduling | APScheduler (in-process; SEO recurring audits) + FastAPI `BackgroundTasks` | No Celery/Redis job queue yet |
+| Website deploy | paramiko (SFTP upload of `website/dist/` to Hostinger from the admin Articles publish flow) | |
+| Dashboard + widget | React 18 + TypeScript 5 + Vite 5 | Widget built separately (`vite.widget.config.ts`) into one `widget.js`, Shadow DOM |
+| UI | Tailwind CSS 3 (PostCSS/Autoprefixer), lucide-react icons, clsx | Hand-built components in `apps/dashboard/src/shared/components` (no shadcn/ui) |
+| State/data | TanStack Query 5 + Zustand, axios, React Router 6 | |
+| i18n | Own lightweight i18n (`apps/dashboard/src/shared/i18n`) — English + Norwegian Bokmål | User's choice stored on `users.locale` |
+| Marketing site | Astro 7 (static) + Tailwind CSS 4, TypeScript, `@astrojs/sitemap`, self-hosted Open Sans (Fontsource), custom `/no/` page-generation integration | See `website/ARCHITECTURE.md` |
+| Tests | pytest + pytest-asyncio (API), Vitest (dashboard), `node --test` (website) | |
+| Containers | Docker + Docker Compose (`db`, `backend`, `frontend`); dashboard served by nginx | |
+| Hosting | Dashboard (`app.mielikkix.ai`) + API (`api.mielikkix.ai`) + Postgres on a Hostinger VPS via `docker-compose.yml`; marketing site on Hostinger shared hosting (static) | See `files/ARCHITECTURE.md` §5 |
+| CI | GitHub Actions (`.github/workflows/ci.yml`): API tests, migration check, dashboard + widget builds | Website build/tests and deploys are not in CI |
+
+Not used (despite earlier plans): LangChain (installed, unused), shadcn/ui, Supabase, Sentry, Celery/Redis, Cal.com.
 
 ## Repository Structure
 
-Restructured 2026-08-21 into an `apps/` + `packages/` + `infra/` monorepo layout (the flat
-`frontend/`/`backend/` layout below is gone — see root `CLAUDE.md` for the full current tree,
-including `packages/` and the `apps/agents/` Force agent scaffolds):
+`apps/` + `packages/` + `infra/` monorepo (restructured 2026-08-21; see root `CLAUDE.md` for the
+full tree). Note that **all Force agent code actually lives in `apps/api`** (routers
+`app/api/agents_*.py`, services `app/services/*`); the `apps/agents/<name>/` folders hold each
+agent's spec (`CLAUDE.md`) plus a stub `app/main.py`.
 
 ```
 mielikkix-ai/
 ├── apps/
-│   ├── dashboard/              # React + TypeScript — admin dashboard app + embeddable widget build
+│   ├── dashboard/              # React + TypeScript — business dashboard, /admin area, and the embeddable widget build
 │   │   ├── src/
-│   │   │   ├── widget/            # Embeddable chat widget (Widget.tsx, ChatWindow, LeadForm; built separately via vite.widget.config.ts)
-│   │   │   ├── dashboard/          # Admin dashboard app (pages/, components/) — pages/admin + components/admin hold the separate platform-operator-only /admin area
-│   │   │   ├── shared/             # Shared components, hooks, api client
+│   │   │   ├── widget/            # Chat widget (Widget, ChatWindow, LeadForm, BookingFlow, ConsentGate; vite.widget.config.ts)
+│   │   │   ├── dashboard/         # pages/ (incl. settings/, admin/) + components/
+│   │   │   ├── shared/            # api client, components, hooks, i18n (en + nb), auth store
 │   │   │   └── main.tsx
-│   │   ├── nginx.conf              # prod: serves the build, proxies /api/* to backend
-│   │   ├── vite.config.ts
+│   │   ├── nginx.conf             # prod: serves the SPA build
 │   │   └── package.json
-│   ├── api/                    # FastAPI (was backend/)
+│   ├── api/                    # FastAPI
 │   │   ├── app/
-│   │   │   ├── api/                 # Routers: auth, businesses, faqs, documents, products, chat, leads, analytics, websites, admin
-│   │   │   ├── core/                 # Config, security, dependencies, plans.py (plan catalog), cors.py, limiter.py
-│   │   │   ├── models/                # SQLAlchemy models
-│   │   │   ├── schemas/               # Pydantic schemas
-│   │   │   ├── services/              # Business logic (auth, chat, document ingestion, plan enforcement)
-│   │   │   ├── rag/                    # Embeddings + retrieval pipeline (see files/ARCHITECTURE.md §2.4 for pgvector caveat)
-│   │   │   ├── notifications/          # Pluggable notification providers (console / Resend)
+│   │   │   ├── api/               # Routers: auth, account, consent, businesses, websites, faqs, documents, products,
+│   │   │   │                      #   chat, leads, analytics, admin, admin_articles, public_articles,
+│   │   │   │                      #   agents_{voice,booking,support,reviews,seo,seo_audit}, campaigns,
+│   │   │   │                      #   {calendar,review,google,mailchimp}_oauth
+│   │   │   ├── core/              # config, security, dependencies, plans.py, agent_catalog.py, encryption, legal, locale, limiter, cors
+│   │   │   ├── models/            # SQLAlchemy models (see files/DATABASE_SCHEMA.md)
+│   │   │   ├── schemas/           # Pydantic schemas
+│   │   │   ├── services/          # Business logic (chat, documents, plans, agent access, booking, support, reviews,
+│   │   │   │                      #   seo_*, campaigns, retention, account, articles, deploy, ...)
+│   │   │   ├── integrations/      # Provider abstractions: calendar, review platforms, email marketing, Google, Mailchimp, PageSpeed
+│   │   │   ├── rag/               # Embeddings, language detection, retrieval pipeline, LLM providers
+│   │   │   ├── notifications/     # console / Resend providers + email templates (en/nb)
 │   │   │   └── main.py
-│   │   ├── alembic/                 # DB migrations
+│   │   ├── alembic/               # DB migrations
+│   │   ├── scripts/
 │   │   ├── tests/
 │   │   └── requirements.txt
-│   ├── chat-widget/            # README-only for now — widget code still lives in apps/dashboard/src/widget;
-│   │                            # no existing seam to cut it out into its own app yet (shares models/db/rag with the API)
-│   └── agents/                 # The 10 Mielikkix Force agents — structure-only scaffolds today
-├── packages/                   # Shared libs (agent-core, billing, db, auth, ui) — structure-only scaffolds today
-├── website/                   # Astro — separate static marketing site (its own stack, own README/ARCHITECTURE.md)
-├── infra/                      # docker/ + deploy/ READMEs; docker-compose.yml itself stays at repo root
+│   ├── chat-widget/            # README-only placeholder — widget code lives in apps/dashboard/src/widget
+│   └── agents/                 # One folder per Force agent: spec (CLAUDE.md) + stub; code is in apps/api
+├── packages/
+│   ├── agent-core/             # REAL: LLMClient (OpenAI/Anthropic/Groq), guardrails, usage hook
+│   └── billing/ db/ auth/ ui/  # structure-only scaffolds — the logic still lives in apps/api
+├── website/                    # Astro marketing site (own README/ARCHITECTURE.md)
+├── docs/                       # BRAND.md, pricing-rules.md, privacy/ (GDPR records)
+├── infra/                      # docker/ + deploy/ READMEs; docker-compose.yml stays at repo root
+├── .github/workflows/ci.yml
 ├── docker-compose.yml
 ├── files/                      # This doc set
 └── .env                        # repo-root .env, read by apps/api/app/core/config.py regardless of cwd
@@ -90,9 +107,15 @@ npm run dev
 # Full stack (local)
 docker compose up --build
 
+# Marketing site
+cd website
+npm install
+npm run dev
+
 # Tests
 cd apps/api && pytest
 cd apps/dashboard && npm test
+cd website && npm test
 ```
 
 ## Coding Conventions
@@ -101,8 +124,9 @@ cd apps/dashboard && npm test
 - **Backend**: FastAPI routers stay thin; business logic lives in `services/`. Pydantic schemas separate request/response shapes from SQLAlchemy models.
 - **Frontend**: the chat widget (`apps/dashboard/src/widget`) must build to a single small bundle with no external runtime dependency on the dashboard — it's embedded via `<script>` on third-party sites.
 - **Secrets**: never commit `.env`. All provider keys (LLM, storage) are read from environment variables via `apps/api/app/core/config.py`.
-- **RAG**: document ingestion → chunk → embed → store in `document_chunks` (pgvector). Retrieval always scoped by `business_id`.
-- **LLM provider abstraction**: all LLM/embedding calls go through `apps/api/app/rag/providers/`, so swapping Groq/Gemini/Ollama/OpenAI/Claude is a config change, not a code change.
+- **RAG**: document ingestion → chunk → embed → store in `document_chunks.embedding_json` (FAQs and products carry their own `embedding_json` too). Retrieval always scoped by `business_id`.
+- **LLM provider abstraction**: the Chat Widget's LLM calls go through `apps/api/app/rag/providers/` (Groq/Gemini/Ollama, per business); every Force agent goes through `packages/agent-core`'s `LLMClient` (OpenAI/Anthropic/Groq). Never call a provider SDK directly. See `files/LLM_MODELS.md`.
+- **Agent access**: every agent route/module checks `agent_access_service.require_agent_access` (`business_agent_access` table) — don't add a second gate.
 
 ## What Claude Should Do
 

@@ -1,7 +1,7 @@
 # CLAUDE.md — apps/agents/support-triage
 
-Read `apps/agents/CLAUDE.md` first (shared conventions across the three
-flagship agents) — this file covers only what's specific to this one.
+Read `apps/agents/CLAUDE.md` first (shared conventions across the Force
+agents) — this file covers only what's specific to this one.
 
 ## What this agent does
 
@@ -9,13 +9,18 @@ Powers a chat widget, classifies incoming messages, answers what it
 confidently can, drafts replies for the rest, and escalates to a human by
 email when it should. It was the fix for a gap flagged in the site review on
 Aug 22, 2026 (`website/` then had only a static chat-widget mockup, no live
-widget) — that gap is closed: `public/support-chat-widget.js` now runs live
-sitewide, embedded via `Layout.astro`.
+widget). It ran sitewide on mielikkix.ai for a while (`support-chat-widget.js`);
+**today it lives on its own demo page**, `/demo/support-triage`
+(`website/public/support-triage.js`), and the sitewide bubble on mielikkix.ai
+is Mielikkix's own product Chat Widget instead (dogfooding — see the comment
+in `website/src/layouts/Layout.astro`).
 
 **Not the same thing as the product's existing chat widget**
 (`apps/dashboard/src/widget`, embedded on tenant businesses' own sites for
-their customers). This widget lives on `website/` and talks to visitors of
-mielikkix.ai itself.
+their customers). This one lives on `website/` and talks to visitors of
+mielikkix.ai itself. Code: `apps/api/app/api/agents_support.py` +
+`apps/api/app/services/support_service.py`; tickets in `tickets` /
+`ticket_messages`.
 
 ## Integrations needed
 
@@ -127,18 +132,23 @@ Response: { "reply": str, "escalated": bool, "ticket_id": str }
 
 ## Dashboard module
 
-New "Support" tab in `apps/dashboard` (platform-admin scope, not per-tenant
+**Built** as `/admin/tickets` (`AdminTicketsPage.tsx`; `GET /api/admin/tickets`) in `apps/dashboard` (platform-admin scope, not per-tenant
 — see `apps/api/app/core/dependencies.py`'s `require_platform_admin`, since
 this widget serves mielikkix.ai's own visitors, not tenant customers):
 ticket inbox, escalation status, conversation view.
 
 ## Definition of done for the 8-day sprint
 
-- [ ] Escalation actually fires (and only fires) when it should — test both
+- [x] Escalation actually fires (and only fires) when it should — test both
       a confident FAQ answer and a low-confidence/urgent one
+      (`tests/test_agents_support.py`)
 - [ ] Widget CORS rejects requests from origins outside the allowed list
-- [ ] A booking-shaped message is correctly routed to Booking Assistant
+- [x] A booking-shaped message is correctly routed to Booking Assistant
       instead of being triaged as a generic ticket
-- [ ] Voice Receptionist handoff creates a ticket end-to-end
-- [ ] Widget live on `website/`, replacing the static mockup
+- [x] Voice Receptionist handoff creates a ticket end-to-end
+      (`support_service.create_ticket`, called from `agents_voice.py`)
+- [x] Widget live on `website/`, replacing the static mockup (now on
+      `/demo/support-triage`; the sitewide bubble is the product Chat Widget)
+- [x] Ticket inbox for the operator (`/admin/tickets`)
+- [x] Prompt-injection attempts declined, not answered or escalated
 - [ ] Deployed on the VPS, smoke-tested in production

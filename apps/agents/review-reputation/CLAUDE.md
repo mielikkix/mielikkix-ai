@@ -166,8 +166,9 @@ entry point; the structured endpoints (`/analyze`, `/generate-response`, `/insig
 
 ## Dashboard module
 
-`/dashboard/reviews` (`ReviewsPage.tsx`), gated by `review_reputation_enabled`
-(Business/Growth plans -- see `core/plans.py`): overview stats (reputation score,
+`/dashboard/reviews` (`ReviewsPage.tsx`), gated by the `review_reputation` agent
+access (`services/agent_access_service.py`; the old `review_reputation_enabled`
+plan flag was removed -- agents are sold separately from Chat Widget plans): overview stats (reputation score,
 average rating, total reviews, positive/negative %, reviews needing attention),
 insights (top positive/negative topics, AI summary, a sudden-spike alert), a review
 list with priority/sentiment/attention-needed filters, and per-review actions

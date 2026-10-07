@@ -7,67 +7,47 @@ read `files/Mielikkix AI — Claude Code Project Instructions.md` (Sections
 provider abstraction, the live-demo goal, the Mielikkix-owned demo
 account/calendar) this file's own phased plan below is being built toward.
 
-## Current state (as of the chat-widget handoff work)
+## Current state (checked against the code 2026-10-07)
 
-Phases 1-3 below are done and live, but against **Mielikkix's own demo
-setup**, not real per-tenant OAuth yet (that's still Phase 5 — see "Current
-gaps" at the end of this section):
+Built and live, **per business**:
 
-- `app/api/agents_booking.py`: `POST /api/agents/booking/request` (Phase 2:
-  free text → real open slots) and `POST /api/agents/booking/confirm`
-  (Phase 3: re-check + real Google Calendar event) are public routes now,
-  not DEBUG-gated dev routes — they're what the live chat widget and
-  `/demo/booking-assistant` actually call. `GET /api/agents/booking/dev/busy`
-  stays DEBUG-gated; it's a raw internal debugging tool only.
-- `app/integrations/calendar_provider.py`: the `CalendarProvider`
-  abstraction this file's "Why Google Calendar directly" section below
-  calls for — `GoogleCalendarProvider` (in `google_calendar_client.py`) is
-  the one implementation today, obtained via `get_calendar_provider()`.
-  `agents_booking.py` depends on the interface, not Google-specific code
-  directly.
-- `app/models/booking.py`'s `Booking` (no `business_id` yet — see that
-  file's own comment, same reasoning as `Ticket`'s) persists each
-  confirmation, and `notifications.notify_new_booking` emails
-  `settings.booking_notification_email` (`post@mielikkix.no` by default) —
-  Google's own invite (`sendUpdates="all"`) already tells the customer;
-  this is the separate "the business found out" step, mirroring
-  `api/leads.py`'s lead-notification pattern.
-- **Chat widget handoff** (doc Section 14's diagram): `rag/pipeline.py`'s
-  `_detect_intent` now has a `"booking"` branch (checked before `"lead"`),
-  and `chat_service.py` sets `suggest_booking_flow` on the chat response
-  when it fires. `apps/dashboard/src/widget/BookingFlow.tsx` (mirrors
-  `LeadForm.tsx`'s pattern) renders inline in `ChatWindow.tsx` when that
-  flag is set, seeded with the visitor's own triggering message, and calls
-  the two public routes above directly — the chatbot itself never calls
-  Booking Assistant's tools (doc Section 3: "chatbot should NOT contain
-  hardcoded booking logic").
-- **Demo account — DONE.** Switched from a personal Gmail (used during
-  initial Phase 1-3 development) to the dedicated `mielikkix@gmail.com`
-  account (doc Sections 5, 15) by re-running
-  `scripts/connect_google_calendar.py` signed in as that account and
-  updating `.env`'s `GOOGLE_CALENDAR_REFRESH_TOKEN`. Verified end-to-end: a
-  real booking lands on `mielikkix@gmail.com`'s calendar (not the old
-  personal one), the customer gets a real Google Calendar invite, and
-  `post@mielikkix.no` gets the real booking-notification email via Resend.
-  `GOOGLE_CALENDAR_ID` is still `"primary"` — a secondary "Mielikkix Demo
-  Bookings" calendar on that account (doc Section 5's suggestion, to keep
-  demo bookings out of the account's main calendar view) hasn't been
-  created yet; that's a quick follow-up whenever it matters, not a
-  functional gap.
-  Note: the Google Cloud OAuth client (`booking-dev-local`) is in
-  "Testing" publish mode, which requires every signing-in account to be
-  added as an approved test user first (Google Cloud Console → APIs &
-  Services → OAuth consent screen → Test users) — `mielikkix@gmail.com` had
-  to be added there before this worked.
+- **Per-tenant Google Calendar** — each business connects its own calendar
+  from dashboard Settings → Booking (`BookingSection.tsx`), through
+  `app/api/calendar_oauth.py` (`/api/businesses/me/calendar/authorize`,
+  `/callback`, `/status`, `DELETE`). The refresh token is stored encrypted in
+  `calendar_connections`. `get_calendar_provider(db, business_id)` returns
+  that business's own calendar, and returns `None` (never the demo calendar)
+  if the business hasn't connected one, so the widget says so honestly.
+- **Per-tenant opening hours** — slots come from that business's
+  `BusinessSettings.business_hours`; the global
+  `settings.booking_agent_hours_*` only apply to the standalone demo page.
+- **Entitlement** — `booking_service` calls
+  `agent_access_service.require_agent_access(..., "booking_assistant")`, the
+  same check every agent uses (`business_agent_access` table).
+- **Public routes** (`app/api/agents_booking.py`, logic in
+  `app/services/booking_service.py`): `POST /api/agents/booking/request`
+  (free text → open slots, via Claude Sonnet) and `POST /confirm` (re-check
+  availability, create the Google Calendar event with `sendUpdates="all"`,
+  save a `Booking`, email `notify_new_booking` in the user's language).
+  `GET /dev/busy` stays DEBUG-gated.
+- **Time-of-day filtering** — "morning" / "afternoon" / "evening" narrow the
+  offered slots (`_ParsedRequest.time_of_day`).
+- **Handoffs** — Chat Widget (`_detect_intent` → `suggest_booking_flow` →
+  `apps/dashboard/src/widget/BookingFlow.tsx`), Support Triage (same flag),
+  and Voice Receptionist (direct calls to `resolve_booking_request` /
+  `confirm_booking_slot`).
+- **Demo** — with no `business_id` (the standalone `/demo/booking-assistant`
+  page) bookings go to Mielikkix's own demo calendar
+  (`mielikkix@gmail.com`, `GOOGLE_CALENDAR_REFRESH_TOKEN`).
+- **Operator view** — every booking is listed at `/admin/bookings`.
 
-**Current gaps vs. this file's original plan below** (all explicitly
-deferred, matching the instructions doc's own Section 20 priority order —
-multi-tenant/entitlement work comes after booking/chat/demo/voice, not
-before): no per-tenant OAuth (still one Mielikkix-owned calendar for
-everyone), no dashboard "Bookings" tab, no `booking_enabled` plan
-entitlement, no Voice Receptionist/Support Triage handoff (Phase 4), no
-NL-parsing time-of-day filtering ("afternoon" is accepted but not filtered
-on), no cancel/reschedule.
+**Current gaps:** no cancel/reschedule; no tenant-facing Bookings tab (the
+`bookings` table has no `business_id` column yet, so bookings can't be listed
+per business); one calendar per business (multi-calendar / multi-location are
+"Coming soon" on the pricing page); the Google OAuth app is still in
+"Testing" mode pending Google's verification (see
+`files/GOOGLE_OAUTH_VERIFICATION.md`), so only approved test users can
+connect a calendar today.
 
 ## What this agent does
 
@@ -219,37 +199,37 @@ view of upcoming bookings, manual booking creation, cancellation.
 4. **Phase 3 — DONE.** Real booking creation (`POST
    /api/agents/booking/confirm`), persisted (`Booking` model) and notified
    (`notify_new_booking`) — see "Current state" above.
-5. **Phase 4 — Agent handoff**: build `create_booking(...)` for Voice
-   Receptionist and Support Triage to call; test it with a fake caller. Not
-   started — the chat-widget handoff (see "Current state" above) is a
-   *different* handoff (chatbot → this agent's public HTTP routes), not
-   this one (agent-to-agent direct function call).
+5. **Phase 4 — Agent handoff — DONE.** Voice Receptionist calls
+   `booking_service.resolve_booking_request` / `confirm_booking_slot`
+   directly; Support Triage hands off through the widget's booking flow.
 6. **Phase 5 — Chat widget + dashboard OAuth UI**: the **chat widget** half
    of this is done (see "Current state" above) — though earlier than
    originally planned here, and against Mielikkix's own demo calendar
    rather than a real tenant's, since the live-demo goal (doc Section 14)
    needed it working before full per-tenant OAuth exists. The **dashboard
-   OAuth UI** half (a real "Connect Google Calendar" button, replacing the
-   one hardcoded calendar with genuine per-business OAuth) is not started.
-7. **Phase 6 — Deploy**: wire into the shared modular agent process behind
-   Caddy at `api.mielikkix.ai/api/agents/booking/...`.
-8. **Phase 7 — Tests**: NL-parsing edge cases (ambiguous dates, past dates,
-   unsupported durations) and the Google Calendar client against a mocked
-   API (never a real Google account in tests).
+   OAuth UI** half is **DONE** too: "Connect Google Calendar" in Settings →
+   Booking, real per-business OAuth (`calendar_oauth.py`).
+7. **Phase 6 — Deploy**: served by the one `apps/api` process at
+   `api.mielikkix.ai/api/agents/booking/...` (no separate process).
+8. **Phase 7 — Tests — DONE.** `tests/test_agents_booking.py`,
+   `test_booking_service.py`, `test_calendar_oauth.py`,
+   `test_calendar_provider_factory.py`, `test_google_calendar_client.py`,
+   `test_chat_booking_suggestion.py` (Google mocked, never a real account).
 
 ## Definition of done for the 8-day sprint
 
-- [ ] A business can connect their Google Calendar via OAuth from the
-      dashboard (still one Mielikkix-owned demo calendar for everyone)
+- [x] A business can connect their Google Calendar via OAuth from the
+      dashboard (Settings → Booking)
 - [x] Availability lookup works against a real connected calendar
 - [x] Booking created end-to-end from the Chat Widget flow
-- [ ] Booking created end-to-end from a Voice Receptionist handoff
-- [ ] Booking created end-to-end from a Support Triage handoff
+- [x] Booking created end-to-end from a Voice Receptionist handoff
+- [x] Booking created end-to-end from a Support Triage handoff
 - [x] Reminder sent ahead of the appointment (Google's own default event
       reminders — not a custom reminder schedule we configured ourselves)
 - [x] NL parser asks a clarifying question rather than guessing on
       ambiguous/relative dates ("next Tuesday", "sometime this week")
 - [x] Double-booking impossible — availability re-checked at confirmation
       time, not just at search time
-- [ ] Bookings visible in dashboard, gated correctly by entitlement
+- [ ] Bookings visible in the tenant dashboard, gated correctly by entitlement
+      (operator-only `/admin/bookings` exists; needs `bookings.business_id`)
 - [ ] Deployed on the VPS, smoke-tested in production

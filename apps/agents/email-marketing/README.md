@@ -1,11 +1,12 @@
 # apps/agents/email-marketing
 
-Queued Force agent — fast-follow after the 3 flagships (see root
-`CLAUDE.md`'s "Current status"). Writes and sends newsletters/promo
-campaigns to a business's own contacts, reviewed and approved by a human
-before anything sends.
+Built Force agent. A business connects its own Mailchimp account, picks an
+audience, writes a campaign, approves it, sends a test, then sends now or
+schedules it — Mailchimp delivers it and the dashboard shows Mailchimp's live
+report. Nothing sends without a human approving it.
 
-See [`CLAUDE.md`](./CLAUDE.md) in this directory for integrations needed,
-data model, and test criteria — read that before touching this agent's code.
-
-This is currently a **structure-only scaffold** — no business logic yet.
+The code lives in `apps/api` (`app/api/campaigns.py`, `app/api/mailchimp_oauth.py`,
+`app/services/campaign_service.py`); the dashboard page is
+`apps/dashboard/src/dashboard/pages/EmailMarketingPage.tsx`. This folder holds the
+spec — see [`CLAUDE.md`](./CLAUDE.md) for the lifecycle, data model, tests and what's
+still missing (AI copywriting, webhook).

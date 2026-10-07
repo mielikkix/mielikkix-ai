@@ -41,5 +41,5 @@ These are billing policies; there is no automated billing yet, so they're applie
 
 ## Open questions
 
-- Business-plan API add-on: the backend still has it at +$12/mo, but it's not on the NOK price list.
+- Business-plan API add-on: disabled — `api_access_addon_available` is false on every plan, so API access is Growth-only. The `api_access_addon` column and its endpoint still exist and could be removed.
 - Email Marketing agent: not on the price list; `agent_catalog.py` uses 390 kr as a placeholder.

@@ -30,6 +30,7 @@ current terms.
 
 ## Open actions
 - [ ] Fill in every `{{VERIFY}}` above and copy the results into `website/src/config/legal.ts`.
-- [ ] Decide whether Cal.com (mentioned in GDPR-COMPLIANCE-CLAUDE.md) is in use. It isn't referenced in
-      the code as of 2026-09-26.
+- [x] Decide whether Cal.com is in use. **No** (confirmed 2026-10-07): the Booking Assistant uses Google
+      Calendar directly (see apps/agents/booking-assistant/CLAUDE.md). Cal.com is not a subprocessor and has
+      been removed from GDPR-COMPLIANCE-CLAUDE.md.
 - [ ] Keep signed DPAs in `{{VERIFY: where}}`.

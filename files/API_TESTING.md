@@ -4,6 +4,13 @@ A walkthrough for manually testing every backend endpoint via the interactive Sw
 **http://127.0.0.1:8000/docs**. Follow it top to bottom the first time — later sections depend on
 data created in earlier ones (a business, a JWT, an FAQ, etc.).
 
+> **Scope:** this guide walks through the core Chat Widget, dashboard and admin endpoints. The
+> Force agent endpoints (booking, voice, support, reviews, SEO audit, email campaigns), the OAuth
+> connection routes, `/api/account`, `/api/consent` and the articles CMS are listed in
+> `files/ARCHITECTURE.md` §4 and covered by the pytest suite (`apps/api/tests/`). Agent routes
+> return **403** unless the business has that agent switched on — use
+> `PATCH /api/admin/businesses/{id}/agents/{agent_key}` (section 10) first.
+
 Backend must be running first (Postgres via `docker compose up -d db` from the repo root, then):
 ```powershell
 cd C:\Pratibha2026\mielikkix-ai\apps\api
@@ -102,7 +109,7 @@ Both endpoints are rate-limited (5/hour and 10/hour respectively) — expect **4
 
 ## 3. Plans & billing — `/api/businesses` + `/api/websites`
 
-- **`GET /api/businesses/plans`** (public) → the four-plan catalog (Free/Basic/Business/Growth)
+- **`GET /api/businesses/plans`** (public) → the four-plan catalog (keys `free`/`basic`/`business`/`growth`, shown as Free/Start/Business/Growth, NOK prices)
   with limits and feature flags — this is what powers the pricing/upgrade UI.
 - **`GET /api/businesses/me/plan`** → your current plan, live usage counts (websites,
   conversations this month, documents, products), resolved feature flags, and
@@ -113,11 +120,11 @@ Both endpoints are rate-limited (5/hour and 10/hour respectively) — expect **4
   payment processor exists, so this endpoint deliberately can't put a business on a paid plan, even
   via a direct API call. To actually get a paid-plan business to test the rest of this guide with,
   use the admin endpoint in section 10 instead: `PATCH /api/admin/businesses/{id}/plan`.
-- **`PATCH /api/businesses/me/plan/api-access-addon`** → `{ "enabled": true }`. Only works on the
-  `business` plan — expect **403** on other plans.
+- **`PATCH /api/businesses/me/plan/api-access-addon`** → `{ "enabled": true }`. Expect **403** on
+  every plan today — the add-on is switched off everywhere (`api_access_addon_available`), API
+  access is Growth-only.
 - **`GET`/`POST`/`DELETE /api/businesses/me/api-key`** → issue/revoke a bearer API key. `POST`
-  requires the `api_access` feature (Growth, or Business + the add-on above) — expect **403**
-  otherwise.
+  requires the `api_access` feature (Growth) — expect **403** otherwise.
 - **`POST /api/businesses/me/notification-channels`** → `{ "channel": "whatsapp", "enabled": true }`.
   Expect **501** even on a plan that includes it — WhatsApp/Instagram are gated but not actually
   integrated yet; that 501 is correct behavior, not a bug.
@@ -251,7 +258,7 @@ API — that's correct here, not a multi-tenancy leak (see `files/CLAUDE.md`'s m
 - **`GET /businesses`** → paginated list of every business. Optional query params: `q` (matches
   name/slug/owner email), `plan`, `status`, `page`, `page_size`.
 - **`GET /businesses/{business_id}`** → full detail for one business — profile, owners, plan
-  limits/usage, chatbot settings snapshot, resource counts, and a 30-day Groq usage summary.
+  limits/usage, chatbot settings snapshot, resource counts, agent access, and a 30-day AI usage summary.
   Expect **404** for an unknown/garbage UUID.
 - **`PATCH /businesses/{business_id}/plan`** → the only way to reach a paid plan today:
   ```json
@@ -268,10 +275,15 @@ API — that's correct here, not a multi-tenancy leak (see `files/CLAUDE.md`'s m
   section 3 above). Suspending also forces that business's `plan` back to `"free"` in the same
   call — check the response body's `plan` field to confirm. Sending `"trial"` or anything else
   correctly returns **422**.
-- **`GET /llm-usage`** → Groq token usage: totals, a daily series, and a top-10-businesses-by-tokens
-  breakdown. Optional `business_id` (filter to one business) and `days` (default 30) query params.
-  Will be all zeros until a chat message has actually gone through a business on the Groq provider —
-  run section 7 first if you want non-empty numbers here.
+- **`PATCH /businesses/{business_id}/agents/{agent_key}`** → switch a Force agent on or off for a
+  business, e.g. `agent_key` = `booking_assistant`, `review_reputation`, `seo_audit_optimization`,
+  `email_marketing`. Needed before that business can use the agent's routes or dashboard page.
+- **`GET /llm-usage`** → AI token usage (Groq chat widget + OpenAI/Claude agent calls): totals, a
+  daily series, and a top-10-businesses-by-tokens breakdown. Optional `business_id` (filter to one
+  business) and `days` (default 30) query params. All zeros until some AI call has run — run
+  section 7 first if you want non-empty numbers here.
+- **`GET /bookings`** → every Booking Assistant booking.
+- **`GET /tickets`**, **`GET /tickets/{ticket_id}`** → Support Triage tickets and their messages.
 
 ---
 

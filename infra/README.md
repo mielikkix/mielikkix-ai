@@ -36,6 +36,13 @@ move of a live production service.
 
 ## deploy/
 
-Placeholder for CI/CD + per-env config. No CI/CD currently exists in this
-repo (no `.github/workflows/`, no other CI config found) — deployment today
-is the manual VPS process described above.
+Placeholder for deploy scripts + per-env config. CI exists
+(`.github/workflows/ci.yml`: API tests + migration check, dashboard and
+widget builds) but it doesn't deploy. Deployment today:
+
+- **API + dashboard + db**: manual `git pull && docker compose up -d --build`
+  on the Hostinger VPS, behind a TLS reverse proxy configured outside this repo.
+- **Marketing site**: static `website/dist/` uploaded to Hostinger shared
+  hosting — by hand, or by the admin Articles publish flow
+  (`apps/api/app/services/deploy_service.py`, SFTP via `paramiko`, needs the
+  `WEBSITE_REPO_PATH` and `WEBSITE_DEPLOY_SFTP_*` settings).

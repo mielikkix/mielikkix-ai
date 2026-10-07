@@ -16,21 +16,24 @@ not a second entitlement gate; see `app/core/agent_catalog.py`):
 - **Free — "SEO Audit & Optimize"**: every capability built through Stage 11
   below (crawl + technical/on-page findings, action plan, executive summary,
   keyword ideas, history/comparison, client report with PDF export).
-- **Paid — "Professional SEO Audit & Optimization"**, 29 901 kr: everything
-  in Free, plus a longer roadmap of enterprise crawler capabilities (crawl
-  scheduling, JS rendering, GA/Search Console/PageSpeed integrations,
-  structured-data/accessibility checks, etc.) modeled on Screaming Frog's
-  feature set. **Most of these are marketing roadmap items, not built** —
-  each one is labeled `(coming soon)` in `agent_catalog.py`, the same
-  convention `PlanPage.tsx` already uses for `PlanFeatures` that are sold
-  but not yet wired (WhatsApp notifications, Instagram integration). Do not
-  remove the `(coming soon)` suffix from one of these until it's actually
-  implemented — the whole point of that convention is that this repo never
+  PageSpeed/Core Web Vitals, structured-data validation and accessibility
+  checks were later folded into Free too.
+- **Paid — "SEO Audit & Optimize Start"**, 490 kr/month (tier key still
+  `professional`, so no stored data changed; formerly sold as "Professional
+  SEO Audit & Optimization" at 29 901 kr): everything in Free, plus Google
+  Analytics + Search Console integration, scheduled recurring audits, and
+  priority support — **all built** (Stages 12 and 15).
+- **Business / Growth** on the website's SEO price list are *managed*
+  services (Mielikkix does the work), handled outside the app — see
+  `docs/pricing-rules.md`.
+- Convention kept: a feature only appears in `agent_catalog.py` tier copy
+  once it's built; anything sold but not wired carries a `(coming soon)`
+  suffix (as `PlanPage.tsx` does for WhatsApp/Instagram). This repo never
   lets priced copy imply a capability that doesn't exist yet (this file's
   own "no fabricated findings" rule, applied to sales copy instead of audit
   data).
 
-## Professional tier roadmap (business direction, 2026-09-20)
+## Professional tier roadmap (business direction, 2026-09-20 — historical; the paid tier is now "Start", see Pricing above)
 
 **The strategic problem this section answers**: SEO Audit & Optimize's crawl
 itself is not the product — Screaming Frog (free up to 500 URLs, £199/yr for
@@ -114,9 +117,10 @@ each draft before it overwrites anything live.
   `approve_draft` copies onto the real `Product` row (and re-embeds it for
   RAG). `Product.seo_title`/`Product.meta_description` were added by this
   agent's own migration (`d4f7a1b8e3c2_add_seo_copywriter.py`).
-- Entitlement: `PlanFeatures.seo_copywriter_enabled`
-  (`apps/api/app/core/plans.py`), checked via `plan_service.require_feature`
-  — the only gate, nowhere else (root convention #2).
+- Entitlement: the `seo_audit_optimization` agent access
+  (`apps/api/app/services/agent_access_service.require_agent_access`) — the
+  only gate, nowhere else (root convention #2). The old
+  `PlanFeatures.seo_copywriter_enabled` flag was removed.
 - LLM: OpenAI cheap/fast tier (`LLMClient(provider="openai",
   model=openai_mini_model)`) — routine generation from a product's own
   fields, no multi-step reasoning.

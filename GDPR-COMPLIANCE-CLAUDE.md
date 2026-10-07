@@ -26,13 +26,13 @@ You are implementing privacy and data-protection features for **Mielikkix AS**, 
 - Privacy contact: `post@mielikkix.no` (or `{{PRIVACY_EMAIL}}`)
 - Registered: 19.08.2026
 
-**Known subprocessors (verify against the code and update):** Groq (LLM, US), Twilio (voice, US), Resend (email, US), Google (Calendar API; Analytics on marketing site), Cal.com (self-hosted), hosting provider `{{HOSTING_PROVIDER_AND_REGION}}`.
+**Known subprocessors (verify against the code and update):** Groq (LLM, US), Twilio (voice, US), Resend (email, US), Google (Calendar API; Analytics on marketing site), hosting provider `{{HOSTING_PROVIDER_AND_REGION}}`.
 
 ### Findings from the live audit (Sept 2026) — these are the problems to fix
 1. Marketing site loads Google Analytics (`G-MLGKW5T191`) and sends a hit **before any consent**. No cookie banner exists.
 2. Google Fonts are loaded from `fonts.googleapis.com` (visitor IPs sent to Google).
 3. `/terms`, `/cookies`, `/dpa`, `/subprocessors`, `/security`, `/no/privacy` all return 404.
-4. Privacy policy says the company is "being registered", omits analytics/cookies/fonts/hosting/Cal.com, omits international transfers and legal bases, and allows "unlimited" conversation retention.
+4. Privacy policy says the company is "being registered", omits analytics/cookies/fonts/hosting, omits international transfers and legal bases, and allows "unlimited" conversation retention.
 5. `app.mielikkix.ai/register` has no Terms checkbox, no Privacy Policy link, no marketing opt-in, no age confirmation, no country field. Login/Register pages link to no legal pages.
 6. No self-serve account deletion or data export (deletion is by email only).
 7. Chat widget has no "you are talking to an AI" disclosure; unclear whether it writes to visitor storage on page load.

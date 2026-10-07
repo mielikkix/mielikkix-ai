@@ -11,7 +11,9 @@ agent can use it, not just the widget.
 ## Current status (honesty check for whoever reads this next)
 
 Only the **LLM client** below is actually built (`mielikkix_agent_core.LLMClient`,
-`LLMResult`, `LLMUsage` — a thin wrapper with retries/JSON-mode/tool-calling and a usage hook). The
+`LLMResult`, `LLMUsage` — a thin wrapper with retries/JSON-mode/tool-calling and a usage hook),
+plus the shared **AI safety rules** (`mielikkix_agent_core.guardrails.AI_SAFETY_RULES`,
+appended by the Chat Widget, Support Triage, Voice Receptionist and the Booking parser). The
 **prompt/tool-calling framework**, **memory/RAG utilities**, and **tenant context
 loader** below are still just this file's stated intent, not code that exists yet.
 Concretely: the Chat Widget (`rag/pipeline.py`), Support Triage, Voice Receptionist,

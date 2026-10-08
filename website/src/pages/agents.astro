@@ -208,12 +208,16 @@ const customAgentExamplesMeta = [
               <p class="mt-3 flex-1 text-sm leading-relaxed text-slate-500" data-i18n={`CORE_SOLUTIONS.ITEMS.${i}.DESCRIPTION`}>
                 {agent.DESCRIPTION}
               </p>
-              <span
-                class="brand-gradient mt-7 inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform group-hover:scale-105"
+              {/* A real link above the card's stretched title link: the hover scale
+                  made this a stacking context painted over that overlay, so a
+                  plain <span> here swallowed the click. */}
+              <a
+                href={meta.href}
+                class="brand-gradient relative z-10 mt-7 inline-flex items-center justify-center gap-1.5 rounded-full px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-200 transition-transform group-hover:scale-105"
                 data-i18n={`CORE_SOLUTIONS.ITEMS.${i}.CTA`}
               >
                 {agent.CTA} &rarr;
-              </span>
+              </a>
             </div>
           );
         })

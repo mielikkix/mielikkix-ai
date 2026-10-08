@@ -58,6 +58,7 @@ export const plan = {
     domainPlaceholder: 'yourdomain.com',
     domainLabel: 'Website domain',
     labelPlaceholder: 'Label (optional)',
+    detectedFromWidget: 'Detected from your chat widget',
     labelLabel: 'Label',
     add: 'Add',
     atLimit: "You've reached your plan's website limit. Upgrade below to add more.",

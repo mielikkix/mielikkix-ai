@@ -34,6 +34,27 @@ def top_visitor_questions(rows, limit: int = 5) -> list[tuple[str, int]]:
     return [(shown[key], len(convs)) for key, convs in ranked]
 
 
+# When one conversation touched several intents, it counts once, under the one
+# that matters most to the business. Unknown codes rank last.
+_INTENT_PRIORITY = ("booking", "lead", "support", "product_inquiry", "faq")
+
+
+def primary_intents(rows) -> dict[str, int]:
+    """rows: distinct (conversation_id, intent). Conversations per main intent,
+    so the counts add up to the conversations with an intent at all (QA
+    2026-10-08, A-07: 3 + 42 + 9 + 9 + 2 = 65 against 44 conversations)."""
+    rank = {intent: i for i, intent in enumerate(_INTENT_PRIORITY)}
+    best: dict = {}
+    for conversation_id, intent in rows:
+        current = best.get(conversation_id)
+        if current is None or rank.get(intent, len(rank)) < rank.get(current, len(rank)):
+            best[conversation_id] = intent
+    counts: dict[str, int] = {}
+    for intent in best.values():
+        counts[intent] = counts.get(intent, 0) + 1
+    return counts
+
+
 @router.get("/summary", response_model=AnalyticsSummary)
 def get_summary(
     current_user: User = Depends(get_current_user),
@@ -78,10 +99,9 @@ def get_summary(
 
     intent_breakdown: dict[str, int] = {}
     if tier == "advanced":
-        # Conversations per intent, not messages (QA 2026-10-02, D10: the
-        # counts added up to 112 messages while there were 37 conversations).
+        # Conversations, not messages (QA 2026-10-02, D10), each counted once.
         intent_rows = (
-            db.query(Message.intent, func.count(func.distinct(Message.conversation_id)).label("cnt"))
+            db.query(Message.conversation_id, Message.intent)
             .join(Conversation, Message.conversation_id == Conversation.id)
             .filter(
                 Conversation.business_id == business_id,
@@ -89,10 +109,10 @@ def get_summary(
                 Message.sender == "ai",
                 Message.intent.isnot(None),
             )
-            .group_by(Message.intent)
+            .distinct()
             .all()
         )
-        intent_breakdown = {r.intent: r.cnt for r in intent_rows}
+        intent_breakdown = primary_intents(intent_rows)
 
     return AnalyticsSummary(
         conversation_count=conv_count or 0,

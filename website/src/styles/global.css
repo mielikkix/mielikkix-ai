@@ -86,8 +86,8 @@ html.i18n-loading body {
  * both are server-rendered and the <html lang> set by translationService picks one.
  * display:none also removes the other language from the accessibility tree.
  */
-html:not([lang="no"]) .i18n-no,
-html[lang="no"] .i18n-en {
+html:not([lang="nb"]) .i18n-no,
+html[lang="nb"] .i18n-en {
   display: none !important;
 }
 

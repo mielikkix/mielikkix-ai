@@ -28,7 +28,7 @@ const page = `<!DOCTYPE html><html lang="en"><head>
 
 test("applies the Norwegian dictionary to text, attributes, title and meta", () => {
   const out = toNorwegian(page, opts);
-  assert.match(out, /<html lang="no">/);
+  assert.match(out, /<html lang="nb">/);
   assert.match(out, /<title data-i18n-doc-title="SEO.TITLE">Om oss · Mielikkix<\/title>/);
   assert.match(out, /content="Beskrivelse &amp; mer"/);
   assert.match(out, />Agenter<\/a>/);

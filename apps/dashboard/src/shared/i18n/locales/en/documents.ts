@@ -40,4 +40,9 @@ export const documents = {
   delete: 'Delete document',
   deleteConfirm: 'Remove "{name}" from your chatbot\'s knowledge?',
   empty: 'No documents uploaded yet.',
+  olderVersions: {
+    one: '{count} file is an older copy of a newer upload. Both are used for answers, so the chatbot may quote the outdated one. Delete it if it is out of date.',
+    other: '{count} files are older copies of newer uploads. Both are used for answers, so the chatbot may quote the outdated ones. Delete them if they are out of date.',
+  },
+  olderVersionOf: 'Older version of {name}',
 }

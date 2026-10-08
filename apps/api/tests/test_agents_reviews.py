@@ -658,6 +658,28 @@ def test_trends_detects_a_sudden_negative_spike(db_session, business):
     assert {"topic": "waiting_time", "count": 3} in trends.recurring_negative_topics
 
 
+def test_trends_need_more_than_one_review_and_do_not_count_mixed_as_negative(db_session, business):
+    """QA 2026-10-08, A-03: one "mixed" review this month against five older
+    ones (two mixed) showed "negative share rose from 40 % to 100 %" next to
+    cards that said 0 % negative."""
+    biz_id = business["business_id"]
+    for sentiment in ("positive", "positive", "positive", "mixed", "mixed"):
+        _insert_analyzed_review(db_session, biz_id, sentiment, ["price"], days_ago=45)
+    _insert_analyzed_review(db_session, biz_id, "mixed", ["price"], days_ago=5)
+
+    assert review_service.get_trends(db_session, biz_id, period_days=30).insufficient_data is True
+
+    for sentiment in ("mixed", "positive"):
+        _insert_analyzed_review(db_session, biz_id, sentiment, ["price"], days_ago=5)
+    trends = review_service.get_trends(db_session, biz_id, period_days=30)
+
+    assert trends.insufficient_data is False
+    assert trends.current_negative_pct == 0.0
+    assert trends.previous_negative_pct == 0.0
+    assert trends.sudden_spike is False
+    assert trends.recurring_negative_topics == []  # 2 mixed reviews: below the 3-review threshold
+
+
 # --- Duplicate review import ---
 
 

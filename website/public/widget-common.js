@@ -44,5 +44,18 @@ window.MlxWidget = (function () {
     });
   }
 
+  // A demo's chat composer is never a real form post. Each demo script
+  // handles its own submit, but if that script failed to load, Enter would
+  // fall back to a native submit and reload the page (QA 2026-10-08, note
+  // under W-01). Capture phase, so this runs first and the demo's own
+  // listener still gets the event.
+  document.addEventListener(
+    "submit",
+    (e) => {
+      if (e.target instanceof HTMLFormElement && e.target.id === "composerForm") e.preventDefault();
+    },
+    true,
+  );
+
   return { postJSON, formatSlot, lang };
 })();

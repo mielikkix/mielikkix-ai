@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { publicAsset } from "../lib/publicAsset";
 import { chatWidgetNode } from "../lib/offeringSchema";
 import FeatureBentoCard from "../components/FeatureBentoCard.astro";
 import CTASection from "../components/CTASection.astro";
@@ -131,7 +132,7 @@ const whyChoose = en.WHY_CHOOSE.ITEMS;
             />
           </div>
         </div>
-        <script src="/reduced-motion-video.js" data-video-id="chat-demo-video" defer></script>
+        <script src={publicAsset("/reduced-motion-video.js")} data-video-id="chat-demo-video" defer></script>
       </FeatureBentoCard>
 
       <!-- AI Knowledge Base -->

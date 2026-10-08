@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { publicAsset } from "../../lib/publicAsset";
 import { voiceReceptionistNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
 import Tr from "../../components/Tr.astro";
@@ -110,7 +111,7 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("voice-recep
   </section>
 
   <script
-    src="/voice-receptionist.js"
+    src={publicAsset("/voice-receptionist.js")}
     data-api-url={import.meta.env.PUBLIC_API_URL}
     defer
   ></script>

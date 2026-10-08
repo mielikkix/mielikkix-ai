@@ -54,6 +54,22 @@ def test_advanced_tier_shows_intent_breakdown(client, business, db_session, set_
     assert body["intent_breakdown"] == {"faq": 1, "product_inquiry": 1, "lead": 1}
 
 
+def test_intent_breakdown_counts_each_conversation_once(client, business, db_session, set_plan):
+    """QA 2026-10-08, A-07: purposes added up to 65 while there were 44 conversations."""
+    set_plan(business["business_id"], "business")
+    seed_conversation(db_session, business["business_id"], "What are your hours?", intent="faq")
+    conv = Conversation(business_id=business["business_id"], session_id=uuid.uuid4().hex)
+    db_session.add(conv)
+    db_session.flush()
+    for intent in ("faq", "faq", "lead"):
+        db_session.add(Message(conversation_id=conv.id, sender="ai", content="reply", intent=intent, confidence=0.9))
+    db_session.commit()
+
+    body = client.get("/api/analytics/summary", headers=business["headers"]).json()
+    assert body["intent_breakdown"] == {"faq": 1, "lead": 1}
+    assert sum(body["intent_breakdown"].values()) == body["conversation_count"]
+
+
 def test_analytics_scoped_per_business(client, signup, db_session):
     biz_a = signup()
     biz_b = signup()

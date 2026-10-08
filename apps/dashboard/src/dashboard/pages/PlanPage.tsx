@@ -45,6 +45,11 @@ function planTagline(entry: PlanCatalogEntry): string {
   return keys[entry.key] ? translateNow(keys[entry.key]) : entry.tagline
 }
 
+// The label the API gives a site it found from widget traffic
+// (apps/api/app/services/website_service.py, WIDGET_DETECTED_LABEL). Stored as
+// English text, so it is translated here (QA 2026-10-08, A-06).
+const WIDGET_DETECTED_LABEL = 'Detected from your chat widget'
+
 interface Website {
   id: string
   domain: string
@@ -85,7 +90,11 @@ function WebsitesCard() {
           <div key={w.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
             <div>
               <p className="text-base font-medium text-slate-800">{w.domain}</p>
-              {w.label && <p className="text-sm text-slate-400">{w.label}</p>}
+              {w.label && (
+                <p className="text-sm text-slate-400">
+                  {w.label === WIDGET_DETECTED_LABEL ? t('plan.websites.detectedFromWidget') : w.label}
+                </p>
+              )}
             </div>
             <button
               onClick={() => deleteMut.mutate(w.id)}

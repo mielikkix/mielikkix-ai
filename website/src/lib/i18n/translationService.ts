@@ -74,7 +74,7 @@ export function getStoredLanguage(): LanguageCode {
  * posts) switch language in place.
  */
 export function languageUrl(lang: LanguageCode): string | null {
-  const hreflang = lang === "no" ? "nb" : lang;
+  const hreflang = htmlLang(lang);
   const link = document.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${hreflang}"]`);
   if (!link) return null;
   const target = new URL(link.href).pathname;
@@ -168,8 +168,13 @@ function applyMetaDescriptions(dict: TranslationDict): void {
   });
 }
 
+/** BCP 47 tag for <html lang>: Norwegian is "nb" (Bokmål), matching hreflang (QA 2026-10-08, W-07). */
+export function htmlLang(lang: LanguageCode): string {
+  return lang === "no" ? "nb" : lang;
+}
+
 export function applyTranslations(dict: TranslationDict, lang: LanguageCode): void {
-  document.documentElement.lang = lang;
+  document.documentElement.lang = htmlLang(lang);
   applyTextNodes(dict);
   applyAttributes(dict);
   applyDocTitle(dict);

@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { publicAsset } from "../../lib/publicAsset";
 import { bookingAssistantNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
 import Tr from "../../components/Tr.astro";
@@ -96,6 +97,6 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("booking-ass
     </p>
   </section>
 
-  <script src="/booking-assistant.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+  <script src={publicAsset("/booking-assistant.js")} data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
   <ProductPricing productId="booking-assistant" />
 </Layout>

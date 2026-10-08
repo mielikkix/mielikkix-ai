@@ -50,5 +50,14 @@
     "HOME": "Go to the homepage",
     "AGENTS": "See our AI agents",
     "CONTACT": "Contact us"
+  },
+  "BLOG": {
+    "SEO": {
+      "TITLE": "Blogs",
+      "DESCRIPTION": "Guides and resources on AI automation for businesses of every size, from Mielikkix."
+    },
+    "HEADING": "Blogs",
+    "INTRO": "Guides and resources on AI automation for businesses of every size.",
+    "EMPTY": "No articles published yet — check back soon."
   }
 }

@@ -14,6 +14,7 @@ from ..core.plans import get_plan
 from ..models.user import User
 from ..notifications import notify_quota_warning
 from ..core.locale import business_locale
+from .chat_defaults import default_translation, lead_prompt
 
 HISTORY_LIMIT = 6
 
@@ -33,6 +34,10 @@ async def _fallback_for(db: Session, biz_settings: BusinessSettings | None, lang
         return messages[lang] or biz_settings.fallback_message
     if lang == primary or not biz_settings.fallback_message:
         return biz_settings.fallback_message
+    builtin = default_translation(biz_settings.fallback_message, lang)
+    if builtin:
+        biz_settings.fallback_messages = {**messages, lang: builtin}
+        return builtin
     try:
         provider = get_llm_provider(biz_settings.llm_provider, biz_settings.llm_model)
         translated = await provider.translate(biz_settings.fallback_message, LANGUAGE_NAMES.get(lang, lang))
@@ -182,6 +187,7 @@ async def handle_message(
         history=history,
         languages=effective_languages,
         contact_details=_contact_details(biz_settings),
+        lead_reply=lead_prompt(detected_lang),
     )
 
     ai_msg = Message(

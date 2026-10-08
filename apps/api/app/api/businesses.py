@@ -27,13 +27,12 @@ from ..services import agent_access_service, plan_service
 from ..rag.providers import get_llm_provider
 from ..rag.providers.base import LANGUAGE_NAMES
 from ..rag.pipeline import log_llm_usage
+from ..services.chat_defaults import DEFAULT_FALLBACK_MESSAGE, DEFAULT_WELCOME_MESSAGE, default_translation
 import secrets
 from fastapi import HTTPException
 
 router = APIRouter(prefix="/api/businesses", tags=["businesses"])
 
-DEFAULT_WELCOME_MESSAGE = "Hi! How can I help you today?"
-DEFAULT_FALLBACK_MESSAGE = "I'm not sure about that. Would you like to speak with our team?"
 DEFAULT_PRIMARY_COLOR = "#ff6b00"
 
 
@@ -79,9 +78,13 @@ async def _fill_missing_translations(db: Session, s: BusinessSettings) -> None:
         missing = [code for code in targets if code not in messages]
         if not missing:
             continue
-        provider = provider or get_llm_provider(s.llm_provider, s.llm_model)
         for code in missing:
+            builtin = default_translation(source_text, code)
+            if builtin:
+                messages[code] = builtin
+                continue
             target_language = LANGUAGE_NAMES.get(code, code)
+            provider = provider or get_llm_provider(s.llm_provider, s.llm_model)
             try:
                 messages[code] = await provider.translate(source_text, target_language)
                 log_llm_usage(db, s.business_id, s.llm_provider, provider, kind="translate")

@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { publicAsset } from "../lib/publicAsset";
 import PageHero from "../components/PageHero.astro";
 import en from "../assets/i18n/en/demo.json";
 
@@ -196,7 +197,7 @@ const productIds = ["chat-widget", "voice-receptionist", "booking-assistant", "s
   </section>
 
   <script
-    src="/demo-form.js"
+    src={publicAsset("/demo-form.js")}
     data-api-url={import.meta.env.PUBLIC_API_URL}
     data-business-id={import.meta.env.PUBLIC_MIELIKKIX_BUSINESS_ID}
     defer

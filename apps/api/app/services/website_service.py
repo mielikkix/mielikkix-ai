@@ -13,6 +13,10 @@ from ..models.website import BusinessWebsite
 
 logger = logging.getLogger(__name__)
 
+# Shown as-is in English and translated by the dashboard (PlanPage.tsx matches
+# this exact text), so change both together.
+WIDGET_DETECTED_LABEL = "Detected from your chat widget"
+
 # Never auto-registered: local development, and our own dashboard (its widget preview).
 _IGNORED_HOSTS = {"localhost", "127.0.0.1", "::1", "app.mielikkix.ai"}
 
@@ -51,4 +55,4 @@ def register_from_origin(db: Session, business: Business, origin: Optional[str])
     if limit is not None and count >= limit:
         logger.info("widget_site_over_limit business_id=%s domain=%s", business.id, domain)
         return
-    db.add(BusinessWebsite(business_id=business.id, domain=domain, label="Detected from your chat widget"))
+    db.add(BusinessWebsite(business_id=business.id, domain=domain, label=WIDGET_DETECTED_LABEL))

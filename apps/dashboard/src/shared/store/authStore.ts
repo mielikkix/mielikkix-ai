@@ -50,11 +50,23 @@ interface RegisterData {
  */
 async function syncLocale(user: User): Promise<User> {
   const { locale, chosen, setLocale } = useLocaleStore.getState()
+  // A language clicked while the session check was still loading is the
+  // newest choice: keep it and save it, rather than letting the account's
+  // older one undo the click (QA 2026-10-08, A-01).
+  if (pickedWhileChecking) {
+    pickedWhileChecking = false
+    if (user.locale !== locale) return savePreference(user, locale)
+    return user
+  }
   if (isLocale(user.locale)) {
     if (user.locale !== locale) setLocale(user.locale)
     return user
   }
   if (!chosen) return user
+  return savePreference(user, locale)
+}
+
+async function savePreference(user: User, locale: Locale): Promise<User> {
   try {
     const { data } = await api.patch('/auth/me/preferences', { locale })
     return data
@@ -62,6 +74,9 @@ async function syncLocale(user: User): Promise<User> {
     return user
   }
 }
+
+// Set by changeLocale() before /auth/me has answered; read by syncLocale().
+let pickedWhileChecking = false
 
 // The session lives in an httpOnly cookie set by the backend (not
 // localStorage — a cookie that JS can't read can't be stolen by an XSS
@@ -75,6 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await api.get('/auth/me')
       set({ user: await syncLocale(data), initialized: true })
     } catch {
+      pickedWhileChecking = false
       set({ user: null, initialized: true })
     }
   },
@@ -104,6 +120,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   changeLocale: async (locale) => {
     useLocaleStore.getState().setLocale(locale, { chosen: true })
+    if (!get().initialized) pickedWhileChecking = true
     if (!get().user) return
     try {
       const { data } = await api.patch('/auth/me/preferences', { locale })

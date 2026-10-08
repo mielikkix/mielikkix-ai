@@ -12,26 +12,32 @@
 import Layout from "../../layouts/Layout.astro";
 import BlogPostCard from "../../components/BlogPostCard.astro";
 import { fetchPublishedArticles } from "../../lib/articles";
+import en from "../../assets/i18n/en/company.json";
 
 const articles = await fetchPublishedArticles();
+// The index has a Norwegian copy at /no/blog/ (QA 2026-10-08, W-04); the
+// articles themselves are English-only and say so there.
+const b = en.BLOG;
 ---
 
 <Layout
-  title="Blogs"
-  description="Guides and resources on AI automation for businesses of every size, from Mielikkix."
+  title={b.SEO.TITLE}
+  description={b.SEO.DESCRIPTION}
   path="/blog/"
+  page="company"
+  titleKey="BLOG.SEO.TITLE"
+  descriptionKey="BLOG.SEO.DESCRIPTION"
 >
   <section class="mx-auto max-w-[1440px] px-6 py-16">
     <div class="mx-auto max-w-2xl text-center">
-      <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">Blogs</h1>
-      <p class="mt-4 text-slate-500">
-        Guides and resources on AI automation for businesses of every size.
-      </p>
+      <h1 class="font-display text-3xl font-extrabold text-slate-900 sm:text-4xl" data-i18n="BLOG.HEADING">{b.HEADING}</h1>
+      <p class="mt-4 text-slate-500" data-i18n="BLOG.INTRO">{b.INTRO}</p>
+      <p class="i18n-no mt-2 text-sm text-slate-400" lang="nb">Artiklene er foreløpig bare på engelsk.</p>
     </div>
 
     {
       articles.length === 0 ? (
-        <p class="mt-16 text-center text-slate-400">No articles published yet — check back soon.</p>
+        <p class="mt-16 text-center text-slate-400" data-i18n="BLOG.EMPTY">{b.EMPTY}</p>
       ) : (
         <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {articles.map((article) => (

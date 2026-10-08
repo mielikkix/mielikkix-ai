@@ -60,6 +60,7 @@ export const plan: DeepPartial<typeof en.plan> = {
     domainPlaceholder: 'dittdomene.no',
     domainLabel: 'Domenet til nettstedet',
     labelPlaceholder: 'Etikett (valgfritt)',
+    detectedFromWidget: 'Funnet via chat-widgeten din',
     labelLabel: 'Etikett',
     add: 'Legg til',
     atLimit: 'Du har nådd grensen for nettsteder i planen din. Oppgrader nedenfor for å legge til flere.',

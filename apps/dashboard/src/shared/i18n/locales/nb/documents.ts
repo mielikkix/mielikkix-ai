@@ -42,4 +42,9 @@ export const documents: DeepPartial<typeof en.documents> = {
   delete: 'Slett dokumentet',
   deleteConfirm: 'Vil du fjerne «{name}» fra kunnskapen til chatboten?',
   empty: 'Ingen dokumenter lastet opp ennå.',
+  olderVersions: {
+    one: '{count} fil er en eldre kopi av en nyere opplasting. Begge brukes i svarene, så chatboten kan sitere den utdaterte. Slett den hvis den er utdatert.',
+    other: '{count} filer er eldre kopier av nyere opplastinger. Begge brukes i svarene, så chatboten kan sitere de utdaterte. Slett dem hvis de er utdaterte.',
+  },
+  olderVersionOf: 'Eldre versjon av {name}',
 }

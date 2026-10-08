@@ -50,5 +50,14 @@
     "HOME": "Gå til forsiden",
     "AGENTS": "Se AI-agentene våre",
     "CONTACT": "Kontakt oss"
+  },
+  "BLOG": {
+    "SEO": {
+      "TITLE": "Blogg",
+      "DESCRIPTION": "Guider og ressurser om AI-automatisering for bedrifter i alle størrelser, fra Mielikkix."
+    },
+    "HEADING": "Blogg",
+    "INTRO": "Guider og ressurser om AI-automatisering for bedrifter i alle størrelser.",
+    "EMPTY": "Ingen artikler publisert ennå — kom tilbake snart."
   }
 }

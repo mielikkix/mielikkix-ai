@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { publicAsset } from "../lib/publicAsset";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import ConsentBanner from "../components/ConsentBanner.astro";
@@ -172,7 +173,7 @@ const structuredData = {
       bootstrap (at the end of <body>) applies it, avoiding an English flash.
       External file (not is:inline) so it isn't blocked by the script-src CSP.
     -->
-    <script is:inline src="/i18n-guard.js"></script>
+    <script is:inline src={publicAsset("/i18n-guard.js")}></script>
 
     <title data-i18n-doc-title={titleKey}>{fullTitle}</title>
     <meta name="description" content={description} data-i18n-meta-desc={descriptionKey} />
@@ -229,7 +230,7 @@ const structuredData = {
       (with its own separate support-triage.js embed), the same pattern
       /demo/voice-receptionist and /demo/booking-assistant already use.
     -->
-    <script is:inline src="/widget-common.js"></script>
+    <script is:inline src={publicAsset("/widget-common.js")}></script>
     <!-- From env (not hard-coded) so a local build can load the local widget against a local
          API: PUBLIC_WIDGET_URL defaults to production, and .env.production's
          PUBLIC_MIELIKKIX_BUSINESS_ID is the production business. -->

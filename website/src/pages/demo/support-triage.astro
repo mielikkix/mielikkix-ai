@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { publicAsset } from "../../lib/publicAsset";
 import { supportTriageNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
 import Tr from "../../components/Tr.astro";
@@ -100,6 +101,6 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("support-tri
     </div>
   </section>
 
-  <script src="/support-triage.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+  <script src={publicAsset("/support-triage.js")} data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
   <ProductPricing productId="support-triage" />
 </Layout>

@@ -229,3 +229,9 @@ export const errors = {
     notFound: "It couldn't be found. It may have been deleted.",
   },
 }
+
+export const notFound = {
+  title: 'Page not found',
+  text: 'This page does not exist or has moved.',
+  backToOverview: 'Back to Overview',
+}

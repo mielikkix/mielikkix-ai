@@ -1,5 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { publicAsset } from "../lib/publicAsset";
 import BentoCard from "../components/BentoCard.astro";
 import CTASection from "../components/CTASection.astro";
 import Bi from "../components/pricing/Bi.astro";
@@ -152,7 +153,7 @@ const recentArticles = (await fetchPublishedArticles()).slice(0, 3);
         data-i18n-attr="aria-label:FEATURES_SECTION.VIDEO_ALT"
       />
     </div>
-    <script src="/reduced-motion-video.js" data-video-id="dashboard-demo-video" defer></script>
+    <script src={publicAsset("/reduced-motion-video.js")} data-video-id="dashboard-demo-video" defer></script>
   </section>
 
   <!-- Audience segments -->

@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { publicAsset } from "../../lib/publicAsset";
 import PageHero from "../../components/PageHero.astro";
 import Tr from "../../components/Tr.astro";
 
@@ -133,5 +134,5 @@ import Tr from "../../components/Tr.astro";
     </p>
   </section>
 
-  <script src="/whatsapp-concierge.js" defer></script>
+  <script src={publicAsset("/whatsapp-concierge.js")} defer></script>
 </Layout>

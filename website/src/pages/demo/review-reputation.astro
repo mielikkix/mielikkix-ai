@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { publicAsset } from "../../lib/publicAsset";
 import { reviewReputationNode } from "../../lib/offeringSchema";
 import PageHero from "../../components/PageHero.astro";
 import FromPrice from "../../components/pricing/FromPrice.astro";
@@ -156,6 +157,6 @@ const fromPrice = `Plans from ${formatNok(lowestPaidTier(getProduct("review-repu
     <p class="mt-4 text-center text-xs text-slate-400" data-i18n="REVIEW.DEMO_ONLY">Demo only — responses are never published automatically.</p>
   </section>
 
-  <script src="/review-reputation.js" data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
+  <script src={publicAsset("/review-reputation.js")} data-api-url={import.meta.env.PUBLIC_API_URL} defer></script>
   <ProductPricing productId="review-reputation" />
 </Layout>

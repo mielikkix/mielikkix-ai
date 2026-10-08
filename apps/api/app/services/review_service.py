@@ -854,6 +854,12 @@ async def generate_reputation_summary(db: Session, business_id: str, days: Optio
     return result.text.strip()
 
 
+# A trend needs a few reviews on each side: one mixed review against a
+# handful of older ones read as "negative share rose from 40 % to 100 %"
+# (QA 2026-10-08, A-03).
+MIN_TREND_REVIEWS_PER_PERIOD = 3
+
+
 @dataclass
 class Trends:
     current_period_days: int
@@ -869,8 +875,8 @@ def get_trends(db: Session, business_id: str, period_days: int = 30) -> Trends:
     """Compares the current period against the immediately preceding
     period of the same length -- purely computed from stored Review rows,
     same anti-fabrication rule get_insights() follows. Returns
-    insufficient_data=True (rather than a misleading 0%/0% comparison) if
-    either period has no analyzed reviews at all.
+    insufficient_data=True (rather than a misleading comparison) if either
+    period has fewer than MIN_TREND_REVIEWS_PER_PERIOD analyzed reviews.
     """
     now = datetime.now(timezone.utc)
     current_cutoff = now - timedelta(days=period_days)
@@ -887,14 +893,17 @@ def get_trends(db: Session, business_id: str, period_days: int = 30) -> Trends:
     current = _reviews_between(current_cutoff, None)
     previous = _reviews_between(previous_cutoff, current_cutoff)
 
-    if not current or not previous:
+    if len(current) < MIN_TREND_REVIEWS_PER_PERIOD or len(previous) < MIN_TREND_REVIEWS_PER_PERIOD:
         return Trends(
             current_period_days=period_days, current_negative_pct=None, previous_negative_pct=None,
             negative_trend=None, recurring_negative_topics=[], sudden_spike=False, insufficient_data=True,
         )
 
+    # Negative only, the same count as get_insights()'s "negative" share the
+    # dashboard cards show beside this trend; mixed reviews still feed the
+    # recurring-complaint topics below.
     def _negative_pct(reviews: list[Review]) -> float:
-        negative = sum(1 for r in reviews if r.sentiment in ("negative", "mixed"))
+        negative = sum(1 for r in reviews if r.sentiment == "negative")
         return round(100 * negative / len(reviews), 1)
 
     current_pct = _negative_pct(current)

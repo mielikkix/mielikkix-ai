@@ -15,4 +15,16 @@ ErrorDocument 404 /404.html
 <IfModule mod_alias.c>
     RedirectMatch 301 ^/company/?$ /about/
     RedirectMatch 301 ^/no/company/?$ /no/about/
+    # @astrojs/sitemap writes /sitemap-index.xml (robots.txt points there); /sitemap.xml
+    # is where people and tools look first (QA 2026-10-08, W-08).
+    RedirectMatch 301 ^/sitemap\.xml$ /sitemap-index.xml
+</IfModule>
+
+# HTML is revalidated on every visit (a cheap 304 when unchanged), so a deploy's new
+# ?v= script URLs (src/lib/publicAsset.ts) reach returning visitors at once instead of
+# after the 7-day default. Old cached scripts broke every demo (QA 2026-10-08, W-01).
+<IfModule mod_headers.c>
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
 </IfModule>

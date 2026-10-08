@@ -109,6 +109,25 @@ describe('choosing a language', () => {
     expect(api.patch).toHaveBeenCalledWith('/auth/me/preferences', { locale: 'nb' })
   })
 
+  // QA 2026-10-08, A-01: a signed-in user clicked Norsk on /register while
+  // /auth/me was still loading; the answer then put the account's saved
+  // English back, so the click looked like it did nothing.
+  it('keeps a language picked while the session check is still loading, and saves it', async () => {
+    stubBrowser()
+    const { useAuthStore, useLocaleStore } = await freshModules()
+    let answerMe!: (v: unknown) => void
+    api.get.mockReturnValue(new Promise((resolve) => (answerMe = resolve)))
+    api.patch.mockResolvedValue({ data: { id: 'u1', locale: 'nb' } })
+    const checking = useAuthStore.getState().checkAuth()
+    await useAuthStore.getState().changeLocale('nb')
+    answerMe({ data: { id: 'u1', locale: 'en' } })
+    await checking
+    expect(useLocaleStore.getState().locale).toBe('nb')
+    expect(store.get('mielikkix:locale')).toBe('nb')
+    expect(api.patch).toHaveBeenCalledWith('/auth/me/preferences', { locale: 'nb' })
+    expect(useAuthStore.getState().user?.locale).toBe('nb')
+  })
+
   it('sends the sign-up page language with the registration', async () => {
     stubBrowser('?lang=no')
     const { useAuthStore } = await freshModules()

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { Menu } from 'lucide-react'
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
+import { Loader2, Menu } from 'lucide-react'
 import { LoginPage } from './dashboard/pages/LoginPage'
 import { RegisterPage } from './dashboard/pages/RegisterPage'
 import { ForgotPasswordPage } from './dashboard/pages/ForgotPasswordPage'
@@ -28,7 +28,7 @@ import { AdminArticlesPage } from './dashboard/pages/admin/AdminArticlesPage'
 import { AdminArticleFormPage } from './dashboard/pages/admin/AdminArticleFormPage'
 import { useAuthStore } from './shared/store/authStore'
 import { AccountNotices } from './dashboard/components/AccountNotices'
-import { useT } from './shared/i18n'
+import { useLocaleStore, useT } from './shared/i18n'
 import { LanguageSwitcher } from './shared/components/LanguageSwitcher'
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -68,23 +68,69 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Shown while /auth/me is answering, instead of an empty page -- on a slow
+// connection that took long enough to look like a blank screen (QA 2026-10-08, A-02).
+function SessionLoading() {
+  const { t } = useT()
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50" role="status">
+      <Loader2 size={28} className="animate-spin text-brand-600" aria-hidden="true" />
+      <span className="sr-only">{t('common.loading')}</span>
+    </div>
+  )
+}
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
   const initialized = useAuthStore((s) => s.initialized)
-  if (!initialized) return null
+  if (!initialized) return <SessionLoading />
   return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 // Catch-all for an unmatched URL (typo, a removed/renamed route, a stale
-// bookmark) -- confirmed live: this used to unconditionally redirect to
-// /login, which bounced an already-logged-in user out of their session
-// just for mistyping a dashboard URL. Same "still authenticated, send them
-// somewhere useful" reasoning as RequireAdmin's non-admin case above.
-function NotFoundRedirect() {
+// bookmark). A signed-in user gets a "Page not found" screen inside the
+// dashboard, with the menu and a way back (QA 2026-10-08, A-02) -- never a
+// bounce to /login, which used to end their session for a mistyped URL.
+function NotFound() {
   const user = useAuthStore((s) => s.user)
   const initialized = useAuthStore((s) => s.initialized)
-  if (!initialized) return null
+  const { t } = useT()
+  if (!initialized) return <SessionLoading />
+  if (!user) return <Navigate to="/login" replace />
+  return (
+    <DashboardLayout>
+      <div className="mx-auto max-w-md py-16 text-center">
+        <p className="text-5xl font-bold text-slate-300">404</p>
+        <h1 className="mt-4 text-2xl font-bold text-slate-900">{t('notFound.title')}</h1>
+        <p className="mt-2 text-slate-500">{t('notFound.text')}</p>
+        <Link
+          to="/dashboard"
+          className="brand-gradient mt-6 inline-flex rounded-xl px-4 py-2 font-semibold text-white shadow-sm shadow-brand-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+        >
+          {t('notFound.backToOverview')}
+        </Link>
+      </div>
+    </DashboardLayout>
+  )
+}
+
+// The bare domain: Overview when signed in, else the sign-in page.
+function HomeRedirect() {
+  const user = useAuthStore((s) => s.user)
+  const initialized = useAuthStore((s) => s.initialized)
+  if (!initialized) return <SessionLoading />
   return <Navigate to={user ? '/dashboard' : '/login'} replace />
+}
+
+// /no/<path> is how mielikkix.ai spells Norwegian, so people try it here too
+// (QA 2026-10-08, A-01: /no/register was a blank page). Switch to Norsk and
+// open the same page without the prefix.
+function NorwegianPrefix() {
+  const { pathname, search, hash } = useLocation()
+  const setLocale = useLocaleStore((s) => s.setLocale)
+  useEffect(() => setLocale('nb', { chosen: true }), [setLocale])
+  const rest = pathname.replace(/^\/no(?=\/|$)/, '') || '/login'
+  return <Navigate to={rest + search + hash} replace />
 }
 
 // Platform-operator-only area (see files/ARCHITECTURE.md §2.7) -- gated by
@@ -95,7 +141,7 @@ function NotFoundRedirect() {
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user)
   const initialized = useAuthStore((s) => s.initialized)
-  if (!initialized) return null
+  if (!initialized) return <SessionLoading />
   if (!user) return <Navigate to="/login" replace />
   if (!user.is_platform_admin) return <Navigate to="/dashboard" replace />
   return <>{children}</>
@@ -280,7 +326,10 @@ export function App() {
           </RequireAdmin>
         }
       />
-      <Route path="*" element={<NotFoundRedirect />} />
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/no/*" element={<NorwegianPrefix />} />
+      <Route path="/no" element={<NorwegianPrefix />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

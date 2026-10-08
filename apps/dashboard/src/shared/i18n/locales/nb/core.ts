@@ -231,3 +231,9 @@ export const errors: DeepPartial<typeof en.errors> = {
     notFound: 'Fant det ikke. Det kan ha blitt slettet.',
   },
 }
+
+export const notFound: DeepPartial<typeof en.notFound> = {
+  title: 'Fant ikke siden',
+  text: 'Denne siden finnes ikke, eller den er flyttet.',
+  backToOverview: 'Tilbake til oversikten',
+}

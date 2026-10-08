@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../shared/api/client'
 import { Card } from '../../shared/components/Card'
@@ -6,9 +6,10 @@ import { Button } from '../../shared/components/Button'
 import { Input } from '../../shared/components/Input'
 import { UsageMeter } from '../../shared/components/UsageMeter'
 import { usePlan } from '../../shared/hooks/usePlan'
-import { Upload, Trash2, FileText, Link2, Globe, Loader2, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
+import { Upload, Trash2, FileText, Link2, Globe, Loader2, CheckCircle, AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react'
 import { t as translateNow, useT, type MessageKey } from '../../shared/i18n'
 import { apiErrorMessage } from '../../shared/i18n/apiError'
+import { olderVersions } from './documentVersions'
 
 interface Doc {
   id: string
@@ -76,6 +77,7 @@ export function DocumentsPage() {
   const { data: plan } = usePlan()
   const docLimit = plan?.limits.max_document_uploads ?? null
   const atDocLimit = docLimit !== null && docs.length >= docLimit
+  const older = useMemo(() => olderVersions(docs), [docs])
 
   const uploadMut = useMutation({
     mutationFn: (file: File) => {
@@ -215,6 +217,12 @@ export function DocumentsPage() {
       </Card>
 
       <div className="space-y-3">
+        {older.size > 0 && (
+          <div role="status" className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <span>{t('documents.olderVersions', { count: older.size })}</span>
+          </div>
+        )}
         {docs.map((doc) => {
           const isPage = doc.file_type === 'url'
           const size = textSize(doc.char_count, formatNumber)
@@ -236,6 +244,11 @@ export function DocumentsPage() {
                       <span>· {t('documents.added', { date: formatDate(doc.created_at) })}</span>
                       {size && <span>· {size}</span>}
                     </div>
+                    {older.has(doc.id) && (
+                      <p className="mt-1 flex items-center gap-1 text-sm font-medium text-amber-700">
+                        <AlertTriangle size={13} aria-hidden="true" /> {t('documents.olderVersionOf', { name: older.get(doc.id)! })}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-1">

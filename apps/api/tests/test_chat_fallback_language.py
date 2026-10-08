@@ -81,7 +81,8 @@ def test_opening_settings_fills_missing_translations_once(client, business, db_s
     from app.api import businesses
 
     s = _settings(db_session, business["business_id"])
-    s.languages = ["en", "no"]
+    # German: Norwegian defaults are written in, not machine-translated (QA 2026-10-08).
+    s.languages = ["en", "de"]
     s.welcome_messages = {}
     s.fallback_messages = {}
     db_session.commit()
@@ -97,7 +98,7 @@ def test_opening_settings_fills_missing_translations_once(client, business, db_s
     first = client.get("/api/businesses/me/settings", headers=business["headers"]).json()
     second = client.get("/api/businesses/me/settings", headers=business["headers"]).json()
 
-    assert first["welcome_messages"]["no"].startswith("[Norwegian]")
-    assert first["fallback_messages"]["no"].startswith("[Norwegian]")
+    assert first["welcome_messages"]["de"].startswith("[German]")
+    assert first["fallback_messages"]["de"].startswith("[German]")
     assert second["welcome_messages"] == first["welcome_messages"]
-    assert calls == ["Norwegian", "Norwegian"]  # one per text, never repeated
+    assert calls == ["German", "German"]  # one per text, never repeated

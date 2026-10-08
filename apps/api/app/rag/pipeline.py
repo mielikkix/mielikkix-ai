@@ -103,6 +103,7 @@ async def run_rag(
     history: Optional[List[Dict[str, str]]] = None,
     languages: Optional[List[str]] = None,
     contact_details: Optional[str] = None,
+    lead_reply: Optional[str] = None,
 ) -> Tuple[str, str, float]:
     history = history or []
     search_query = _build_contextual_query(history, message)
@@ -128,6 +129,10 @@ async def run_rag(
     context = "\n\n".join(context_parts)
 
     if not context.strip():
+        # Someone who wants to buy or be contacted gets an invitation to the
+        # lead form shown under the reply, not "I'm not sure" (QA 2026-10-08, W-06).
+        if intent == "lead" and lead_reply:
+            return (lead_reply, intent, 0.0)
         default_fallback = "I don't have specific information about that right now. Would you like me to connect you with our team?"
         return (fallback_message or default_fallback, intent, 0.0)
 

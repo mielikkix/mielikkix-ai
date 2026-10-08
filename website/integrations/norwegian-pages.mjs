@@ -98,7 +98,8 @@ export function toNorwegian(html, { dict, twins, site, route }) {
   let out = html.replace(TAG_RE, (tag, name, attrs, selfClose) => {
     let a = attrs;
     const lower = name.toLowerCase();
-    if (lower === "html") a = setAttr(a, "lang", "no");
+    // "nb" (Bokmål), the same tag as hreflang -- QA 2026-10-08, W-07.
+    if (lower === "html") a = setAttr(a, "lang", "nb");
 
     const spec = attr(a, "data-i18n-attr");
     if (spec) {
